@@ -25,7 +25,10 @@ async function getMutationQueueKey(env: ExecutionEnv, path: string): Promise<str
 	throw canonicalPath.error;
 }
 
-/** Serialize file mutations targeting the same environment and canonical path. */
+/**
+ * Serialize file mutations targeting the same environment and canonical path.
+ * 将针对同一执行环境与同一规范路径的文件修改操作串行化。
+ */
 export async function withFileMutationQueue<T>(env: ExecutionEnv, path: string, fn: () => Promise<T>): Promise<T> {
 	const state = getState(env);
 	const registration = state.registration.then(async () => {

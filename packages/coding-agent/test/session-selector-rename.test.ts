@@ -26,6 +26,7 @@ function makeSession(overrides: Partial<SessionInfo> & { id: string }): SessionI
 }
 
 // Kitty keyboard protocol encoding for Ctrl+R
+// Ctrl+R 在 Kitty 键盘协议下的编码
 const CTRL_R = "\x1b[114;5u";
 
 describe("session selector rename", () => {
@@ -35,6 +36,7 @@ describe("session selector rename", () => {
 
 	beforeEach(() => {
 		// Ensure test isolation: keybindings are a global singleton
+		// 确保测试隔离：快捷键绑定（keybindings）是全局单例
 		setKeybindings(new KeybindingsManager());
 	});
 
@@ -96,11 +98,13 @@ describe("session selector rename", () => {
 		await flushPromises();
 
 		// Rename mode layout
+		// 重命名模式下的布局
 		const output = selector.render(120).join("\n");
 		expect(output).toContain("Rename Session");
 		expect(output).not.toContain("Resume Session");
 
 		// Type and submit
+		// 输入内容并提交
 		selector.handleInput("X");
 		selector.handleInput("\r");
 		await flushPromises();

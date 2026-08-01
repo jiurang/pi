@@ -59,24 +59,26 @@ type LegacyEditToolInput = EditToolInput & {
 };
 
 export interface EditToolDetails {
-	/** Display-oriented diff of the changes made */
+	/** Display-oriented diff of the changes made 面向展示的变更差异（diff） */
 	diff: string;
-	/** Standard unified patch of the changes made */
+	/** Standard unified patch of the changes made 变更的标准统一格式补丁（unified patch） */
 	patch: string;
-	/** Line number of the first change in the new file (for editor navigation) */
+	/** Line number of the first change in the new file (for editor navigation) 新文件中第一处变更的行号（用于编辑器跳转定位） */
 	firstChangedLine?: number;
 }
 
 /**
  * Pluggable operations for the edit tool.
+ * edit 工具的可插拔操作集。
  * Override these to delegate file editing to remote systems (for example SSH).
+ * 覆写这些操作可将文件编辑委托给远程系统（例如通过 SSH）。
  */
 export interface EditOperations {
-	/** Read file contents as a Buffer */
+	/** Read file contents as a Buffer 以 Buffer 形式读取文件内容 */
 	readFile: (absolutePath: string) => Promise<Buffer>;
-	/** Write content to a file */
+	/** Write content to a file 将内容写入文件 */
 	writeFile: (absolutePath: string, content: string) => Promise<void>;
-	/** Check if file is readable and writable (throw if not) */
+	/** Check if file is readable and writable (throw if not) 检查文件是否可读可写（不可则抛出异常） */
 	access: (absolutePath: string) => Promise<void>;
 }
 
@@ -87,7 +89,7 @@ const defaultEditOperations: EditOperations = {
 };
 
 export interface EditToolOptions {
-	/** Custom operations for file editing. Default: local filesystem */
+	/** Custom operations for file editing. 用于文件编辑的自定义操作。 Default: local filesystem 默认值：本地文件系统 */
 	operations?: EditOperations;
 }
 
@@ -99,6 +101,7 @@ function prepareEditArguments(input: unknown): EditToolInput {
 	const args = input as Record<string, unknown>;
 
 	// Some models (Opus 4.6, GLM-5.1) send edits as a JSON string instead of an array
+	// 某些模型（Opus 4.6、GLM-5.1）会把 edits 作为 JSON 字符串发送，而不是数组
 	if (typeof args.edits === "string") {
 		try {
 			const parsed = JSON.parse(args.edits);
@@ -312,8 +315,12 @@ export function createEditToolDefinition(
 			return withFileMutationQueue(absolutePath, async () => {
 				// Do not reject from an abort event listener here: that would release the
 				// mutation queue while an in-flight filesystem operation may still finish.
+				// 不要在此处通过 abort 事件监听器直接 reject：那样会在仍有文件系统操作
+				// 正在进行时提前释放变更队列（mutation queue）。
 				// Checking signal.aborted after each await observes the same aborts while
 				// keeping the queue locked until the current operation has settled.
+				// 在每个 await 之后检查 signal.aborted 同样能感知到这些中止信号，
+				// 同时保证队列一直被锁定，直到当前操作真正结束。
 				const throwIfAborted = (): void => {
 					if (signal?.aborted) throw new Error("Operation aborted");
 				};
@@ -321,6 +328,7 @@ export function createEditToolDefinition(
 				throwIfAborted();
 
 				// Check if file exists.
+				// 检查文件是否存在。
 				try {
 					await ops.access(absolutePath);
 				} catch (error: unknown) {
@@ -332,11 +340,13 @@ export function createEditToolDefinition(
 				throwIfAborted();
 
 				// Read the file.
+				// 读取文件。
 				const buffer = await ops.readFile(absolutePath);
 				const rawContent = buffer.toString("utf-8");
 				throwIfAborted();
 
 				// Strip BOM before matching. The model will not include an invisible BOM in oldText.
+				// 匹配前先剥离 BOM。模型不会在 oldText 中包含不可见的 BOM。
 				const { bom, text: content } = stripBom(rawContent);
 				const originalEnding = detectLineEnding(content);
 				const normalizedContent = normalizeToLF(content);

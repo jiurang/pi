@@ -77,6 +77,7 @@ describe("Fireworks models", () => {
 });
 
 // --- Integration tests for Fireworks Anthropic session affinity and tool compat ---
+// --- 针对 Fireworks Anthropic 会话亲和性(session affinity)与工具兼容性的集成测试 ---
 
 interface CapturedRequest {
 	headers: IncomingMessage["headers"];
@@ -105,6 +106,7 @@ function createFireworksModel(
 		api: "anthropic-messages",
 		provider: "fireworks",
 		baseUrl: "http://127.0.0.1:0", // overridden by captureAnthropicRequest
+		// 由 captureAnthropicRequest 覆盖
 		reasoning: true,
 		input: ["text", "image"],
 		cost: { input: 0.95, output: 4, cacheRead: 0.16, cacheWrite: 0 },
@@ -121,6 +123,7 @@ function createAnthropicModel(): Model<"anthropic-messages"> {
 		api: "anthropic-messages",
 		provider: "anthropic",
 		baseUrl: "http://127.0.0.1:0", // overridden by captureAnthropicRequest
+		// 由 captureAnthropicRequest 覆盖
 		reasoning: true,
 		input: ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -169,6 +172,7 @@ async function captureAnthropicRequest(
 
 	try {
 		// Override the model's baseUrl to point to the local test server
+		// 覆盖模型的 baseUrl,使其指向本地测试服务器
 		const localModel = { ...model, baseUrl: `http://127.0.0.1:${address.port}` };
 
 		const stream = streamAnthropic(localModel, context, {
@@ -204,6 +208,7 @@ describe("Fireworks Anthropic session affinity and tool compat", () => {
 	it("sends x-session-affinity header for Fireworks models", async () => {
 		const model = createFireworksModel();
 		// Need a real port, capture will assign one
+		// 需要一个真实端口,capture 会分配一个
 		const request = await captureAnthropicRequest(model, createContext(), {
 			sessionId: "fireworks-session-1",
 		});

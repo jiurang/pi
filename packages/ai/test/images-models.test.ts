@@ -150,6 +150,7 @@ describe("ImagesModels", () => {
 		expect(ghost.errorMessage).toContain("Unknown provider: ghost");
 
 		// unconfigured (resolve -> undefined) still dispatches; provider decides what to do
+		// 未配置的情况(resolve 返回 undefined)仍会继续派发请求;由 provider 决定如何处理
 		const calls: GenerateCall[] = [];
 		models.setProvider(testProvider({ id: "p1", envVar: "MISSING", calls }));
 		const model = models.getModel("p1", "model-a")!;
@@ -180,6 +181,7 @@ describe("ImagesModels", () => {
 		expect(models.getModel("dyn", "listed")).toBeDefined();
 
 		// failures reject with ModelsError for a single provider
+		// 针对单个 provider 的失败会以 ModelsError 形式 reject
 		models.setProvider(
 			createImagesProvider({
 				id: "flaky",

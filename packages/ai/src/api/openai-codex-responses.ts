@@ -19,6 +19,7 @@ function loadNodeOs(): typeof NodeOs | null {
 }
 
 // NEVER convert to top-level runtime imports - breaks browser/Vite builds
+// 切勿改为顶层的运行时 import——那会破坏浏览器/Vite 构建
 const _os: typeof NodeOs | null = loadNodeOs();
 
 import { clampThinkingLevel } from "../models.ts";
@@ -54,6 +55,7 @@ import { buildBaseOptions } from "./simple-options.ts";
 
 // ============================================================================
 // Configuration
+// 配置
 // ============================================================================
 
 const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
@@ -63,7 +65,9 @@ const BASE_DELAY_MS = 1000;
 const DEFAULT_MAX_RETRY_DELAY_MS = 60_000;
 const DEFAULT_WEBSOCKET_CONNECT_TIMEOUT_MS = 15_000;
 // The Codex backend accepts zstd-compressed request bodies on the SSE responses
+// Codex 后端在 SSE responses 端点上接受经过 zstd 压缩的请求体
 // endpoint (the same endpoint the official Codex client compresses against).
+//（官方 Codex 客户端也是对该端点做压缩的）。
 const REQUEST_COMPRESSION_ZSTD_LEVEL = 3;
 const CODEX_TOOL_CALL_PROVIDERS = new Set(["openai", "openai-codex", "opencode"]);
 const WEBSOCKET_MESSAGE_TOO_BIG_CLOSE_CODE = 1009;
@@ -81,6 +85,7 @@ const CODEX_RESPONSE_STATUSES = new Set<CodexResponseStatus>([
 
 // ============================================================================
 // Types
+// 类型定义
 // ============================================================================
 
 export interface OpenAICodexResponsesOptions extends StreamOptions {
@@ -125,6 +130,7 @@ function assertSuccessfulOutput(output: AssistantMessage): asserts output is Suc
 
 // ============================================================================
 // Retry Helpers
+// 重试辅助函数
 // ============================================================================
 
 function isTerminalRateLimitError(errorText: string): boolean {
@@ -206,6 +212,7 @@ function normalizeTimeoutMs(value: number | undefined): number | undefined {
 
 // ============================================================================
 // Request Compression
+// 请求压缩
 // ============================================================================
 
 type ProcessWithBuiltinModule = typeof process & {
@@ -220,8 +227,11 @@ function loadNodeZlib(): typeof NodeZlib | null {
 }
 
 // Returns the zstd-compressed body bytes, or null when compression is
+// 返回经 zstd 压缩后的请求体字节；当压缩不可用时（浏览器/Vite 构建）返回 null。
 // unavailable (browser/Vite builds). Callers fall back to sending the
+// 返回 null 时，调用方会退回到发送
 // uncompressed JSON when this returns null.
+// 未压缩的 JSON。
 function compressRequestBodyZstd(bodyJson: string): Uint8Array | null {
 	const zlib = loadNodeZlib();
 	if (!zlib || typeof zlib.zstdCompressSync !== "function") {
@@ -239,6 +249,7 @@ function compressRequestBodyZstd(bodyJson: string): Uint8Array | null {
 
 // ============================================================================
 // Main Stream Function
+// 主流式（stream）函数
 // ============================================================================
 
 export const stream: StreamFunction<"openai-codex-responses", OpenAICodexResponsesOptions> = (
@@ -379,8 +390,11 @@ export const stream: StreamFunction<"openai-codex-responses", OpenAICodexRespons
 			}
 
 			// Compress the request body once for the SSE path. The Codex backend
+			// 为 SSE 路径将请求体压缩一次。Codex 后端会解码
 			// decodes Content-Encoding: zstd; the WebSocket transport above sends the
+			// Content-Encoding: zstd；而上面的 WebSocket 传输方式发送的是
 			// uncompressed JSON frame, matching the official Codex client.
+			// 未压缩的 JSON 帧，与官方 Codex 客户端保持一致。
 			const compressedBody = compressRequestBodyZstd(bodyJson);
 			if (compressedBody) {
 				sseHeaders.set("content-encoding", "zstd");
@@ -388,6 +402,7 @@ export const stream: StreamFunction<"openai-codex-responses", OpenAICodexRespons
 			const sseBody: Uint8Array | string = compressedBody ?? bodyJson;
 
 			// Fetch with retry logic for rate limits and transient errors
+			// 发起请求，并针对限流和瞬时错误加入重试逻辑
 			let response: Response | undefined;
 			let lastError: Error | undefined;
 			const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -438,6 +453,7 @@ export const stream: StreamFunction<"openai-codex-responses", OpenAICodexRespons
 					}
 
 					// Parse error for friendly message on final attempt or non-retryable error
+					// 在最后一次尝试或遇到不可重试的错误时，解析错误以生成友好的提示信息
 					const fakeResponse = new Response(errorText, {
 						status: response.status,
 						statusText: response.statusText,
@@ -452,6 +468,7 @@ export const stream: StreamFunction<"openai-codex-responses", OpenAICodexRespons
 					}
 					lastError = error instanceof Error ? error : new Error(String(error));
 					// Network errors are retryable
+					// 网络错误是可以重试的
 					if (
 						attempt < maxRetries &&
 						!(lastError instanceof RetryDelayExceededError) &&
@@ -489,6 +506,7 @@ export const stream: StreamFunction<"openai-codex-responses", OpenAICodexRespons
 		} catch (error) {
 			for (const block of output.content) {
 				// Streaming scratch buffers are only used during parsing; never persist them.
+				// 流式解析用的临时缓冲区仅在解析期间使用，绝不能持久化。
 				delete (block as { partialJson?: string }).partialJson;
 				delete (block as { customInput?: unknown }).customInput;
 			}
@@ -524,6 +542,7 @@ export const streamSimple: StreamFunction<"openai-codex-responses", SimpleStream
 
 // ============================================================================
 // Request Building
+// 请求构建
 // ============================================================================
 
 function buildRequestBody(
@@ -651,6 +670,7 @@ function resolveCodexWebSocketUrl(baseUrl?: string): string {
 
 // ============================================================================
 // Response Processing
+// 响应处理
 // ============================================================================
 
 async function processStream(
@@ -758,6 +778,7 @@ function normalizeCodexStatus(status: unknown): CodexResponseStatus | undefined 
 
 // ============================================================================
 // SSE Parsing
+// SSE 解析
 // ============================================================================
 
 async function* parseSSE(response: Response, signal?: AbortSignal): AsyncGenerator<Record<string, unknown>> {
@@ -821,6 +842,7 @@ async function* parseSSE(response: Response, signal?: AbortSignal): AsyncGenerat
 
 // ============================================================================
 // WebSocket Parsing
+// WebSocket 解析
 // ============================================================================
 
 const OPENAI_BETA_RESPONSES_WEBSOCKETS = "responses_websockets=2026-02-06";
@@ -957,7 +979,9 @@ async function getWebSocketConstructor(env?: ProviderEnv): Promise<WebSocketCons
 	if (!env && _cachedWebsocket) return _cachedWebsocket;
 
 	// bun doesn't respect http proxy envs, ref: https://github.com/oven-sh/bun/issues/15489
+	// bun 不会遵循 http 代理相关的环境变量，参见：https://github.com/oven-sh/bun/issues/15489
 	// TODO: remove this when bun supports proxy envs in websocket.
+	// TODO: 当 bun 在 websocket 中支持代理环境变量后移除这段代码。
 	if (typeof process !== "undefined" && process.versions?.bun) {
 		const WebSocketWithProxy = class extends WebSocket {
 			constructor(url: string | URL, options?: string | string[] | Record<string, unknown>) {
@@ -1008,6 +1032,7 @@ function getWebSocketReadyState(socket: WebSocketLike): number | undefined {
 function isWebSocketReusable(socket: WebSocketLike): boolean {
 	const readyState = getWebSocketReadyState(socket);
 	// If readyState is unavailable, assume the runtime keeps it open/reusable.
+	// 如果拿不到 readyState，则假定运行时保持连接为打开/可复用状态。
 	return readyState === undefined || readyState === 1;
 }
 
@@ -1464,7 +1489,9 @@ async function processWebSocketStream(
 	let keepConnection = true;
 	const useCachedContext = options?.transport === "websocket-cached" || options?.transport === "auto";
 	// ChatGPT Codex Responses rejects `store: true` ("Store must be set to false").
+	// ChatGPT Codex Responses 会拒绝 `store: true`（提示 "Store must be set to false"）。
 	// WebSocket continuation still works via connection-scoped previous_response_id state.
+	// WebSocket 续接仍可通过连接作用域内的 previous_response_id 状态正常工作。
 	const fullBody = body;
 	const requestBody = useCachedContext && entry ? buildCachedWebSocketRequestBody(entry, fullBody) : fullBody;
 	const stats = cacheSessionId ? getOrCreateWebSocketDebugStats(cacheSessionId) : undefined;
@@ -1528,6 +1555,7 @@ async function processWebSocketStream(
 
 // ============================================================================
 // Error Handling
+// 错误处理
 // ============================================================================
 
 async function parseErrorResponse(response: Response): Promise<{ message: string; friendlyMessage?: string }> {
@@ -1559,6 +1587,7 @@ async function parseErrorResponse(response: Response): Promise<{ message: string
 
 // ============================================================================
 // Auth & Headers
+// 认证与请求头
 // ============================================================================
 
 function extractAccountId(token: string): string {

@@ -7,6 +7,7 @@ import { truncateToWidth } from "../src/utils.ts";
 
 /**
  * Simple key code logger component
+ * 简易的按键码日志组件
  */
 class KeyLogger implements Component {
 	private log: string[] = [];
@@ -21,6 +22,7 @@ class KeyLogger implements Component {
 
 	handleInput(data: string): void {
 		// Handle Ctrl+C (raw or Kitty protocol) for exit
+		// 处理 Ctrl+C（原始序列或 Kitty 协议）以退出程序
 		if (matchesKey(data, "ctrl+c")) {
 			this.tui.stop();
 			console.log("\nExiting...");
@@ -28,6 +30,7 @@ class KeyLogger implements Component {
 		}
 
 		// Convert to various representations
+		// 转换为多种表示形式
 		const hex = Buffer.from(data).toString("hex");
 		const charCodes = Array.from(data)
 			.map((c) => c.charCodeAt(0))
@@ -44,16 +47,19 @@ class KeyLogger implements Component {
 		this.log.push(logLine);
 
 		// Keep only last N lines
+		// 仅保留最后 N 行
 		if (this.log.length > this.maxLines) {
 			this.log.shift();
 		}
 
 		// Request re-render to show the new log entry
+		// 请求重新渲染以显示新的日志条目
 		this.tui.requestRender();
 	}
 
 	invalidate(): void {
 		// No cached state to invalidate currently
+		// 目前没有需要失效（invalidate）的缓存状态
 	}
 
 	private protocolName(): string {
@@ -70,6 +76,7 @@ class KeyLogger implements Component {
 		const lines: string[] = [];
 
 		// Title
+		// 标题
 		lines.push("=".repeat(width));
 		lines.push(this.fit("Key Code Tester - Press keys to see their codes (Ctrl+C to exit)", width));
 		lines.push(this.fit(`Protocol: ${this.protocolName()}`, width));
@@ -77,17 +84,20 @@ class KeyLogger implements Component {
 		lines.push("");
 
 		// Log entries
+		// 日志条目
 		for (const entry of this.log) {
 			lines.push(this.fit(entry, width));
 		}
 
 		// Fill remaining space
+		// 填充剩余空间
 		const remaining = Math.max(0, 25 - lines.length);
 		for (let i = 0; i < remaining; i++) {
 			lines.push("".padEnd(width));
 		}
 
 		// Footer
+		// 页脚
 		lines.push("=".repeat(width));
 		lines.push(this.fit("Test these:", width));
 		lines.push(this.fit("  - Shift + Enter (should show: \\x1b[13;2u with Kitty protocol)", width));
@@ -102,6 +112,7 @@ class KeyLogger implements Component {
 }
 
 // Set up TUI
+// 初始化 TUI
 const terminal = new ProcessTerminal();
 const tui: TUI = new TuiMainScreen(terminal);
 const logger = new KeyLogger(tui, terminal);
@@ -110,6 +121,7 @@ tui.addChild(logger);
 tui.setFocus(logger);
 
 // Handle Ctrl+C for clean exit (SIGINT still works for raw mode)
+// 处理 Ctrl+C 以实现干净退出（在原始模式 raw mode 下 SIGINT 依然有效）
 process.on("SIGINT", () => {
 	tui.stop();
 	console.log("\nExiting...");
@@ -117,8 +129,11 @@ process.on("SIGINT", () => {
 });
 
 // Start the TUI
+// 启动 TUI
 tui.start();
 
 // Protocol negotiation completes asynchronously after the first render.
+// 协议协商会在首次渲染之后异步完成。
 // Refresh briefly/continuously so the displayed protocol state is not stale.
+// 短周期持续刷新，以确保显示的协议状态不会过期。
 setInterval(() => tui.requestRender(), 100);

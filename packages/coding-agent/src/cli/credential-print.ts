@@ -29,7 +29,10 @@ export function printCredentialPrintHelp(): void {
 Prints the configured credential alone on stdout. Provider inference uses configured credentials; specify --provider to select explicitly. Bearer tokens have a 30-minute minimum expiry by default. --min-expiry accepts ms, s, m, or h (for example, 30m).`);
 }
 
-/** Parse the small, extensible `pi auth` command surface before normal startup. */
+/**
+ * Parse the small, extensible `pi auth` command surface before normal startup.
+ * 在常规启动流程之前，解析这一小而可扩展的 `pi auth` 命令集。
+ */
 export function parseCredentialPrintCommand(args: string[]): CredentialPrintCommand | undefined {
 	if (args[0] !== "auth") return undefined;
 
@@ -77,9 +80,12 @@ export function validateCredentialPrintArgs(args: Args): void {
 
 /**
  * Resolve one request credential for a specific provider/model pair.
+ * 为特定的 provider/model 组合解析出一份请求凭据(credential)。
  *
  * This intentionally calls ModelRuntime.getAuth(), which refreshes and persists
  * OAuth credentials with less than five minutes remaining through the normal request-auth path.
+ * 这里有意调用 ModelRuntime.getAuth()：对于剩余有效期不足五分钟的 OAuth 凭据，
+ * 它会走常规的请求认证(request-auth)路径进行刷新并持久化。
  */
 export async function resolveCredentialForPrint(
 	args: Args,

@@ -21,6 +21,9 @@ export async function editInExternalEditor(options: ExternalEditorOptions): Prom
 		// Do not use spawnSync here. On Windows, synchronous child_process calls can keep
 		// Node/libuv's console input read active after the parent pauses stdin, racing
 		// vim/nvim for the console input buffer until Ctrl+C cancels the pending read.
+		// 此处不要使用 spawnSync。在 Windows 上，即便父进程已暂停 stdin，同步的 child_process
+		// 调用仍可能让 Node/libuv 的控制台输入读取保持活跃，从而与 vim/nvim 争抢控制台输入缓冲区，
+		// 直到 Ctrl+C 取消这次挂起的读取。
 		const exitCode = await new Promise<number | null>((resolve) => {
 			const child = spawn(editor, [...editorArgs, filePath], {
 				stdio: "inherit",
@@ -40,6 +43,7 @@ export async function editInExternalEditor(options: ExternalEditorOptions): Prom
 			rmSync(directory, { recursive: true, force: true });
 		} catch {
 			// Cleanup is best effort.
+			// 清理操作尽力而为（best effort），失败可忽略。
 		}
 	}
 }

@@ -60,7 +60,7 @@ describe("CombinedAutocompleteProvider", () => {
 			const provider = new CombinedAutocompleteProvider([], "/tmp");
 			const lines = ["hey /"];
 			const cursorLine = 0;
-			const cursorCol = 5; // After the "/"
+			const cursorCol = 5; // After the "/" | 在 "/" 之后
 
 			const result = await getSuggestions(provider, lines, cursorLine, cursorCol, true);
 
@@ -74,13 +74,15 @@ describe("CombinedAutocompleteProvider", () => {
 			const provider = new CombinedAutocompleteProvider([], "/tmp");
 			const lines = ["/A"];
 			const cursorLine = 0;
-			const cursorCol = 2; // After the "A"
+			const cursorCol = 2; // After the "A" | 在 "A" 之后
 
 			const result = await getSuggestions(provider, lines, cursorLine, cursorCol, true);
 
 			console.log("Result:", result);
 			// This might return null if /A doesn't match anything, which is fine
+			// 如果 /A 没有匹配到任何内容，这里可能返回 null，这是正常的
 			// We're mainly testing that the prefix extraction works
+			// 我们主要测试的是前缀（prefix）提取是否正常工作
 			if (result) {
 				assert.strictEqual(result.prefix, "/A", "Prefix should be '/A'");
 			}
@@ -90,7 +92,7 @@ describe("CombinedAutocompleteProvider", () => {
 			const provider = new CombinedAutocompleteProvider([], "/tmp");
 			const lines = ["/model"];
 			const cursorLine = 0;
-			const cursorCol = 6; // After "model"
+			const cursorCol = 6; // After "model" | 在 "model" 之后
 
 			const result = await getSuggestions(provider, lines, cursorLine, cursorCol, true);
 
@@ -102,7 +104,7 @@ describe("CombinedAutocompleteProvider", () => {
 			const provider = new CombinedAutocompleteProvider([], "/tmp");
 			const lines = ["/command /"];
 			const cursorLine = 0;
-			const cursorCol = 10; // After the second "/"
+			const cursorCol = 10; // After the second "/" | 在第二个 "/" 之后
 
 			const result = await getSuggestions(provider, lines, cursorLine, cursorCol, true);
 

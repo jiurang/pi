@@ -56,6 +56,7 @@ export function cleanupWindowsSelfUpdateQuarantine(packageDir: string): void {
 		rmSync(quarantineRoot, { recursive: true, force: true });
 	} catch {
 		// A previous pi process may still be exiting and holding a native addon.
+		// 之前的 pi 进程可能仍在退出过程中，并占用着某个原生插件（native addon）。
 	}
 }
 

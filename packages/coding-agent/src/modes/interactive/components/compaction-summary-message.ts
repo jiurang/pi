@@ -5,7 +5,9 @@ import { keyText } from "./keybinding-hints.ts";
 
 /**
  * Component that renders a compaction message with collapsed/expanded state.
+ * 渲染压缩（compaction）消息的组件，支持折叠/展开状态。
  * Uses same background color as custom messages for visual consistency.
+ * 使用与自定义消息相同的背景色，以保持视觉一致性。
  */
 export class CompactionSummaryMessageComponent extends Box {
 	private expanded = false;

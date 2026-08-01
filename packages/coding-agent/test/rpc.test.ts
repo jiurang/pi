@@ -10,6 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * RPC mode tests.
+ * RPC 模式相关测试。
  */
 describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_TOKEN)("RPC mode", () => {
 	let client: RpcClient;
@@ -48,16 +49,20 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Send prompt and wait for completion
+		// 发送提示词并等待执行完成
 		const events = await client.promptAndWait("Reply with just the word 'hello'");
 
 		// Should have message events
+		// 应当产生消息事件
 		const messageEndEvents = events.filter((e) => e.type === "message_end");
-		expect(messageEndEvents.length).toBeGreaterThanOrEqual(2); // user + assistant
+		expect(messageEndEvents.length).toBeGreaterThanOrEqual(2); // user + assistant 用户消息 + 助手消息
 
 		// Wait for file writes
+		// 等待文件写入完成
 		await new Promise((resolve) => setTimeout(resolve, 200));
 
 		// Verify session file
+		// 校验会话(session)文件
 		const sessionsPath = join(sessionDir, "sessions");
 		expect(existsSync(sessionsPath)).toBe(true);
 
@@ -75,9 +80,11 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 			.map((line) => JSON.parse(line));
 
 		// First entry should be session header
+		// 第一个条目应当是会话头(session header)
 		expect(entries[0].type).toBe("session");
 
 		// Should have user and assistant messages
+		// 应当同时包含用户消息和助手(assistant)消息
 		const messages = entries.filter((e: { type: string }) => e.type === "message");
 		expect(messages.length).toBeGreaterThanOrEqual(2);
 
@@ -90,17 +97,21 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// First send a prompt to have messages to compact
+		// 先发送一条提示词，以便产生可供压缩(compact)的消息
 		await client.promptAndWait("Say hello");
 
 		// Compact
+		// 执行上下文压缩
 		const result = await client.compact();
 		expect(result.summary).toBeDefined();
 		expect(result.tokensBefore).toBeGreaterThan(0);
 
 		// Wait for file writes
+		// 等待文件写入完成
 		await new Promise((resolve) => setTimeout(resolve, 200));
 
 		// Verify compaction in session file
+		// 校验会话文件中的压缩记录
 		const sessionsPath = join(sessionDir, "sessions");
 		const sessionDirs = readdirSync(sessionsPath);
 		const cwdSessionDir = join(sessionsPath, sessionDirs[0]);
@@ -129,16 +140,20 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// First send a prompt to initialize session
+		// 先发送一条提示词以初始化会话
 		await client.promptAndWait("Say hi");
 
 		// Run bash command
+		// 执行 bash 命令
 		const uniqueValue = `test-${Date.now()}`;
 		await client.bash(`echo ${uniqueValue}`);
 
 		// Wait for file writes
+		// 等待文件写入完成
 		await new Promise((resolve) => setTimeout(resolve, 200));
 
 		// Verify bash message in session
+		// 校验会话中的 bash 消息
 		const sessionsPath = join(sessionDir, "sessions");
 		const sessionDirs = readdirSync(sessionsPath);
 		const cwdSessionDir = join(sessionsPath, sessionDirs[0]);
@@ -161,15 +176,18 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Run a bash command with a unique value
+		// 执行一条带有唯一标识值的 bash 命令
 		const uniqueValue = `unique-${Date.now()}`;
 		await client.bash(`echo ${uniqueValue}`);
 
 		// Ask the LLM what the output was
+		// 向大模型(LLM)询问该命令的输出内容
 		const events = await client.promptAndWait(
 			"What was the exact output of the echo command I just ran? Reply with just the value, nothing else.",
 		);
 
 		// Find assistant's response
+		// 查找助手(assistant)的回复
 		const messageEndEvents = events.filter((e) => e.type === "message_end") as AgentEvent[];
 		const assistantMessage = messageEndEvents.find(
 			(e) => e.type === "message_end" && e.message?.role === "assistant",
@@ -185,9 +203,11 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Set thinking level
+		// 设置思考等级(thinking level)
 		await client.setThinkingLevel("high");
 
 		// Verify via state
+		// 通过状态(state)进行校验
 		const state = await client.getState();
 		expect(state.thinkingLevel).toBe("high");
 	}, 30000);
@@ -196,15 +216,18 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Get initial level
+		// 获取初始的思考等级
 		const initialState = await client.getState();
 		const initialLevel = initialState.thinkingLevel;
 
 		// Cycle
+		// 循环切换到下一个等级
 		const result = await client.cycleThinkingLevel();
 		expect(result).toBeDefined();
 		expect(result!.level).not.toBe(initialLevel);
 
 		// Verify via state
+		// 通过状态(state)进行校验
 		const newState = await client.getState();
 		expect(newState.thinkingLevel).toBe(result!.level);
 	}, 30000);
@@ -216,15 +239,18 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		expect(levels.length).toBeGreaterThan(0);
 
 		// The current level reported by get_state must be in the available list
+		// get_state 上报的当前等级必须包含在可用等级列表中
 		const state = await client.getState();
 		expect(levels).toContain(state.thinkingLevel);
 
 		// cycle_thinking_level must only ever land on levels from get_available_thinking_levels
+		// cycle_thinking_level 切换后的结果必须始终落在 get_available_thinking_levels 返回的等级范围内
 		const initialLevel = state.thinkingLevel;
 		const cycled = await client.cycleThinkingLevel();
 		if (cycled) {
 			expect(levels).toContain(cycled.level);
 			// distinct cycle step (unless only one level)
+			// 每次循环切换都应得到不同的等级(除非只有一个可用等级)
 			if (levels.length > 1) {
 				expect(cycled.level).not.toBe(initialLevel);
 			}
@@ -238,6 +264,7 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		expect(models.length).toBeGreaterThan(0);
 
 		// All models should have required fields
+		// 所有模型都应包含必需的字段
 		for (const model of models) {
 			expect(model.provider).toBeDefined();
 			expect(model.id).toBeDefined();
@@ -250,6 +277,7 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Send a prompt first
+		// 先发送一条提示词
 		await client.promptAndWait("Hello");
 
 		const stats = await client.getSessionStats();
@@ -263,16 +291,20 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Send a prompt
+		// 发送一条提示词
 		await client.promptAndWait("Hello");
 
 		// Verify messages exist
+		// 校验消息确实已存在
 		let state = await client.getState();
 		expect(state.messageCount).toBeGreaterThan(0);
 
 		// New session
+		// 新建会话
 		await client.newSession();
 
 		// Verify messages cleared
+		// 校验消息已被清空
 		state = await client.getState();
 		expect(state.messageCount).toBe(0);
 	}, 90000);
@@ -281,9 +313,11 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Send a prompt first
+		// 先发送一条提示词
 		await client.promptAndWait("Hello");
 
 		// Export
+		// 导出
 		const result = await client.exportHtml();
 		expect(result.path).toBeDefined();
 		expect(result.path.endsWith(".html")).toBe(true);
@@ -294,13 +328,16 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Initially null
+		// 初始时为空
 		let text = await client.getLastAssistantText();
 		expect(text).toBeUndefined();
 
 		// Send prompt
+		// 发送提示词
 		await client.promptAndWait("Reply with just: test123");
 
 		// Should have text now
+		// 此时应当已经有文本内容
 		text = await client.getLastAssistantText();
 		expect(text).toContain("test123");
 	}, 90000);
@@ -311,18 +348,20 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.promptAndWait("Reply with just 'ok'");
 
 		const { entries, leafId } = await client.getEntries();
-		expect(entries.length).toBeGreaterThanOrEqual(2); // user + assistant
+		expect(entries.length).toBeGreaterThanOrEqual(2); // user + assistant 用户消息 + 助手消息
 		for (const entry of entries) {
 			expect(entry.id).toBeDefined();
 		}
 		expect(leafId).toBe(entries[entries.length - 1].id);
 
 		// since cursor returns only entries strictly after the given id
+		// since 游标只返回严格位于指定 id 之后的条目
 		const since = await client.getEntries(entries[0].id);
 		expect(since.entries.map((e) => e.id)).toEqual(entries.slice(1).map((e) => e.id));
 		expect(since.leafId).toBe(leafId);
 
 		// unknown since id is an error response
+		// 传入未知的 since id 时应返回错误响应
 		await expect(client.getEntries("nonexistent-id")).rejects.toThrow("Entry not found");
 	}, 90000);
 
@@ -336,6 +375,7 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		expect(treeLeafId).toBe(leafId);
 
 		// Single root whose chain matches the entries
+		// 只有一个根节点，且其链路与条目列表一致
 		expect(tree.length).toBe(1);
 		const chainIds: string[] = [];
 		let nodes = tree;
@@ -357,6 +397,7 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 
 		const after = await client.getEntries();
 		// Append-only: pre-compaction entries are still there, in the same order
+		// 仅追加(append-only)：压缩之前的条目依然存在，且顺序保持不变
 		expect(after.entries.slice(0, before.entries.length).map((e) => e.id)).toEqual(before.entries.map((e) => e.id));
 		expect(after.entries.some((e) => e.type === "compaction")).toBe(true);
 	}, 120000);
@@ -365,23 +406,29 @@ describe.skipIf(!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_OAUTH_T
 		await client.start();
 
 		// Initially undefined
+		// 初始时为 undefined
 		let state = await client.getState();
 		expect(state.sessionName).toBeUndefined();
 
 		// Send a prompt first - session files are only written after first assistant message
+		// 先发送一条提示词 —— 会话文件只有在产生第一条助手(assistant)消息之后才会写入
 		await client.promptAndWait("Reply with just 'ok'");
 
 		// Set name
+		// 设置会话名称
 		await client.setSessionName("my-test-session");
 
 		// Verify via state
+		// 通过状态(state)进行校验
 		state = await client.getState();
 		expect(state.sessionName).toBe("my-test-session");
 
 		// Wait for file writes
+		// 等待文件写入完成
 		await new Promise((resolve) => setTimeout(resolve, 200));
 
 		// Verify session_info entry in session file
+		// 校验会话文件中的 session_info 条目
 		const sessionsPath = join(sessionDir, "sessions");
 		const sessionDirs = readdirSync(sessionsPath);
 		const cwdSessionDir = join(sessionsPath, sessionDirs[0]);

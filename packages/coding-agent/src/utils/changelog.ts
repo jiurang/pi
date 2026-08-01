@@ -106,7 +106,9 @@ export function normalizeChangelogLinks(markdown: string, version: string | Chan
 
 /**
  * Parse changelog entries from CHANGELOG.md
+ * 从 CHANGELOG.md 中解析变更日志条目。
  * Scans for ## lines and collects content until next ## or EOF
+ * 扫描以 ## 开头的行，并收集其后的内容直到下一个 ## 或文件结尾（EOF）。
  */
 export function parseChangelog(changelogPath: string): ChangelogEntry[] {
 	if (!existsSync(changelogPath)) {
@@ -123,8 +125,10 @@ export function parseChangelog(changelogPath: string): ChangelogEntry[] {
 
 		for (const line of lines) {
 			// Check if this is a version header (## [x.y.z] ...)
+			// 检查该行是否为版本标题（## [x.y.z] ...）
 			if (line.startsWith("## ")) {
 				// Save previous entry if exists
+				// 如果存在上一条记录，则先保存
 				if (currentVersion && currentLines.length > 0) {
 					entries.push({
 						...currentVersion,
@@ -133,6 +137,7 @@ export function parseChangelog(changelogPath: string): ChangelogEntry[] {
 				}
 
 				// Try to parse version from this line
+				// 尝试从该行中解析出版本号
 				const versionMatch = line.match(/##\s+\[?(\d+)\.(\d+)\.(\d+)\]?/);
 				if (versionMatch) {
 					currentVersion = {
@@ -143,16 +148,19 @@ export function parseChangelog(changelogPath: string): ChangelogEntry[] {
 					currentLines = [line];
 				} else {
 					// Reset if we can't parse version
+					// 若无法解析版本号则重置状态
 					currentVersion = null;
 					currentLines = [];
 				}
 			} else if (currentVersion) {
 				// Collect lines for current version
+				// 收集属于当前版本的行
 				currentLines.push(line);
 			}
 		}
 
 		// Save last entry
+		// 保存最后一条记录
 		if (currentVersion && currentLines.length > 0) {
 			entries.push({
 				...currentVersion,
@@ -169,6 +177,7 @@ export function parseChangelog(changelogPath: string): ChangelogEntry[] {
 
 /**
  * Compare versions. Returns: -1 if v1 < v2, 0 if v1 === v2, 1 if v1 > v2
+ * 比较版本号。返回值：v1 < v2 时返回 -1，v1 === v2 时返回 0，v1 > v2 时返回 1。
  */
 export function compareVersions(v1: ChangelogEntry, v2: ChangelogEntry): number {
 	if (v1.major !== v2.major) return v1.major - v2.major;
@@ -178,9 +187,11 @@ export function compareVersions(v1: ChangelogEntry, v2: ChangelogEntry): number 
 
 /**
  * Get entries newer than lastVersion
+ * 获取比 lastVersion 更新的条目。
  */
 export function getNewEntries(entries: ChangelogEntry[], lastVersion: string): ChangelogEntry[] {
 	// Parse lastVersion
+	// 解析 lastVersion
 	const parts = lastVersion.split(".").map(Number);
 	const last: ChangelogEntry = {
 		major: parts[0] || 0,
@@ -193,4 +204,5 @@ export function getNewEntries(entries: ChangelogEntry[], lastVersion: string): C
 }
 
 // Re-export getChangelogPath from paths.ts for convenience
+// 为方便使用，从 paths.ts 重新导出 getChangelogPath
 export { getChangelogPath } from "../config.ts";

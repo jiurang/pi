@@ -1,14 +1,21 @@
 /**
  * Merge and Resolve
+ * 合并与冲突解决
  *
  * Keeps the working branch up to date with its upstream tracking ref.
+ * 保持工作分支与其上游跟踪引用（upstream tracking ref）同步。
  * After each agent turn, fetches and merges. Clean merges complete
  * silently. When conflicts arise, the working tree is left dirty and
  * the agent receives a follow-up message listing each conflict block
  * with file, line range, and ours/theirs sections so it can resolve them.
+ * 在 agent 每一轮对话结束后执行 fetch 与 merge。若合并干净则静默完成。
+ * 若出现冲突，则保留工作区的未提交改动，并向 agent 发送一条后续消息，
+ * 列出每个冲突块的文件、行号范围以及 ours/theirs 区段，以便其解决冲突。
  * Also re-sends unresolved conflicts from a previous incomplete merge.
+ * 同时也会重新发送上一次未完成合并中尚未解决的冲突。
  *
  * Start pi with this extension:
+ * 使用该扩展启动 pi：
  *   pi -e ./examples/extensions/git-merge-and-resolve.ts
  */
 import { createReadStream } from "node:fs";
@@ -23,7 +30,7 @@ interface ConflictBlock {
 	endLine: number;
 }
 
-/** Parse conflict markers from working tree files with unmerged paths. */
+/** Parse conflict markers from working tree files with unmerged paths. 从工作区中处于未合并（unmerged）状态的文件里解析冲突标记。 */
 async function findConflicts(pi: ExtensionAPI, cwd: string): Promise<ConflictBlock[]> {
 	const { stdout, code } = await pi.exec("git", ["diff", "--name-only", "--diff-filter=U"]);
 	if (code !== 0 || !stdout.trim()) return [];
@@ -78,9 +85,11 @@ export default function (pi: ExtensionAPI) {
 		let ref = "MERGE_HEAD";
 
 		// If not already in a merge, attempt one
+		// 如果当前尚未处于合并状态，则尝试发起一次合并
 		const { code: mergeHeadCode } = await pi.exec("git", ["rev-parse", "MERGE_HEAD"]);
 		if (mergeHeadCode !== 0) {
 			// Only attempt a new merge if the working tree is clean
+			// 仅在工作区干净（无未提交改动）时才尝试新的合并
 			const { stdout: status } = await pi.exec("git", ["status", "--porcelain"]);
 			if (status.trim()) return;
 
@@ -107,6 +116,7 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		// Either we just merged with conflicts, or we were already in an unfinished merge
+		// 此时要么是刚刚合并并产生了冲突，要么是原本就处于一次未完成的合并中
 		const conflicts = await findConflicts(pi, ctx.cwd);
 		if (conflicts.length === 0) return;
 

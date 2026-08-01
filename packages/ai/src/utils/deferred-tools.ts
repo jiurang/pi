@@ -4,7 +4,10 @@ type ToolNameNormalizer = (name: string) => string;
 
 const identityToolName: ToolNameNormalizer = (name) => name;
 
-/** Split current tools into prefix and transcript-loaded definitions. */
+/**
+ * Split current tools into prefix and transcript-loaded definitions.
+ * 将当前的工具拆分为前缀（prefix）定义与从会话记录（transcript）中加载的定义。
+ */
 export function splitDeferredTools(
 	context: Context,
 	enabled: boolean,

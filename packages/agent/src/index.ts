@@ -1,7 +1,9 @@
 // Core Agent
+// 核心 Agent
 export { uuidv7 } from "@earendil-works/pi-ai";
 export * from "./agent.ts";
 // Loop functions
+// 循环（loop）函数
 export * from "./agent-loop.ts";
 export * from "./harness/agent-harness.ts";
 export {
@@ -41,12 +43,16 @@ export * from "./harness/skills.ts";
 export * from "./harness/system-prompt.ts";
 export * from "./harness/tools/index.ts";
 // Harness
+// 框架（harness）
 export * from "./harness/types.ts";
 export * from "./harness/utils/shell-output.ts";
 export * from "./harness/utils/truncate.ts";
 // Proxy utilities
+// 代理（proxy）工具
 export * from "./proxy.ts";
 // Stream defaults
+// 流式传输默认配置
 export { setDefaultStreamFn } from "./stream-fn.ts";
 // Types
+// 类型定义
 export * from "./types.ts";

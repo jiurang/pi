@@ -13,6 +13,7 @@ describe("Input component", () => {
 		};
 
 		// Type hello, then backslash, then Enter
+		// 输入 hello，然后输入反斜杠，最后按 Enter
 		input.handleInput("h");
 		input.handleInput("e");
 		input.handleInput("l");
@@ -22,6 +23,7 @@ describe("Input component", () => {
 		input.handleInput("\r");
 
 		// Input is single-line, no backslash+Enter workaround
+		// Input 是单行组件，不存在“反斜杠 + Enter”的换行变通方案
 		assert.strictEqual(submitted, "hello\\");
 	});
 
@@ -89,12 +91,14 @@ describe("Input component", () => {
 
 			input.setValue("foo bar baz");
 			// Move cursor to end
+			// 将光标移动到末尾
 			input.handleInput("\x05"); // Ctrl+E
 
-			input.handleInput("\x17"); // Ctrl+W - deletes "baz"
+			input.handleInput("\x17"); // Ctrl+W - deletes "baz" | Ctrl+W - 删除 "baz"
 			assert.strictEqual(input.getValue(), "foo bar ");
 
 			// Move to beginning and yank
+			// 移动到开头并粘贴（yank）
 			input.handleInput("\x01"); // Ctrl+A
 			input.handleInput("\x19"); // Ctrl+Y
 			assert.strictEqual(input.getValue(), "bazfoo bar ");
@@ -118,6 +122,7 @@ describe("Input component", () => {
 			const input = new Input();
 
 			// "你好世界。你好，世界" segments as: 你好|世界|。|你好|，|世界
+			// "你好世界。你好，世界" 的分词结果为：你好|世界|。|你好|，|世界
 			input.setValue("你好世界。你好，世界");
 			input.handleInput("\x05"); // Ctrl+E
 			input.handleInput("\x17"); // Ctrl+W - deletes "世界"
@@ -139,6 +144,7 @@ describe("Input component", () => {
 
 			input.setValue("hello world");
 			// Move cursor to after "hello "
+			// 将光标移动到 "hello " 之后
 			input.handleInput("\x01"); // Ctrl+A
 			for (let i = 0; i < 6; i++) input.handleInput("\x1b[C");
 
@@ -175,6 +181,7 @@ describe("Input component", () => {
 			const input = new Input();
 
 			// Create kill ring with multiple entries
+			// 构造包含多个条目的删除环（kill ring）
 			input.setValue("first");
 			input.handleInput("\x05"); // Ctrl+E
 			input.handleInput("\x17"); // Ctrl+W - deletes "first"
@@ -210,6 +217,7 @@ describe("Input component", () => {
 			input.handleInput("\x05"); // Ctrl+E
 
 			// Type something to break the yank chain
+			// 输入一些内容以打断粘贴（yank）链
 			input.handleInput("x");
 			assert.strictEqual(input.getValue(), "otherx");
 
@@ -254,10 +262,10 @@ describe("Input component", () => {
 			input.handleInput("\x17"); // Ctrl+W - deletes "baz"
 			assert.strictEqual(input.getValue(), "foo bar ");
 
-			input.handleInput("x"); // Typing breaks accumulation
+			input.handleInput("x"); // Typing breaks accumulation | 输入字符会打断删除内容的累积
 			assert.strictEqual(input.getValue(), "foo bar x");
 
-			input.handleInput("\x17"); // Ctrl+W - deletes "x" (separate entry)
+			input.handleInput("\x17"); // Ctrl+W - deletes "x" (separate entry) | Ctrl+W - 删除 "x"（独立条目）
 			assert.strictEqual(input.getValue(), "foo bar ");
 
 			input.handleInput("\x19"); // Ctrl+Y - most recent is "x"
@@ -281,7 +289,7 @@ describe("Input component", () => {
 			input.handleInput("\x19"); // Ctrl+Y - yanks "second"
 			assert.strictEqual(input.getValue(), "second");
 
-			input.handleInput("x"); // Breaks yank chain
+			input.handleInput("x"); // Breaks yank chain | 打断粘贴（yank）链
 			assert.strictEqual(input.getValue(), "secondx");
 
 			input.handleInput("\x1by"); // Alt+Y - should do nothing
@@ -307,10 +315,12 @@ describe("Input component", () => {
 			assert.strictEqual(input.getValue(), "second");
 
 			// Break chain and start fresh
+			// 打断链式操作并重新开始
 			input.handleInput("x");
 			input.setValue("");
 
 			// New yank should get "second" (now at end after rotation)
+			// 新的粘贴（yank）应取到 "second"（轮转后它已位于末尾）
 			input.handleInput("\x19"); // Ctrl+Y
 			assert.strictEqual(input.getValue(), "second");
 		});
@@ -320,10 +330,11 @@ describe("Input component", () => {
 
 			input.setValue("prefix|suffix");
 			// Position cursor at "|"
+			// 将光标定位到 "|" 处
 			input.handleInput("\x01"); // Ctrl+A
-			for (let i = 0; i < 6; i++) input.handleInput("\x1b[C"); // Move right 6
+			for (let i = 0; i < 6; i++) input.handleInput("\x1b[C"); // Move right 6 | 向右移动 6 个字符
 
-			input.handleInput("\x0b"); // Ctrl+K - deletes "|suffix" (forward)
+			input.handleInput("\x0b"); // Ctrl+K - deletes "|suffix" (forward) | Ctrl+K - 向前删除 "|suffix"
 			assert.strictEqual(input.getValue(), "prefix");
 
 			input.handleInput("\x19"); // Ctrl+Y
@@ -343,6 +354,7 @@ describe("Input component", () => {
 			assert.strictEqual(input.getValue(), " test");
 
 			// Yank should get accumulated text
+			// 粘贴（yank）应取回累积的文本
 			input.handleInput("\x19"); // Ctrl+Y
 			assert.strictEqual(input.getValue(), "hello world test");
 		});
@@ -364,6 +376,7 @@ describe("Input component", () => {
 			const input = new Input();
 
 			// "你好世界。你好，世界" segments as: 你好|世界|。|你好|，|世界
+			// "你好世界。你好，世界" 的分词结果为：你好|世界|。|你好|，|世界
 			input.setValue("你好世界。你好，世界");
 			input.handleInput("\x01"); // Ctrl+A
 			input.handleInput("\x1bd"); // Alt+D - deletes "你好"
@@ -388,6 +401,7 @@ describe("Input component", () => {
 			input.handleInput("\x17"); // Ctrl+W - deletes "word"
 			input.setValue("hello world");
 			// Move to middle (after "hello ")
+			// 移动到中间位置（"hello " 之后）
 			input.handleInput("\x01"); // Ctrl+A
 			for (let i = 0; i < 6; i++) input.handleInput("\x1b[C");
 
@@ -399,6 +413,7 @@ describe("Input component", () => {
 			const input = new Input();
 
 			// Create two kill ring entries
+			// 构造两个删除环（kill ring）条目
 			input.setValue("FIRST");
 			input.handleInput("\x05"); // Ctrl+E
 			input.handleInput("\x17"); // Ctrl+W - deletes "FIRST"
@@ -407,6 +422,7 @@ describe("Input component", () => {
 			input.handleInput("\x17"); // Ctrl+W - deletes "SECOND"
 
 			// Set up "hello world" and position cursor after "hello "
+			// 设置内容为 "hello world"，并将光标定位到 "hello " 之后
 			input.setValue("hello world");
 			input.handleInput("\x01"); // Ctrl+A
 			for (let i = 0; i < 6; i++) input.handleInput("\x1b[C");
@@ -444,10 +460,12 @@ describe("Input component", () => {
 			assert.strictEqual(input.getValue(), "hello world");
 
 			// Undo removes " world"
+			// 撤销操作移除 " world"
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
 			assert.strictEqual(input.getValue(), "hello");
 
 			// Undo removes "hello"
+			// 撤销操作移除 "hello"
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
 			assert.strictEqual(input.getValue(), "");
 		});
@@ -464,13 +482,13 @@ describe("Input component", () => {
 			input.handleInput(" ");
 			assert.strictEqual(input.getValue(), "hello  ");
 
-			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo) - removes second " "
+			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo) - removes second " " | Ctrl+- (撤销) - 移除第二个 " "
 			assert.strictEqual(input.getValue(), "hello ");
 
-			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo) - removes first " "
+			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo) - removes first " " | Ctrl+- (撤销) - 移除第一个 " "
 			assert.strictEqual(input.getValue(), "hello");
 
-			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo) - removes "hello"
+			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo) - removes "hello" | Ctrl+- (撤销) - 移除 "hello"
 			assert.strictEqual(input.getValue(), "");
 		});
 
@@ -482,7 +500,7 @@ describe("Input component", () => {
 			input.handleInput("l");
 			input.handleInput("l");
 			input.handleInput("o");
-			input.handleInput("\x7f"); // Backspace
+			input.handleInput("\x7f"); // Backspace | 退格键
 			assert.strictEqual(input.getValue(), "hell");
 
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
@@ -497,9 +515,9 @@ describe("Input component", () => {
 			input.handleInput("l");
 			input.handleInput("l");
 			input.handleInput("o");
-			input.handleInput("\x01"); // Ctrl+A - go to start
-			input.handleInput("\x1b[C"); // Right arrow
-			input.handleInput("\x1b[3~"); // Delete key
+			input.handleInput("\x01"); // Ctrl+A - go to start | Ctrl+A - 移动到行首
+			input.handleInput("\x1b[C"); // Right arrow | 右方向键
+			input.handleInput("\x1b[3~"); // Delete key | Delete 键
 			assert.strictEqual(input.getValue(), "hllo");
 
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
@@ -586,8 +604,8 @@ describe("Input component", () => {
 			input.handleInput("l");
 			input.handleInput("o");
 			input.handleInput(" ");
-			input.handleInput("\x17"); // Ctrl+W - delete "hello "
-			input.handleInput("\x19"); // Ctrl+Y - yank
+			input.handleInput("\x17"); // Ctrl+W - delete "hello " | Ctrl+W - 删除 "hello "
+			input.handleInput("\x19"); // Ctrl+Y - yank | Ctrl+Y - 粘贴（yank）
 			assert.strictEqual(input.getValue(), "hello ");
 
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
@@ -602,10 +620,12 @@ describe("Input component", () => {
 			for (let i = 0; i < 5; i++) input.handleInput("\x1b[C");
 
 			// Simulate bracketed paste
+			// 模拟括号粘贴模式（bracketed paste）
 			input.handleInput("\x1b[200~beep boop\x1b[201~");
 			assert.strictEqual(input.getValue(), "hellobeep boop world");
 
 			// Single undo should restore entire pre-paste state
+			// 一次撤销应完整恢复粘贴前的状态
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
 			assert.strictEqual(input.getValue(), "hello world");
 		});
@@ -629,17 +649,19 @@ describe("Input component", () => {
 			input.handleInput("a");
 			input.handleInput("b");
 			input.handleInput("c");
-			input.handleInput("\x01"); // Ctrl+A - movement breaks coalescing
+			input.handleInput("\x01"); // Ctrl+A - movement breaks coalescing | Ctrl+A - 光标移动会打断撤销单元的合并
 			input.handleInput("\x05"); // Ctrl+E
 			input.handleInput("d");
 			input.handleInput("e");
 			assert.strictEqual(input.getValue(), "abcde");
 
 			// Undo removes "de" (typed after movement)
+			// 撤销操作移除 "de"（在光标移动之后输入的内容）
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
 			assert.strictEqual(input.getValue(), "abc");
 
 			// Undo removes "abc"
+			// 撤销操作移除 "abc"
 			input.handleInput("\x1b[45;5u"); // Ctrl+- (undo)
 			assert.strictEqual(input.getValue(), "");
 		});

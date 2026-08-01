@@ -1,5 +1,6 @@
 /**
  * CLI argument parsing and help display
+ * CLI 参数解析与帮助信息展示
  */
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
@@ -50,7 +51,10 @@ export interface Args {
 	projectTrustOverride?: boolean;
 	messages: string[];
 	fileArgs: string[];
-	/** Unknown flags (potentially extension flags) - map of flag name to value */
+	/**
+	 * Unknown flags (potentially extension flags) - map of flag name to value
+	 * 未知标志（可能是扩展定义的标志）——标志名到值的映射
+	 */
 	unknownFlags: Map<string, boolean | string>;
 	diagnostics: Array<{ type: "warning" | "error"; message: string }>;
 }
@@ -171,6 +175,7 @@ export function parseArgs(args: string[]): Args {
 			result.noContextFiles = true;
 		} else if (arg === "--list-models") {
 			// Check if next arg is a search pattern (not a flag or file arg)
+			// 检查下一个参数是否为搜索模式（而不是标志或文件参数）
 			if (i + 1 < args.length && !args[i + 1].startsWith("-") && !args[i + 1].startsWith("@")) {
 				result.listModels = args[++i];
 			} else {
@@ -187,7 +192,7 @@ export function parseArgs(args: string[]): Args {
 		} else if (arg === "--offline") {
 			result.offline = true;
 		} else if (arg.startsWith("@")) {
-			result.fileArgs.push(arg.slice(1)); // Remove @ prefix
+			result.fileArgs.push(arg.slice(1)); // Remove @ prefix / 移除 @ 前缀
 		} else if (arg.startsWith("--")) {
 			const eqIndex = arg.indexOf("=");
 			if (eqIndex !== -1) {

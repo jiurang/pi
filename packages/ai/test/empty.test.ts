@@ -10,6 +10,7 @@ import { hasCloudflareAiGatewayCredentials, hasCloudflareWorkersAICredentials } 
 import { resolveApiKey } from "./oauth.ts";
 
 // Resolve OAuth tokens at module level (async, runs before tests)
+// 在模块层级解析 OAuth 令牌（异步执行，在测试运行前完成）
 const oauthTokens = await Promise.all([
 	resolveApiKey("anthropic"),
 	resolveApiKey("github-copilot"),
@@ -19,6 +20,7 @@ const [anthropicOAuthToken, githubCopilotToken, openaiCodexToken] = oauthTokens;
 
 async function testEmptyMessage<TApi extends Api>(llm: Model<TApi>, options: StreamOptionsWithExtras = {}) {
 	// Test with completely empty content array
+	// 使用完全为空的 content 数组进行测试
 	const emptyMessage: UserMessage = {
 		role: "user",
 		content: [],
@@ -32,9 +34,11 @@ async function testEmptyMessage<TApi extends Api>(llm: Model<TApi>, options: Str
 	const response = await complete(llm, context, options);
 
 	// Should either handle gracefully or return an error
+	// 应当要么优雅地处理，要么返回一个错误
 	expect(response).toBeDefined();
 	expect(response.role).toBe("assistant");
 	// Should handle empty string gracefully
+	// 应当优雅地处理空字符串
 	if (response.stopReason === "error") {
 		expect(response.errorMessage).toBeDefined();
 	} else {
@@ -44,6 +48,7 @@ async function testEmptyMessage<TApi extends Api>(llm: Model<TApi>, options: Str
 
 async function testEmptyStringMessage<TApi extends Api>(llm: Model<TApi>, options: StreamOptionsWithExtras = {}) {
 	// Test with empty string content
+	// 使用空字符串内容进行测试
 	const context: Context = {
 		messages: [
 			{
@@ -60,6 +65,7 @@ async function testEmptyStringMessage<TApi extends Api>(llm: Model<TApi>, option
 	expect(response.role).toBe("assistant");
 
 	// Should handle empty string gracefully
+	// 应当优雅地处理空字符串
 	if (response.stopReason === "error") {
 		expect(response.errorMessage).toBeDefined();
 	} else {
@@ -69,6 +75,7 @@ async function testEmptyStringMessage<TApi extends Api>(llm: Model<TApi>, option
 
 async function testWhitespaceOnlyMessage<TApi extends Api>(llm: Model<TApi>, options: StreamOptionsWithExtras = {}) {
 	// Test with whitespace-only content
+	// 使用仅包含空白字符的内容进行测试
 	const context: Context = {
 		messages: [
 			{
@@ -85,6 +92,7 @@ async function testWhitespaceOnlyMessage<TApi extends Api>(llm: Model<TApi>, opt
 	expect(response.role).toBe("assistant");
 
 	// Should handle whitespace-only gracefully
+	// 应当优雅地处理仅含空白字符的内容
 	if (response.stopReason === "error") {
 		expect(response.errorMessage).toBeDefined();
 	} else {
@@ -94,7 +102,9 @@ async function testWhitespaceOnlyMessage<TApi extends Api>(llm: Model<TApi>, opt
 
 async function testEmptyAssistantMessage<TApi extends Api>(llm: Model<TApi>, options: StreamOptionsWithExtras = {}) {
 	// Test with empty assistant message in conversation flow
+	// 在对话流程中使用空的 assistant 消息进行测试
 	// User -> Empty Assistant -> User
+	// 用户 -> 空的助手消息 -> 用户
 	const emptyAssistant: AssistantMessage = {
 		role: "assistant",
 		content: [],
@@ -135,6 +145,7 @@ async function testEmptyAssistantMessage<TApi extends Api>(llm: Model<TApi>, opt
 	expect(response.role).toBe("assistant");
 
 	// Should handle empty assistant message in context gracefully
+	// 应当优雅地处理上下文中的空 assistant 消息
 	if (response.stopReason === "error") {
 		expect(response.errorMessage).toBeDefined();
 	} else {
@@ -637,6 +648,7 @@ describe("AI Providers Empty Message Tests", () => {
 
 	// =========================================================================
 	// OAuth-based providers (credentials from ~/.pi/agent/oauth.json)
+	// 基于 OAuth 的提供商（凭据来自 ~/.pi/agent/oauth.json）
 	// =========================================================================
 
 	describe("Anthropic OAuth Provider Empty Messages", () => {

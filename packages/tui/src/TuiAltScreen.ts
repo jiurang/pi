@@ -51,15 +51,27 @@ interface WheelEvent {
 }
 
 export interface TuiAltScreenOptions {
-	/** Number of logical lines moved for each mouse-wheel event. */
+	/**
+	 * Number of logical lines moved for each mouse-wheel event.
+	 * 每次鼠标滚轮事件所滚动的逻辑行数。
+	 */
 	wheelScrollLines?: number;
-	/** Capture mouse events for viewport scrolling and application-owned text selection. */
+	/**
+	 * Capture mouse events for viewport scrolling and application-owned text selection.
+	 * 捕获鼠标事件，用于视口滚动以及由应用自行管理的文本选择。
+	 */
 	mouse?: boolean;
-	/** Open an OSC 8 hyperlink activated with a primary-button click. */
+	/**
+	 * Open an OSC 8 hyperlink activated with a primary-button click.
+	 * 打开通过鼠标主键点击激活的 OSC 8 超链接。
+	 */
 	openUrl?: (url: string) => void;
 }
 
-/** Alternate-screen TUI with a scrollable, application-owned viewport. */
+/**
+ * Alternate-screen TUI with a scrollable, application-owned viewport.
+ * 基于备用屏幕（alternate screen）的 TUI，带有可滚动、由应用自行管理的视口。
+ */
 export class TuiAltScreen extends TuiBase implements ViewportTUI {
 	readonly [VIEWPORT_TUI] = true as const;
 	private previousScreen: string[] = [];
@@ -216,7 +228,10 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 		this.requestRender();
 	}
 
-	/** Show a transient message in the alternate-screen flash stack. */
+	/**
+	 * Show a transient message in the alternate-screen flash stack.
+	 * 在备用屏幕的瞬时消息（flash）栈中显示一条临时提示信息。
+	 */
 	flash(message: string, durationMs?: number): void {
 		this.flashes.flash(message, durationMs);
 	}
@@ -414,6 +429,7 @@ export class TuiAltScreen extends TuiBase implements ViewportTUI {
 					this.openUrl(clickedUrl);
 				} catch {
 					// URL activation is best-effort.
+					// URL 的激活打开为尽力而为（best-effort），失败不作处理。
 				}
 				this.requestRender();
 				return;

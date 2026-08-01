@@ -15,6 +15,7 @@ class StaticOverlay implements Component {
 
 	render(width: number): string[] {
 		// Store the width we were asked to render at for verification
+		// 保存被要求渲染时使用的宽度，以便后续校验
 		this.requestedWidth = width;
 		return this.lines;
 	}
@@ -41,6 +42,7 @@ describe("TUI overlay options", () => {
 			const terminal = new VirtualTerminal(80, 24);
 			const tui: TUI = new TuiMainScreen(terminal);
 			// Overlay declares width 20 but renders lines much wider
+			// 浮层（overlay）声明宽度为 20，但实际渲染的行宽得多
 			const overlay = new StaticOverlay(["X".repeat(100)]);
 
 			tui.addChild(new EmptyContent());
@@ -49,10 +51,13 @@ describe("TUI overlay options", () => {
 			await renderAndFlush(tui, terminal);
 
 			// Should not crash, and no line should exceed terminal width
+			// 不应崩溃，并且任何一行都不应超出终端宽度
 			const viewport = terminal.getViewport();
 			for (const line of viewport) {
 				// visibleWidth not available here, but line length is a rough check
+				// 此处无法使用 visibleWidth，但用行长度做粗略检查
 				// The important thing is it didn't crash
+				// 关键在于它没有崩溃
 				assert.ok(line !== undefined);
 			}
 			tui.stop();
@@ -62,6 +67,7 @@ describe("TUI overlay options", () => {
 			const terminal = new VirtualTerminal(80, 24);
 			const tui: TUI = new TuiMainScreen(terminal);
 			// Simulate complex ANSI content like the crash log showed
+			// 模拟崩溃日志中出现的那种复杂 ANSI 内容
 			const complexLine =
 				"\x1b[48;2;40;50;40m \x1b[38;2;128;128;128mSome styled content\x1b[39m\x1b[49m" +
 				"\x1b]8;;http://example.com\x07link\x1b]8;;\x07" +
@@ -74,6 +80,7 @@ describe("TUI overlay options", () => {
 			await renderAndFlush(tui, terminal);
 
 			// Should not crash
+			// 不应崩溃
 			const viewport = terminal.getViewport();
 			assert.ok(viewport.length > 0);
 			tui.stop();
@@ -84,6 +91,7 @@ describe("TUI overlay options", () => {
 			const tui: TUI = new TuiMainScreen(terminal);
 
 			// Base content with styling
+			// 带样式的基础内容
 			class StyledContent implements Component {
 				render(width: number): string[] {
 					const styledLine = `\x1b[1m\x1b[38;2;255;0;0m${"X".repeat(width)}\x1b[0m`;
@@ -100,6 +108,7 @@ describe("TUI overlay options", () => {
 			await renderAndFlush(tui, terminal);
 
 			// Should not crash and overlay should be visible
+			// 不应崩溃，且浮层（overlay）应当可见
 			const viewport = terminal.getViewport();
 			const hasOverlay = viewport.some((line) => line?.includes("OVERLAY"));
 			assert.ok(hasOverlay, "Overlay should be visible");
@@ -110,15 +119,17 @@ describe("TUI overlay options", () => {
 			const terminal = new VirtualTerminal(80, 24);
 			const tui: TUI = new TuiMainScreen(terminal);
 			// Wide chars (each takes 2 columns) at the edge of declared width
-			const wideCharLine = "中文日本語한글テスト漢字"; // Mix of CJK chars
+			// 位于声明宽度边界处的宽字符（每个占 2 列）
+			const wideCharLine = "中文日本語한글テスト漢字"; // Mix of CJK chars | 混合的 CJK 字符
 			const overlay = new StaticOverlay([wideCharLine]);
 
 			tui.addChild(new EmptyContent());
-			tui.showOverlay(overlay, { width: 15 }); // Odd width to potentially hit boundary
+			tui.showOverlay(overlay, { width: 15 }); // Odd width to potentially hit boundary | 使用奇数宽度，以便可能命中边界情况
 			tui.start();
 			await renderAndFlush(tui, terminal);
 
 			// Should not crash
+			// 不应崩溃
 			const viewport = terminal.getViewport();
 			assert.ok(viewport.length > 0);
 			tui.stop();
@@ -128,15 +139,18 @@ describe("TUI overlay options", () => {
 			const terminal = new VirtualTerminal(80, 24);
 			const tui: TUI = new TuiMainScreen(terminal);
 			// Overlay positioned at right edge with content that exceeds declared width
+			// 浮层（overlay）定位在右边缘，且其内容超出了声明的宽度
 			const overlay = new StaticOverlay(["X".repeat(50)]);
 
 			tui.addChild(new EmptyContent());
 			// Position at col 60 with width 20 - should fit exactly at right edge
+			// 定位在第 60 列、宽度为 20 —— 应刚好贴合右边缘
 			tui.showOverlay(overlay, { col: 60, width: 20 });
 			tui.start();
 			await renderAndFlush(tui, terminal);
 
 			// Should not crash
+			// 不应崩溃
 			const viewport = terminal.getViewport();
 			assert.ok(viewport.length > 0);
 			tui.stop();
@@ -147,6 +161,7 @@ describe("TUI overlay options", () => {
 			const tui: TUI = new TuiMainScreen(terminal);
 
 			// Base content with OSC 8 hyperlinks (like file paths in agent output)
+			// 包含 OSC 8 超链接的基础内容（类似 agent 输出中的文件路径）
 			class HyperlinkContent implements Component {
 				render(width: number): string[] {
 					const link = `\x1b]8;;file:///path/to/file.ts\x07file.ts\x1b]8;;\x07`;
@@ -164,6 +179,7 @@ describe("TUI overlay options", () => {
 			await renderAndFlush(tui, terminal);
 
 			// Should not crash - this was the original bug scenario
+			// 不应崩溃 —— 这正是最初出现缺陷（bug）的场景
 			const viewport = terminal.getViewport();
 			assert.ok(viewport.length > 0);
 			tui.stop();
@@ -228,6 +244,7 @@ describe("TUI overlay options", () => {
 
 			const viewport = terminal.getViewport();
 			// Should be on last row, ending at last column
+			// 应位于最后一行，并在最后一列处结束
 			const lastRow = viewport[23];
 			assert.ok(lastRow?.includes("BTM-RIGHT"), `Expected BTM-RIGHT on last row, got: ${lastRow}`);
 			assert.ok(lastRow?.trimEnd().endsWith("BTM-RIGHT"), `Expected BTM-RIGHT at end, got: ${lastRow}`);
@@ -246,9 +263,11 @@ describe("TUI overlay options", () => {
 
 			const viewport = terminal.getViewport();
 			// Should be on first row, centered horizontally
+			// 应位于第一行，并在水平方向居中
 			const firstRow = viewport[0];
 			assert.ok(firstRow?.includes("CENTERED"), `Expected CENTERED on first row, got: ${firstRow}`);
 			// Check it's roughly centered (col 35 for width 10 in 80 col terminal)
+			// 检查是否大致居中（在 80 列终端中，宽度为 10 时约为第 35 列）
 			const colIndex = firstRow?.indexOf("CENTERED") ?? -1;
 			assert.ok(colIndex >= 30 && colIndex <= 40, `Expected centered, got col ${colIndex}`);
 			tui.stop();
@@ -263,6 +282,7 @@ describe("TUI overlay options", () => {
 
 			tui.addChild(new EmptyContent());
 			// Negative margins should be treated as 0
+			// 负数外边距（margin）应按 0 处理
 			tui.showOverlay(overlay, {
 				anchor: "top-left",
 				width: 12,
@@ -273,6 +293,7 @@ describe("TUI overlay options", () => {
 
 			const viewport = terminal.getViewport();
 			// Should be at row 0, col 0 (negative margins clamped to 0)
+			// 应位于第 0 行、第 0 列（负数外边距被钳制为 0）
 			assert.ok(viewport[0]?.startsWith("NEG-MARGIN"), `Expected NEG-MARGIN at start of row 0, got: ${viewport[0]}`);
 			tui.stop();
 		});
@@ -289,10 +310,12 @@ describe("TUI overlay options", () => {
 
 			const viewport = terminal.getViewport();
 			// Should be on row 5 (not 0) due to margin
+			// 由于存在外边距（margin），应位于第 5 行（而非第 0 行）
 			assert.ok(!viewport[0]?.includes("MARGIN"), "Should not be on row 0");
 			assert.ok(!viewport[4]?.includes("MARGIN"), "Should not be on row 4");
 			assert.ok(viewport[5]?.includes("MARGIN"), `Expected MARGIN on row 5, got: ${viewport[5]}`);
 			// Should start at col 5 (not 0)
+			// 应从第 5 列开始（而非第 0 列）
 			const colIndex = viewport[5]?.indexOf("MARGIN") ?? -1;
 			assert.strictEqual(colIndex, 5, `Expected col 5, got ${colIndex}`);
 			tui.stop();
@@ -347,12 +370,14 @@ describe("TUI overlay options", () => {
 
 			tui.addChild(new EmptyContent());
 			// 50% should center both ways
+			// 50% 应在水平和垂直两个方向上都居中
 			tui.showOverlay(overlay, { width: 10, row: "50%", col: "50%" });
 			tui.start();
 			await renderAndFlush(tui, terminal);
 
 			const viewport = terminal.getViewport();
 			// Find the row with PCT
+			// 找到包含 PCT 的那一行
 			let foundRow = -1;
 			for (let i = 0; i < viewport.length; i++) {
 				if (viewport[i]?.includes("PCT")) {
@@ -361,6 +386,7 @@ describe("TUI overlay options", () => {
 				}
 			}
 			// Should be roughly centered vertically (row ~11-12 for 24 row terminal)
+			// 应在垂直方向上大致居中（24 行终端中约为第 11-12 行）
 			assert.ok(foundRow >= 10 && foundRow <= 13, `Expected centered row, got ${foundRow}`);
 			tui.stop();
 		});
@@ -421,6 +447,7 @@ describe("TUI overlay options", () => {
 			const terminal = new VirtualTerminal(80, 10);
 			const tui: TUI = new TuiMainScreen(terminal);
 			// 10 lines in a 10 row terminal with 50% maxHeight should show 5 lines
+			// 在 10 行的终端中，10 行内容配合 50% 的 maxHeight 应显示 5 行
 			const overlay = new StaticOverlay(["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"]);
 
 			tui.addChild(new EmptyContent());
@@ -445,6 +472,7 @@ describe("TUI overlay options", () => {
 
 			tui.addChild(new EmptyContent());
 			// Even with bottom-right anchor, row/col should win
+			// 即便设置了 bottom-right 锚点（anchor），row/col 也应优先生效
 			tui.showOverlay(overlay, { anchor: "bottom-right", row: 3, col: 5, width: 10 });
 			tui.start();
 			await renderAndFlush(tui, terminal);
@@ -465,10 +493,12 @@ describe("TUI overlay options", () => {
 			tui.addChild(new EmptyContent());
 
 			// First overlay at top-left
+			// 第一个浮层（overlay）位于左上角
 			const overlay1 = new StaticOverlay(["FIRST-OVERLAY"]);
 			tui.showOverlay(overlay1, { anchor: "top-left", width: 20 });
 
 			// Second overlay at top-left (should cover part of first)
+			// 第二个浮层（overlay）同样位于左上角（应遮挡第一个的一部分）
 			const overlay2 = new StaticOverlay(["SECOND"]);
 			tui.showOverlay(overlay2, { anchor: "top-left", width: 10 });
 
@@ -477,9 +507,12 @@ describe("TUI overlay options", () => {
 
 			const viewport = terminal.getViewport();
 			// Second overlay should be visible (on top)
+			// 第二个浮层（overlay）应当可见（位于最上层）
 			assert.ok(viewport[0]?.includes("SECOND"), `Expected SECOND on row 0, got: ${viewport[0]}`);
 			// Part of first overlay might still be visible after SECOND
+			// 第一个浮层的一部分可能仍显示在 SECOND 之后
 			// FIRST-OVERLAY is 13 chars, SECOND is 6 chars, so "OVERLAY" part might show
+			// FIRST-OVERLAY 有 13 个字符，SECOND 有 6 个字符，因此 "OVERLAY" 部分可能会显示出来
 			tui.stop();
 		});
 
@@ -490,10 +523,12 @@ describe("TUI overlay options", () => {
 			tui.addChild(new EmptyContent());
 
 			// Overlay at top-left
+			// 位于左上角的浮层（overlay）
 			const overlay1 = new StaticOverlay(["TOP-LEFT"]);
 			tui.showOverlay(overlay1, { anchor: "top-left", width: 15 });
 
 			// Overlay at bottom-right
+			// 位于右下角的浮层（overlay）
 			const overlay2 = new StaticOverlay(["BTM-RIGHT"]);
 			tui.showOverlay(overlay2, { anchor: "bottom-right", width: 15 });
 
@@ -502,6 +537,7 @@ describe("TUI overlay options", () => {
 
 			const viewport = terminal.getViewport();
 			// Both should be visible
+			// 两者都应可见
 			assert.ok(viewport[0]?.includes("TOP-LEFT"), `Expected TOP-LEFT on row 0, got: ${viewport[0]}`);
 			assert.ok(viewport[23]?.includes("BTM-RIGHT"), `Expected BTM-RIGHT on row 23, got: ${viewport[23]}`);
 			tui.stop();
@@ -514,6 +550,7 @@ describe("TUI overlay options", () => {
 			tui.addChild(new EmptyContent());
 
 			// Show two overlays
+			// 显示两个浮层（overlay）
 			const overlay1 = new StaticOverlay(["FIRST"]);
 			tui.showOverlay(overlay1, { anchor: "top-left", width: 10 });
 
@@ -524,14 +561,17 @@ describe("TUI overlay options", () => {
 			await renderAndFlush(tui, terminal);
 
 			// Second should be visible
+			// 第二个应当可见
 			let viewport = terminal.getViewport();
 			assert.ok(viewport[0]?.includes("SECOND"), "SECOND should be visible initially");
 
 			// Hide top overlay
+			// 隐藏最上层的浮层（overlay）
 			tui.hideOverlay();
 			await renderAndFlush(tui, terminal);
 
 			// First should now be visible
+			// 此时第一个应当可见
 			viewport = terminal.getViewport();
 			assert.ok(viewport[0]?.includes("FIRST"), "FIRST should be visible after hiding SECOND");
 

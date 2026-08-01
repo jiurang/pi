@@ -32,7 +32,10 @@ import {
 
 export interface ExtensionOAuthConfig {
 	name: string;
-	/** @deprecated Retained for extension source compatibility; ignored by canonical auth flows. */
+	/**
+	 * @deprecated Retained for extension source compatibility; ignored by canonical auth flows.
+	 * 保留此字段仅为兼容扩展(extension)源码；规范的认证流程会忽略它。
+	 */
 	usesCallbackServer?: boolean;
 	login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials>;
 	refreshToken(credentials: OAuthCredentials): Promise<OAuthCredentials>;
@@ -40,7 +43,10 @@ export interface ExtensionOAuthConfig {
 	modifyModels?(models: Model<Api>[], credentials: OAuthCredentials): Model<Api>[];
 }
 
-/** Input type for the extension registerProvider API. */
+/**
+ * Input type for the extension registerProvider API.
+ * 扩展(extension)的 registerProvider API 的入参类型。
+ */
 export interface ProviderConfigInput {
 	name?: string;
 	baseUrl?: string;
@@ -300,6 +306,7 @@ function composeApiKeyAuth(
 	const rawKey = configuredApiKey(config, extension);
 	const oauth = extension?.oauth ?? base?.auth.oauth;
 	// OAuth-only providers get no fabricated API-key login method.
+	// 仅支持 OAuth 的 provider 不会被凭空构造出 API key 登录方式。
 	if (!inherited && rawKey === undefined && oauth) return undefined;
 	const rawHeaders = configuredHeaders(config, extension);
 	const authHeader = extension?.authHeader ?? config?.authHeader ?? false;
@@ -408,7 +415,10 @@ export function validateExtensionProvider(
 	applyExtension(providerId, applyModelsJson(providerId, base?.getModels() ?? [], modelsConfig), extension);
 }
 
-/** Compose built-in, models.json, and extension layers without reading credentials. */
+/**
+ * Compose built-in, models.json, and extension layers without reading credentials.
+ * 在不读取凭据(credentials)的前提下，组合内置层、models.json 层与扩展(extension)层。
+ */
 export function composeModelProvider(
 	providerId: string,
 	base: Provider | undefined,
@@ -421,7 +431,9 @@ export function composeModelProvider(
 	const currentExtension = (): ProviderConfigInput | undefined =>
 		extension && refreshedExtensionModels ? { ...extension, models: refreshedExtensionModels } : extension;
 	// models.json modelOverrides are the topmost user-config layer: they apply once,
+	// models.json 中的 modelOverrides 是最顶层的用户配置层：它只应用一次，
 	// after custom-model upserts, extension model replacement, and legacy OAuth projection.
+	// 时机在自定义模型的 upsert、扩展模型替换以及旧版 OAuth 投影(projection)之后。
 	const getModels = () => {
 		let models = applyExtension(
 			providerId,
@@ -437,6 +449,7 @@ export function composeModelProvider(
 		});
 	};
 	// Validate eagerly so registration/reload reports structural errors immediately.
+	// 提前(eagerly)校验，使注册/重载能够立即报告结构性错误。
 	getModels();
 	const apiKey = composeApiKeyAuth(providerId, base, config, extension);
 	const oauth = composeOAuthAuth(providerId, base, config, extension);
@@ -480,6 +493,7 @@ export function composeModelProvider(
 							const refreshed = await extension.refreshModels(context);
 							if (!context.signal?.aborted) {
 								// Validate before publishing the new synchronous list.
+								// 在发布新的同步列表之前先做校验。
 								applyExtension(providerId, applyModelsJson(providerId, base?.getModels() ?? [], config), {
 									...extension,
 									models: refreshed,

@@ -1,6 +1,8 @@
 /**
  * Interactive mode for the coding agent.
+ * 编码智能体（coding agent）的交互模式。
  * Handles TUI rendering and user interaction, delegating business logic to AgentSession.
+ * 负责 TUI 渲染与用户交互，并将业务逻辑委托给 AgentSession。
  */
 
 import * as crypto from "node:crypto";
@@ -165,7 +167,10 @@ import {
 } from "./theme/theme.ts";
 import { InteractiveThemeController } from "./theme/theme-controller.ts";
 
-/** Interface for components that can be expanded/collapsed */
+/**
+ * Interface for components that can be expanded/collapsed
+ * 可展开/折叠组件的接口
+ */
 interface Expandable {
 	setExpanded(expanded: boolean): void;
 }
@@ -308,23 +313,48 @@ function formatLoginProviderCompletionDescription(provider: LoginProviderComplet
 
 /**
  * Options for InteractiveMode initialization.
+ * InteractiveMode 初始化选项。
  */
 export interface InteractiveModeOptions {
-	/** Providers that were migrated to auth.json (shows warning) */
+	/**
+	 * Providers that were migrated to auth.json (shows warning)
+	 * 已迁移到 auth.json 的服务商（provider），会显示警告
+	 */
 	migratedProviders?: string[];
-	/** Warning message if session model couldn't be restored */
+	/**
+	 * Warning message if session model couldn't be restored
+	 * 会话模型无法恢复时的警告信息
+	 */
 	modelFallbackMessage?: string;
-	/** Cwd to trust after reload if it gained a .pi directory during this implicitly trusted session. */
+	/**
+	 * Cwd to trust after reload if it gained a .pi directory during this implicitly trusted session.
+	 * 若在本次隐式信任会话期间新增了 .pi 目录，则重载后需要信任的工作目录（cwd）。
+	 */
 	autoTrustOnReloadCwd?: string;
-	/** Initial message to send on startup (can include @file content) */
+	/**
+	 * Initial message to send on startup (can include @file content)
+	 * 启动时发送的初始消息（可包含 @file 引用的内容）
+	 */
 	initialMessage?: string;
-	/** Images to attach to the initial message */
+	/**
+	 * Images to attach to the initial message
+	 * 附加到初始消息上的图片
+	 */
 	initialImages?: ImageContent[];
-	/** Additional messages to send after the initial message */
+	/**
+	 * Additional messages to send after the initial message
+	 * 在初始消息之后继续发送的附加消息
+	 */
 	initialMessages?: string[];
-	/** Force verbose startup (overrides quietStartup setting) */
+	/**
+	 * Force verbose startup (overrides quietStartup setting)
+	 * 强制使用详细启动输出（覆盖 quietStartup 设置）
+	 */
 	verbose?: boolean;
-	/** Use the alternate-screen TUI renderer. */
+	/**
+	 * Use the alternate-screen TUI renderer.
+	 * 使用备用屏幕（alternate-screen）TUI 渲染器。
+	 */
 	alt?: boolean;
 }
 
@@ -335,7 +365,10 @@ interface InteractiveTuiOptions {
 	terminal?: Terminal;
 }
 
-/** Composition root for selecting the interactive terminal renderer. */
+/**
+ * Composition root for selecting the interactive terminal renderer.
+ * 用于选择交互式终端渲染器的组合根（composition root）。
+ */
 export function createInteractiveTui(options: InteractiveTuiOptions): TUI {
 	const terminal = options.terminal ?? new ProcessTerminal();
 	if (options.alt) {
@@ -363,6 +396,7 @@ export class InteractiveMode {
 	private footerContainer: Container;
 	private footerDataProvider: FooterDataProvider;
 	// Stored so the same manager can be injected into custom editors, selectors, and extension UI.
+	// 在此保存，以便将同一个管理器注入到自定义编辑器、选择器和扩展（extension）UI 中。
 	private keybindings: KeybindingsManager;
 	private version: string;
 	private isInitialized = false;
@@ -384,73 +418,93 @@ export class InteractiveMode {
 	private anthropicSubscriptionWarningShown = false;
 
 	// Status line tracking (for mutating immediately-sequential status updates)
+	// 状态行跟踪（用于就地修改紧邻连续的状态更新）
 	private lastStatusSpacer: Spacer | undefined = undefined;
 	private lastStatusText: Text | undefined = undefined;
 
 	// Streaming message tracking
+	// 流式（streaming）消息跟踪
 	private streamingComponent: AssistantMessageComponent | undefined = undefined;
 	private streamingMessage: AssistantMessage | undefined = undefined;
 
 	// Tool execution tracking: toolCallId -> component
+	// 工具执行跟踪：toolCallId -> 组件
 	private pendingTools = new Map<string, ToolExecutionComponent>();
 
 	// Tool output expansion state
+	// 工具输出的展开状态
 	private toolOutputExpanded = false;
 
 	// Thinking block visibility state
+	// 思考块（thinking block）的可见性状态
 	private hideThinkingBlock = false;
 	private outputPad = 1;
 
 	// Skill commands: command name -> skill file path
+	// 技能（skill）命令：命令名 -> 技能文件路径
 	private skillCommands = new Map<string, string>();
 
 	// Agent subscription unsubscribe function
+	// 智能体（agent）事件订阅的取消订阅函数
 	private unsubscribe?: () => void;
 	private signalCleanupHandlers: Array<() => void> = [];
 
 	// Track if editor is in bash mode (text starts with !)
+	// 跟踪编辑器是否处于 bash 模式（文本以 ! 开头）
 	private isBashMode = false;
 
 	// Track current bash execution component
+	// 跟踪当前的 bash 执行组件
 	private bashComponent: BashExecutionComponent | undefined = undefined;
 
 	// Track pending bash components (shown in pending area, moved to chat on submit)
+	// 跟踪待处理的 bash 组件（先显示在待处理区域，提交时移入聊天区）
 	private pendingBashComponents: BashExecutionComponent[] = [];
 
 	// Auto-compaction state
+	// 自动压缩（auto-compaction）状态
 	private autoCompactionEscapeHandler?: () => void;
 
 	// Auto-retry state
+	// 自动重试（auto-retry）状态
 	private retryEscapeHandler?: () => void;
 
 	// Messages queued while compaction is running
+	// 压缩进行期间排队的消息
 	private compactionQueuedMessages: CompactionQueuedMessage[] = [];
 
 	// Shutdown state
+	// 关闭（shutdown）状态
 	private shutdownRequested = false;
 
 	// Extension UI state
+	// 扩展（extension）UI 状态
 	private extensionSelector: ExtensionSelectorComponent | undefined = undefined;
 	private extensionInput: ExtensionInputComponent | undefined = undefined;
 	private extensionEditor: ExtensionEditorComponent | undefined = undefined;
 	private extensionTerminalInputUnsubscribers = new Set<() => void>();
 
 	// Extension widgets (components rendered above/below the editor)
+	// 扩展挂件（widget）：渲染在编辑器上方/下方的组件
 	private extensionWidgetsAbove = new Map<string, Component & { dispose?(): void }>();
 	private extensionWidgetsBelow = new Map<string, Component & { dispose?(): void }>();
 	private widgetContainerAbove!: Container;
 	private widgetContainerBelow!: Container;
 
 	// Custom footer from extension (undefined = use built-in footer)
+	// 来自扩展的自定义底栏（footer）（undefined 表示使用内置底栏）
 	private customFooter: (Component & { dispose?(): void }) | undefined = undefined;
 
 	// Header container that holds the built-in or custom header
+	// 承载内置或自定义顶栏（header）的容器
 	private headerContainer: Container;
 
 	// Built-in header (logo + keybinding hints + changelog)
+	// 内置顶栏（logo + 快捷键提示 + 更新日志）
 	private builtInHeader: Component | undefined = undefined;
 
 	// Custom header from extension (undefined = use built-in header)
+	// 来自扩展的自定义顶栏（undefined 表示使用内置顶栏）
 	private customHeader: (Component & { dispose?(): void }) | undefined = undefined;
 
 	private options: InteractiveModeOptions;
@@ -458,6 +512,7 @@ export class InteractiveMode {
 	private themeController: InteractiveThemeController;
 
 	// Convenience accessors
+	// 便捷访问器
 	private get session(): AgentSession {
 		return this.runtimeHost.session;
 	}
@@ -517,10 +572,12 @@ export class InteractiveMode {
 		this.footerContainer.addChild(this.footer);
 
 		// Load hide thinking block setting
+		// 加载“隐藏思考块”设置
 		this.hideThinkingBlock = this.settingsManager.getHideThinkingBlock();
 		this.outputPad = this.settingsManager.getOutputPad();
 
 		// Register themes from resource loader and initialize
+		// 注册来自资源加载器（resource loader）的主题并初始化
 		setRegisteredThemes(this.session.resourceLoader.getThemes().themes);
 		this.themeController = new InteractiveThemeController(
 			this.ui,
@@ -580,6 +637,7 @@ export class InteractiveMode {
 
 	private createBaseAutocompleteProvider(): AutocompleteProvider {
 		// Define commands for autocomplete
+		// 定义用于自动补全（autocomplete）的命令
 		const slashCommands: SlashCommand[] = BUILTIN_SLASH_COMMANDS.map((command) => ({
 			name: command.name,
 			description: command.description,
@@ -590,6 +648,7 @@ export class InteractiveMode {
 		if (modelCommand) {
 			modelCommand.getArgumentCompletions = async (prefix: string): Promise<AutocompleteItem[] | null> => {
 				// Get available models (scoped or from registry)
+				// 获取可用模型（限定范围的模型，或来自模型注册表的模型）
 				const models =
 					this.session.scopedModels.length > 0
 						? this.session.scopedModels.map((s) => s.model)
@@ -598,6 +657,7 @@ export class InteractiveMode {
 				if (models.length === 0) return null;
 
 				// Create items with provider/id format
+				// 以 provider/id 的格式创建补全条目
 				const items = models.map((m) => ({
 					id: m.id,
 					provider: m.provider,
@@ -626,6 +686,7 @@ export class InteractiveMode {
 		}
 
 		// Convert prompt templates to SlashCommand format for autocomplete
+		// 将提示词模板（prompt template）转换为 SlashCommand 格式以供自动补全使用
 		const templateCommands: SlashCommand[] = this.session.promptTemplates.map((cmd) => ({
 			name: cmd.name,
 			description: this.prefixAutocompleteDescription(cmd.description, cmd.sourceInfo),
@@ -633,6 +694,7 @@ export class InteractiveMode {
 		}));
 
 		// Convert extension commands to SlashCommand format
+		// 将扩展命令转换为 SlashCommand 格式
 		const builtinCommandNames = new Set(slashCommands.map((c) => c.name));
 		const extensionCommands: SlashCommand[] = this.session.extensionRunner
 			.getRegisteredCommands()
@@ -644,6 +706,7 @@ export class InteractiveMode {
 			}));
 
 		// Build skill commands from session.skills (if enabled)
+		// 根据 session.skills 构建技能命令（若已启用）
 		this.skillCommands.clear();
 		const skillCommandList: SlashCommand[] = [];
 		if (this.settingsManager.getEnableSkillCommands()) {
@@ -718,10 +781,13 @@ export class InteractiveMode {
 		this.registerSignalHandlers();
 
 		// Load changelog (only show new entries, skip for resumed sessions)
+		// 加载更新日志（仅显示新增条目，恢复的会话会跳过）
 		this.changelogMarkdown = this.getChangelogForDisplay();
 
 		// Ensure fd and rg are available (downloads if missing, adds to PATH via getBinDir)
+		// 确保 fd 与 rg 可用（缺失时自动下载，并通过 getBinDir 添加到 PATH）
 		// Both are needed: fd for autocomplete, rg for grep tool and bash commands
+		// 两者都必需：fd 用于自动补全，rg 用于 grep 工具和 bash 命令
 		const [fdPath] = await Promise.all([ensureTool("fd"), ensureTool("rg")]);
 		this.fdPath = fdPath;
 
@@ -741,7 +807,8 @@ export class InteractiveMode {
 		}
 
 		// Populate stable regions before selecting the renderer-specific composition.
-		this.renderWidgets(); // Initialize with default spacer
+		// 在选择特定渲染器的组合方式之前，先填充稳定区域。
+		this.renderWidgets(); // Initialize with default spacer / 使用默认间隔组件（spacer）初始化
 		if (TuiLayouts.isViewportTUI(this.ui)) {
 			const transcript = new TuiLayouts.ScrollView(this.documentContainer, {
 				follow: "end",
@@ -777,16 +844,19 @@ export class InteractiveMode {
 		this.setupEditorSubmitHandler();
 
 		// Start the UI before initializing extensions so session_start handlers can use interactive dialogs
+		// 在初始化扩展之前先启动 UI，这样 session_start 处理器才能使用交互式对话框
 		this.ui.start();
 		this.isInitialized = true;
 
 		await this.themeController.applyFromSettings();
 
 		// Add header with keybindings from config (unless silenced)
+		// 添加带有配置快捷键（keybinding）的顶栏（除非已设为静默模式）
 		if (this.options.verbose || !this.settingsManager.getQuietStartup()) {
 			const logo = theme.bold(theme.fg("accent", APP_NAME)) + theme.fg("dim", ` v${this.version}`);
 
 			// Build startup instructions using keybinding hint helpers
+			// 使用快捷键提示辅助函数构建启动说明
 			const hint = (keybinding: AppKeybinding, description: string) => keyHint(keybinding, description);
 
 			const expandedInstructions = [
@@ -834,23 +904,28 @@ export class InteractiveMode {
 			);
 
 			// Setup UI layout
+			// 设置 UI 布局
 			this.headerContainer.addChild(new Spacer(1));
 			this.headerContainer.addChild(this.builtInHeader);
 			this.headerContainer.addChild(new Spacer(1));
 		} else {
 			// Minimal header when silenced
+			// 静默模式下使用最简顶栏
 			this.builtInHeader = new Text("", 0, 0);
 			this.headerContainer.addChild(this.builtInHeader);
 		}
 		this.ui.requestRender();
 
 		// Initialize extensions first so resources are shown before messages
+		// 先初始化扩展，以便在消息之前展示已加载的资源
 		await this.rebindCurrentSession();
 
 		// Render initial messages AFTER showing loaded resources
+		// 在展示完已加载资源之后再渲染初始消息
 		this.renderInitialMessages();
 
 		// Set up theme file watcher
+		// 设置主题文件监听器
 		onThemeChange(() => {
 			this.ui.invalidate();
 			this.updateEditorBorderColor();
@@ -858,16 +933,19 @@ export class InteractiveMode {
 		});
 
 		// Set up git branch watcher (uses provider instead of footer)
+		// 设置 git 分支监听器（使用数据提供者而非底栏）
 		this.footerDataProvider.onBranchChange(() => {
 			this.ui.requestRender();
 		});
 
 		// Initialize available provider count for footer display
+		// 初始化可用服务商数量以供底栏展示
 		await this.updateAvailableProviderCount();
 	}
 
 	/**
 	 * Update terminal title with session name and cwd.
+	 * 使用会话名称和工作目录（cwd）更新终端标题。
 	 */
 	private updateTerminalTitle(): void {
 		const cwdBasename = path.basename(this.sessionManager.getCwd());
@@ -881,7 +959,9 @@ export class InteractiveMode {
 
 	/**
 	 * Run the interactive mode. This is the main entry point.
+	 * 运行交互模式。这是主入口点。
 	 * Initializes the UI, shows warnings, processes initial messages, and starts the interactive loop.
+	 * 初始化 UI、显示警告、处理初始消息，并启动交互循环。
 	 */
 	async run(): Promise<void> {
 		await this.init();
@@ -894,6 +974,7 @@ export class InteractiveMode {
 		}
 
 		// Start version check asynchronously
+		// 异步启动版本检查
 		checkForNewPiVersion(this.version).then((newRelease) => {
 			if (newRelease) {
 				this.showNewVersionNotification(newRelease);
@@ -901,6 +982,7 @@ export class InteractiveMode {
 		});
 
 		// Start package update check asynchronously
+		// 异步启动软件包更新检查
 		this.checkForPackageUpdates()
 			.then((updates) => {
 				if (updates.length > 0) {
@@ -909,13 +991,16 @@ export class InteractiveMode {
 			})
 			.finally(() => {
 				// On Windows, npm can overwrite the shared console title while checking
+				// 在 Windows 上，npm 在检查扩展包版本时可能会覆盖共享的控制台标题。
 				// extension package versions. Restore Pi's title after the startup check.
+				// 因此在启动检查完成后需要恢复 Pi 的标题。
 				if (process.platform === "win32" && this.isInitialized) {
 					this.updateTerminalTitle();
 				}
 			});
 
 		// Check tmux keyboard setup asynchronously
+		// 异步检查 tmux 的键盘配置
 		this.checkTmuxKeyboardSetup().then((warning) => {
 			if (warning) {
 				this.showWarning(warning);
@@ -923,6 +1008,7 @@ export class InteractiveMode {
 		});
 
 		// Show startup warnings
+		// 显示启动时的警告
 		const { migratedProviders, modelFallbackMessage, initialMessage, initialImages, initialMessages } = this.options;
 
 		if (migratedProviders && migratedProviders.length > 0) {
@@ -941,6 +1027,7 @@ export class InteractiveMode {
 		void this.maybeWarnAboutAnthropicSubscriptionAuth();
 
 		// Process initial messages
+		// 处理初始消息
 		if (initialMessage) {
 			try {
 				await this.session.prompt(initialMessage, { images: initialImages });
@@ -962,6 +1049,7 @@ export class InteractiveMode {
 		}
 
 		// Main interactive loop
+		// 主交互循环
 		while (true) {
 			const userInput = await this.getUserInput();
 			try {
@@ -1025,6 +1113,7 @@ export class InteractiveMode {
 		]);
 
 		// If we couldn't query tmux (timeout, sandbox, etc.), don't warn
+		// 如果无法查询 tmux（超时、沙箱环境等），则不发出警告
 		if (extendedKeys === undefined) return undefined;
 
 		if (extendedKeys !== "on" && extendedKeys !== "always") {
@@ -1040,10 +1129,13 @@ export class InteractiveMode {
 
 	/**
 	 * Get changelog entries to display on startup.
+	 * 获取启动时需要展示的更新日志条目。
 	 * Only shows new entries since last seen version, skips for resumed sessions.
+	 * 仅显示自上次查看版本以来的新增条目，恢复的会话会跳过。
 	 */
 	private getChangelogForDisplay(): string | undefined {
 		// Skip changelog for resumed/continued sessions (already have messages)
+		// 对于恢复/继续的会话跳过更新日志（这些会话已经存在消息）
 		if (this.session.state.messages.length > 0) {
 			return undefined;
 		}
@@ -1054,6 +1146,7 @@ export class InteractiveMode {
 
 		if (!lastVersion) {
 			// Fresh install - record the version, send telemetry, don't show changelog
+			// 全新安装——记录版本、发送遥测数据（telemetry），不展示更新日志
 			this.settingsManager.setLastChangelogVersion(VERSION);
 			this.reportInstallTelemetry(VERSION);
 			return undefined;
@@ -1097,6 +1190,7 @@ export class InteractiveMode {
 
 	// =========================================================================
 	// Extension System
+	// 扩展系统
 	// =========================================================================
 
 	private formatDisplayPath(p: string): string {
@@ -1104,6 +1198,7 @@ export class InteractiveMode {
 		let result = p;
 
 		// Replace home directory with ~
+		// 将用户主目录替换为 ~
 		if (result.startsWith(home)) {
 			result = `~${result.slice(home.length)}`;
 		}
@@ -1134,6 +1229,7 @@ export class InteractiveMode {
 
 	/**
 	 * Get a short path relative to the package root for display.
+	 * 获取相对于软件包根目录的短路径以供展示。
 	 */
 	private getShortPath(fullPath: string, sourceInfo?: SourceInfo): string {
 		const normalizedFullPath = fullPath.replace(/\\/g, "/");
@@ -1142,6 +1238,7 @@ export class InteractiveMode {
 			const normalizedBaseDir = baseDir.replace(/\\/g, "/");
 			const npmRootMatch = normalizedBaseDir.match(/^(.*\/node_modules)\/(@?[^/]+(?:\/[^/]+)?)$/);
 			// If fullPath is under the same node_modules root as baseDir, preserve that relative topology.
+			// 如果 fullPath 与 baseDir 位于同一个 node_modules 根目录下，则保留该相对结构。
 			if (npmRootMatch?.[1] && normalizedFullPath.startsWith(`${npmRootMatch[1]}/`)) {
 				return path.posix.relative(normalizedBaseDir, normalizedFullPath);
 			}
@@ -1423,6 +1520,7 @@ export class InteractiveMode {
 		const lines: string[] = [];
 
 		// Group collision diagnostics by name
+		// 按名称对冲突（collision）诊断信息分组
 		const collisions = new Map<string, ResourceDiagnostic[]>();
 		const otherDiagnostics: ResourceDiagnostic[] = [];
 
@@ -1437,6 +1535,7 @@ export class InteractiveMode {
 		}
 
 		// Format collision diagnostics grouped by name
+		// 按名称分组格式化冲突诊断信息
 		for (const [name, collisionList] of collisions) {
 			const first = collisionList[0]?.collision;
 			if (!first) continue;
@@ -1478,6 +1577,7 @@ export class InteractiveMode {
 		showDiagnosticsWhenQuiet?: boolean;
 	}): void {
 		// Resource rendering is idempotent; chat clears no longer clear this separate container.
+		// 资源渲染是幂等的；清空聊天区不再会清空这个独立容器。
 		this.loadedResourcesContainer.clear();
 
 		const showListing = options?.force || this.options.verbose || !this.settingsManager.getQuietStartup();
@@ -1609,6 +1709,7 @@ export class InteractiveMode {
 			}
 
 			// Show loaded themes (excluding built-in)
+			// 显示已加载的主题（不含内置主题）
 			const loadedThemes = themesResult.themes;
 			const customThemes = loadedThemes.filter((t) => t.sourcePath);
 			if (customThemes.length > 0) {
@@ -1687,6 +1788,7 @@ export class InteractiveMode {
 
 	/**
 	 * Initialize the extension system with TUI-based UI context.
+	 * 使用基于 TUI 的 UI 上下文初始化扩展系统。
 	 */
 	private async bindCurrentSessionExtensions(): Promise<void> {
 		const uiContext = this.createExtensionUIContext();
@@ -1836,6 +1938,7 @@ export class InteractiveMode {
 
 	/**
 	 * Get a registered tool definition by name (for custom rendering).
+	 * 按名称获取已注册的工具定义（用于自定义渲染）。
 	 */
 	private getRegisteredToolDefinition(toolName: string) {
 		return this.session.getToolDefinition(toolName);
@@ -1847,12 +1950,14 @@ export class InteractiveMode {
 
 	/**
 	 * Set up keyboard shortcuts registered by extensions.
+	 * 设置由扩展注册的键盘快捷键。
 	 */
 	private setupExtensionShortcuts(extensionRunner: ExtensionRunner): void {
 		const shortcuts = extensionRunner.getShortcuts(this.keybindings.getEffectiveConfig());
 		if (shortcuts.size === 0) return;
 
 		// Create a context for shortcut handlers
+		// 为快捷键处理器创建上下文
 		const createContext = (): ExtensionContext => ({
 			ui: this.createExtensionUIContext(),
 			mode: "tui",
@@ -1889,11 +1994,14 @@ export class InteractiveMode {
 		});
 
 		// Set up the extension shortcut handler on the default editor
+		// 在默认编辑器上设置扩展快捷键处理器
 		this.defaultEditor.onExtensionShortcut = (data: string) => {
 			for (const [shortcutStr, shortcut] of shortcuts) {
 				// Cast to KeyId - extension shortcuts use the same format
+				// 转换为 KeyId——扩展快捷键使用相同的格式
 				if (matchesKey(data, shortcutStr as KeyId)) {
 					// Run handler async, don't block input
+					// 异步运行处理器，不阻塞输入
 					Promise.resolve(shortcut.handler(createContext())).catch((err) => {
 						this.showError(`Shortcut handler error: ${err instanceof Error ? err.message : String(err)}`);
 					});
@@ -1906,6 +2014,7 @@ export class InteractiveMode {
 
 	/**
 	 * Set extension status text in the footer.
+	 * 在底栏中设置扩展的状态文本。
 	 */
 	private setExtensionStatus(key: string, text: string | undefined): void {
 		this.footerDataProvider.setExtensionStatus(key, text);
@@ -1974,6 +2083,7 @@ export class InteractiveMode {
 
 	/**
 	 * Set an extension widget (string array or custom component).
+	 * 设置扩展挂件（字符串数组或自定义组件）。
 	 */
 	private setExtensionWidget(
 		key: string,
@@ -1999,6 +2109,7 @@ export class InteractiveMode {
 
 		if (Array.isArray(content)) {
 			// Wrap string array in a Container with Text components
+			// 将字符串数组包装进一个包含 Text 组件的 Container 中
 			const container = new Container();
 			for (const line of content.slice(0, InteractiveMode.MAX_WIDGET_LINES)) {
 				container.addChild(new Text(line, 1, 0));
@@ -2009,6 +2120,7 @@ export class InteractiveMode {
 			component = container;
 		} else {
 			// Factory function - create component
+			// 工厂函数——创建组件
 			component = content(this.ui, theme);
 		}
 
@@ -2063,10 +2175,12 @@ export class InteractiveMode {
 	}
 
 	// Maximum total widget lines to prevent viewport overflow
+	// 挂件的最大总行数，用于防止视口溢出
 	private static readonly MAX_WIDGET_LINES = 10;
 
 	/**
 	 * Render all extension widgets to the widget container.
+	 * 将所有扩展挂件渲染到挂件容器中。
 	 */
 	private renderWidgets(): void {
 		if (!this.widgetContainerAbove || !this.widgetContainerBelow) return;
@@ -2100,6 +2214,7 @@ export class InteractiveMode {
 
 	/**
 	 * Set a custom footer component, or restore the built-in footer.
+	 * 设置自定义底栏组件，或恢复内置底栏。
 	 */
 	private setExtensionFooter(
 		factory:
@@ -2107,6 +2222,7 @@ export class InteractiveMode {
 			| undefined,
 	): void {
 		// Dispose existing custom footer
+		// 释放已有的自定义底栏
 		if (this.customFooter?.dispose) {
 			this.customFooter.dispose();
 		}
@@ -2114,10 +2230,12 @@ export class InteractiveMode {
 		this.footerContainer.clear();
 		if (factory) {
 			// Create and add custom footer, passing the data provider
+			// 创建并添加自定义底栏，同时传入数据提供者
 			this.customFooter = factory(this.ui, theme, this.footerDataProvider);
 			this.footerContainer.addChild(this.customFooter);
 		} else {
 			// Restore built-in footer
+			// 恢复内置底栏
 			this.customFooter = undefined;
 			this.footerContainer.addChild(this.footer);
 		}
@@ -2127,24 +2245,29 @@ export class InteractiveMode {
 
 	/**
 	 * Set a custom header component, or restore the built-in header.
+	 * 设置自定义顶栏组件，或恢复内置顶栏。
 	 */
 	private setExtensionHeader(factory: ((tui: TUI, thm: Theme) => Component & { dispose?(): void }) | undefined): void {
 		// Header may not be initialized yet if called during early initialization
+		// 若在初始化早期被调用，顶栏可能尚未初始化
 		if (!this.builtInHeader) {
 			return;
 		}
 
 		// Dispose existing custom header
+		// 释放已有的自定义顶栏
 		if (this.customHeader?.dispose) {
 			this.customHeader.dispose();
 		}
 
 		// Find the index of the current header in the header container
+		// 在顶栏容器中查找当前顶栏的索引
 		const currentHeader = this.customHeader || this.builtInHeader;
 		const index = this.headerContainer.children.indexOf(currentHeader);
 
 		if (factory) {
 			// Create and add custom header
+			// 创建并添加自定义顶栏
 			this.customHeader = factory(this.ui, theme);
 			if (isExpandable(this.customHeader)) {
 				this.customHeader.setExpanded(this.toolOutputExpanded);
@@ -2153,10 +2276,12 @@ export class InteractiveMode {
 				this.headerContainer.children[index] = this.customHeader;
 			} else {
 				// If not found (e.g. builtInHeader was never added), add at the top
+				// 若未找到（例如 builtInHeader 从未被添加），则添加到顶部
 				this.headerContainer.children.unshift(this.customHeader);
 			}
 		} else {
 			// Restore built-in header
+			// 恢复内置顶栏
 			this.customHeader = undefined;
 			if (isExpandable(this.builtInHeader)) {
 				this.builtInHeader.setExpanded(this.toolOutputExpanded);
@@ -2189,6 +2314,7 @@ export class InteractiveMode {
 
 	/**
 	 * Create the ExtensionUIContext for extensions.
+	 * 为扩展创建 ExtensionUIContext。
 	 */
 	private createProjectTrustContext(cwd: string): ProjectTrustContext {
 		const ui = this.createExtensionUIContext();
@@ -2261,6 +2387,7 @@ export class InteractiveMode {
 
 	/**
 	 * Show a selector for extensions.
+	 * 为扩展显示选择器。
 	 */
 	private showExtensionSelector(
 		title: string,
@@ -2304,6 +2431,7 @@ export class InteractiveMode {
 
 	/**
 	 * Hide the extension selector.
+	 * 隐藏扩展选择器。
 	 */
 	private hideExtensionSelector(): void {
 		this.extensionSelector?.dispose();
@@ -2316,6 +2444,7 @@ export class InteractiveMode {
 
 	/**
 	 * Show a confirmation dialog for extensions.
+	 * 为扩展显示确认对话框。
 	 */
 	private async showExtensionConfirm(
 		title: string,
@@ -2336,6 +2465,7 @@ export class InteractiveMode {
 
 	/**
 	 * Show a text input for extensions.
+	 * 为扩展显示文本输入框。
 	 */
 	private showExtensionInput(
 		title: string,
@@ -2379,6 +2509,7 @@ export class InteractiveMode {
 
 	/**
 	 * Hide the extension input.
+	 * 隐藏扩展输入框。
 	 */
 	private hideExtensionInput(): void {
 		this.extensionInput?.dispose();
@@ -2391,6 +2522,7 @@ export class InteractiveMode {
 
 	/**
 	 * Show a multi-line editor for extensions (with Ctrl+G support).
+	 * 为扩展显示多行编辑器（支持 Ctrl+G）。
 	 */
 	private showExtensionEditor(title: string, prefill?: string): Promise<string | undefined> {
 		return new Promise((resolve) => {
@@ -2420,6 +2552,7 @@ export class InteractiveMode {
 
 	/**
 	 * Hide the extension editor.
+	 * 隐藏扩展编辑器。
 	 */
 	private hideExtensionEditor(): void {
 		this.editorContainer.clear();
@@ -2431,28 +2564,35 @@ export class InteractiveMode {
 
 	/**
 	 * Set a custom editor component from an extension.
+	 * 设置来自扩展的自定义编辑器组件。
 	 * Pass undefined to restore the default editor.
+	 * 传入 undefined 可恢复默认编辑器。
 	 */
 	private setCustomEditorComponent(factory: EditorFactory | undefined): void {
 		this.editorComponentFactory = factory;
 
 		// Save text from current editor before switching
+		// 切换前保存当前编辑器中的文本
 		const currentText = this.editor.getText();
 
 		this.editorContainer.clear();
 
 		if (factory) {
 			// Create the custom editor with tui, theme, and keybindings
+			// 使用 tui、主题和快捷键配置创建自定义编辑器
 			const newEditor = factory(this.ui, getEditorTheme(), this.keybindings);
 
 			// Wire up callbacks from the default editor
+			// 接入默认编辑器的回调
 			newEditor.onSubmit = this.defaultEditor.onSubmit;
 			newEditor.onChange = this.defaultEditor.onChange;
 
 			// Copy text from previous editor
+			// 复制上一个编辑器中的文本
 			newEditor.setText(currentText);
 
 			// Copy appearance settings if supported
+			// 如果支持则复制外观设置
 			if (newEditor.borderColor !== undefined) {
 				newEditor.borderColor = this.defaultEditor.borderColor;
 			}
@@ -2461,12 +2601,15 @@ export class InteractiveMode {
 			}
 
 			// Set autocomplete if supported
+			// 如果支持则设置自动补全
 			if (newEditor.setAutocompleteProvider && this.autocompleteProvider) {
 				newEditor.setAutocompleteProvider(this.autocompleteProvider);
 			}
 
 			// If extending CustomEditor, copy app-level handlers
+			// 若继承自 CustomEditor，则复制应用级处理器
 			// Use duck typing since instanceof fails across jiti module boundaries
+			// 使用鸭子类型（duck typing）判断，因为 instanceof 跨 jiti 模块边界会失效
 			const customEditor = newEditor as unknown as Record<string, unknown>;
 			if ("actionHandlers" in customEditor && customEditor.actionHandlers instanceof Map) {
 				if (!customEditor.onEscape) {
@@ -2482,6 +2625,7 @@ export class InteractiveMode {
 					customEditor.onExtensionShortcut = (data: string) => this.defaultEditor.onExtensionShortcut?.(data);
 				}
 				// Copy action handlers (clear, suspend, model switching, etc.)
+				// 复制动作处理器（清空、挂起、模型切换等）
 				for (const [action, handler] of this.defaultEditor.actionHandlers) {
 					(customEditor.actionHandlers as Map<string, () => void>).set(action, handler);
 				}
@@ -2490,6 +2634,7 @@ export class InteractiveMode {
 			this.editor = newEditor;
 		} else {
 			// Restore default editor with text from custom editor
+			// 恢复默认编辑器，并带上自定义编辑器中的文本
 			this.defaultEditor.setText(currentText);
 			this.editor = this.defaultEditor;
 		}
@@ -2501,6 +2646,7 @@ export class InteractiveMode {
 
 	/**
 	 * Show a notification for extensions.
+	 * 为扩展显示通知。
 	 */
 	private showExtensionNotify(message: string, type?: "info" | "warning" | "error"): void {
 		if (type === "error") {
@@ -2512,7 +2658,10 @@ export class InteractiveMode {
 		}
 	}
 
-	/** Show a custom component with keyboard focus. Overlay mode renders on top of existing content. */
+	/**
+	 * Show a custom component with keyboard focus. Overlay mode renders on top of existing content.
+	 * 显示一个带键盘焦点的自定义组件。浮层（overlay）模式会渲染在现有内容之上。
+	 */
 	private async showExtensionCustom<T>(
 		factory: (
 			tui: TUI,
@@ -2547,11 +2696,12 @@ export class InteractiveMode {
 				if (isOverlay) this.ui.hideOverlay();
 				else restoreEditor();
 				// Note: both branches above already call requestRender
+				// 注意：上面两个分支都已经调用了 requestRender
 				resolve(result);
 				try {
 					component?.dispose?.();
 				} catch {
-					/* ignore dispose errors */
+					/* ignore dispose errors / 忽略释放（dispose）过程中的错误 */
 				}
 			};
 
@@ -2561,6 +2711,7 @@ export class InteractiveMode {
 					component = c;
 					if (isOverlay) {
 						// Resolve overlay options - can be static or dynamic function
+						// 解析浮层选项——可以是静态值，也可以是动态函数
 						const resolveOptions = (): OverlayOptions | undefined => {
 							if (options?.overlayOptions) {
 								const opts =
@@ -2570,11 +2721,13 @@ export class InteractiveMode {
 								return opts;
 							}
 							// Fallback: use component's width property if available
+							// 兜底方案：如果可用则使用组件的 width 属性
 							const w = (component as { width?: number }).width;
 							return w ? { width: w } : undefined;
 						};
 						const handle = this.ui.showOverlay(component, resolveOptions());
 						// Expose handle to caller for visibility control
+						// 将句柄（handle）暴露给调用方以控制可见性
 						options?.onHandle?.(handle);
 					} else {
 						this.editorContainer.clear();
@@ -2593,6 +2746,7 @@ export class InteractiveMode {
 
 	/**
 	 * Show an extension error in the UI.
+	 * 在 UI 中显示扩展错误。
 	 */
 	private showExtensionError(extensionPath: string, error: string, stack?: string): void {
 		const errorMsg = `Extension "${extensionPath}" error: ${error}`;
@@ -2600,9 +2754,10 @@ export class InteractiveMode {
 		this.chatContainer.addChild(errorText);
 		if (stack) {
 			// Show stack trace in dim color, indented
+			// 以暗色并缩进显示调用栈（stack trace）
 			const stackLines = stack
 				.split("\n")
-				.slice(1) // Skip first line (duplicates error message)
+				.slice(1) // Skip first line (duplicates error message) / 跳过第一行（与错误消息重复）
 				.map((line) => theme.fg("dim", `  ${line.trim()}`))
 				.join("\n");
 			if (stackLines) {
@@ -2614,11 +2769,14 @@ export class InteractiveMode {
 
 	// =========================================================================
 	// Key Handlers
+	// 按键处理器
 	// =========================================================================
 
 	private setupKeyHandlers(): void {
 		// Set up handlers on defaultEditor - they use this.editor for text access
+		// 在 defaultEditor 上设置处理器——它们通过 this.editor 访问文本，
 		// so they work correctly regardless of which editor is active
+		// 因此无论当前激活的是哪个编辑器都能正常工作
 		this.defaultEditor.onEscape = () => {
 			if (this.session.isStreaming) {
 				this.restoreQueuedMessagesToEditor({ abort: true });
@@ -2630,6 +2788,7 @@ export class InteractiveMode {
 				this.updateEditorBorderColor();
 			} else if (!this.editor.getText().trim()) {
 				// Double-escape with empty editor triggers /tree, /fork, or nothing based on setting
+				// 编辑器为空时连按两次 Esc，会根据设置触发 /tree、/fork 或不做任何操作
 				const action = this.settingsManager.getDoubleEscapeAction();
 				if (action !== "none") {
 					const now = Date.now();
@@ -2648,6 +2807,7 @@ export class InteractiveMode {
 		};
 
 		// Register app action handlers
+		// 注册应用动作处理器
 		this.defaultEditor.onAction("app.clear", () => this.handleCtrlC());
 		this.defaultEditor.onCtrlD = () => this.handleCtrlD();
 		this.defaultEditor.onAction("app.suspend", () => this.handleCtrlZ());
@@ -2656,6 +2816,7 @@ export class InteractiveMode {
 		this.defaultEditor.onAction("app.model.cycleBackward", () => this.cycleModel("backward"));
 
 		// Global debug handler on TUI (works regardless of focus)
+		// TUI 上的全局调试处理器（无论焦点在何处都生效）
 		this.ui.onDebug = () => this.handleDebugCommand();
 		this.defaultEditor.onAction("app.model.select", () => this.showModelSelector());
 		this.defaultEditor.onAction("app.tools.expand", () => this.toggleToolOutputExpansion());
@@ -2678,7 +2839,9 @@ export class InteractiveMode {
 		};
 
 		// Handle clipboard paste (triggered on Ctrl+V). Images are attached by path;
+		// 处理剪贴板粘贴（由 Ctrl+V 触发）。图片以路径形式附加；
 		// otherwise, paste plain text from the system clipboard.
+		// 否则从系统剪贴板粘贴纯文本。
 		this.defaultEditor.onPasteImage = () => {
 			void this.handleClipboardPaste();
 		};
@@ -2706,6 +2869,7 @@ export class InteractiveMode {
 			}
 		} catch {
 			// Silently ignore clipboard errors (may not have permission, etc.)
+			// 静默忽略剪贴板错误（可能是没有权限等原因）
 		}
 	}
 
@@ -2715,6 +2879,7 @@ export class InteractiveMode {
 			if (!text) return;
 
 			// Handle commands
+			// 处理命令
 			if (text === "/settings") {
 				this.showSettingsSelector();
 				this.editor.setText("");
@@ -2845,6 +3010,7 @@ export class InteractiveMode {
 			}
 
 			// Handle bash command (! for normal, !! for excluded from context)
+			// 处理 bash 命令（! 表示普通执行，!! 表示不纳入上下文）
 			if (text.startsWith("!")) {
 				const isExcluded = text.startsWith("!!");
 				const command = isExcluded ? text.slice(2).trim() : text.slice(1).trim();
@@ -2863,6 +3029,7 @@ export class InteractiveMode {
 			}
 
 			// Queue input during compaction (extension commands execute immediately)
+			// 压缩期间将输入排队（扩展命令会立即执行）
 			if (this.session.isCompacting) {
 				if (this.isExtensionCommand(text)) {
 					this.editor.addToHistory?.(text);
@@ -2875,7 +3042,9 @@ export class InteractiveMode {
 			}
 
 			// If streaming, use prompt() with steer behavior
+			// 若正在流式输出，则以 steer（引导）行为调用 prompt()
 			// This handles extension commands (execute immediately), prompt template expansion, and queueing
+			// 这会处理扩展命令（立即执行）、提示词模板展开以及排队
 			if (this.session.isStreaming) {
 				this.editor.addToHistory?.(text);
 				this.editor.setText("");
@@ -2886,7 +3055,9 @@ export class InteractiveMode {
 			}
 
 			// Normal message submission
+			// 普通消息提交
 			// First, move any pending bash components to chat
+			// 首先，将所有待处理的 bash 组件移入聊天区
 			this.flushPendingBashComponents();
 
 			if (this.onInputCallback) {
@@ -2918,7 +3089,9 @@ export class InteractiveMode {
 					this.ui.terminal.setProgress(true);
 				}
 				// Restore main escape handler if retry handler is still active
+				// 如果重试的 Esc 处理器仍处于激活状态，则恢复主 Esc 处理器
 				// (retry success event fires later, but we need main handler now)
+				// （重试成功事件会稍后触发，但我们现在就需要主处理器）
 				if (this.retryEscapeHandler) {
 					this.defaultEditor.onEscape = this.retryEscapeHandler;
 					this.retryEscapeHandler = undefined;
@@ -3047,6 +3220,7 @@ export class InteractiveMode {
 						this.pendingTools.clear();
 					} else {
 						// Args are now complete - trigger diff computation for edit tools
+						// 参数现已完整——为编辑类工具触发差异（diff）计算
 						for (const [, component] of this.pendingTools.entries()) {
 							component.setArgsComplete();
 						}
@@ -3061,6 +3235,7 @@ export class InteractiveMode {
 
 			case "bash_execution_update":
 				// The bash execution callback handles TUI output rendering.
+				// bash 执行回调负责处理 TUI 的输出渲染。
 				break;
 
 			case "tool_execution_start": {
@@ -3130,6 +3305,7 @@ export class InteractiveMode {
 					this.ui.terminal.setProgress(true);
 				}
 				// Keep editor active; submissions are queued during compaction.
+				// 保持编辑器可用；压缩期间提交的内容会被排队。
 				this.autoCompactionEscapeHandler = this.defaultEditor.onEscape;
 				this.defaultEditor.onEscape = () => {
 					this.session.abortCompaction();
@@ -3180,6 +3356,7 @@ export class InteractiveMode {
 
 			case "auto_retry_start": {
 				// Set up escape to abort retry
+				// 设置 Esc 键用于中止重试
 				this.retryEscapeHandler = this.defaultEditor.onEscape;
 				this.defaultEditor.onEscape = () => {
 					this.session.abortRetry();
@@ -3193,12 +3370,14 @@ export class InteractiveMode {
 
 			case "auto_retry_end": {
 				// Restore escape handler
+				// 恢复 Esc 键处理器
 				if (this.retryEscapeHandler) {
 					this.defaultEditor.onEscape = this.retryEscapeHandler;
 					this.retryEscapeHandler = undefined;
 				}
 				this.clearStatusIndicator("retry");
 				// Show error only on final failure (success shows normal response)
+				// 仅在最终失败时显示错误（成功时会显示正常响应）
 				if (!event.success) {
 					this.showError(`Retry failed after ${event.attempt} attempts: ${event.finalError || "Unknown error"}`);
 				}
@@ -3234,7 +3413,10 @@ export class InteractiveMode {
 		}
 	}
 
-	/** Extract text content from a user message */
+	/**
+	 * Extract text content from a user message
+	 * 从用户消息中提取文本内容
+	 */
 	private getUserMessageText(message: Message): string {
 		if (message.role !== "user") return "";
 		const textBlocks =
@@ -3246,9 +3428,12 @@ export class InteractiveMode {
 
 	/**
 	 * Show a status message in the chat.
+	 * 在聊天区显示一条状态消息。
 	 *
 	 * If multiple status messages are emitted back-to-back (without anything else being added to the chat),
+	 * 如果多条状态消息连续发出（期间没有其他内容被加入聊天区），
 	 * we update the previous status line instead of appending new ones to avoid log spam.
+	 * 我们会更新前一条状态行而不是追加新行，以避免日志刷屏。
 	 */
 	private showStatus(message: string): void {
 		const children = this.chatContainer.children;
@@ -3345,6 +3530,7 @@ export class InteractiveMode {
 					const skillBlock = parseSkillBlock(textContent);
 					if (skillBlock) {
 						// Render skill block (collapsible)
+						// 渲染技能块（可折叠）
 						const component = new SkillInvocationMessageComponent(
 							skillBlock,
 							this.getMarkdownThemeWithSettings(),
@@ -3352,6 +3538,7 @@ export class InteractiveMode {
 						component.setExpanded(this.toolOutputExpanded);
 						this.chatContainer.addChild(component);
 						// Render user message separately if present
+						// 若存在用户消息，则单独渲染
 						if (skillBlock.userMessage) {
 							this.chatContainer.addChild(new Spacer(1));
 							const userComponent = new UserMessageComponent(
@@ -3391,6 +3578,7 @@ export class InteractiveMode {
 			}
 			case "toolResult": {
 				// Tool results are rendered inline with tool calls, handled separately
+				// 工具结果与工具调用内联渲染，在别处单独处理
 				break;
 			}
 			default: {
@@ -3406,7 +3594,9 @@ export class InteractiveMode {
 		this.pendingTools.clear();
 		const renderedPendingTools = new Map<string, ToolExecutionComponent>();
 		// Cache-miss notices are not persisted; re-derive them from the full entry
+		// 缓存未命中（cache miss）提示不会被持久化；需要从完整条目列表中重新推导，
 		// list and re-inject them after the assistant messages that paid for them.
+		// 并在为其付出代价的助手消息之后重新注入。
 		const cacheMisses = this.settingsManager.getShowCacheMissNotices()
 			? collectCacheMisses(this.sessionManager.getEntries(), this.session.modelRuntime)
 			: new Map<AssistantMessage, CacheMiss>();
@@ -3424,9 +3614,11 @@ export class InteractiveMode {
 
 			const message = item;
 			// Assistant messages need special handling for tool calls
+			// 助手消息中的工具调用需要特殊处理
 			if (message.role === "assistant") {
 				this.addMessageToChat(message);
 				// Render tool call components
+				// 渲染工具调用组件
 				for (const content of message.content) {
 					if (content.type === "toolCall") {
 						const component = new ToolExecutionComponent(
@@ -3467,6 +3659,7 @@ export class InteractiveMode {
 				}
 			} else if (message.role === "toolResult") {
 				// Match tool results to pending tool components
+				// 将工具结果与待处理的工具组件进行匹配
 				const component = renderedPendingTools.get(message.toolCallId);
 				if (component) {
 					component.updateResult(message);
@@ -3474,6 +3667,7 @@ export class InteractiveMode {
 				}
 			} else {
 				// All other messages use standard rendering
+				// 其他所有消息使用标准渲染方式
 				this.addMessageToChat(message, options);
 			}
 		}
@@ -3486,9 +3680,13 @@ export class InteractiveMode {
 
 	/**
 	 * Render session entries to chat. Used for initial load and rebuild after compaction.
+	 * 将会话条目渲染到聊天区。用于初次加载以及压缩后的重建。
 	 * @param entries Compaction-aware session entries to render
+	 *                需要渲染的、可感知压缩状态的会话条目
 	 * @param options.updateFooter Update footer state
+	 *                             更新底栏状态
 	 * @param options.populateHistory Add user messages to editor history
+	 *                                将用户消息加入编辑器历史记录
 	 */
 	private renderSessionEntries(
 		entries: SessionEntry[],
@@ -3507,11 +3705,14 @@ export class InteractiveMode {
 	 * Show a transcript notice when a completed assistant message paid for a
 	 * significant cache miss. Only states observable facts: the miss itself,
 	 * a model switch, or an idle gap past the cache TTL.
+	 * 当一条已完成的助手消息为显著的缓存未命中付出代价时，在对话记录中显示提示。
+	 * 只陈述可观察到的事实：未命中本身、模型切换，或超过缓存 TTL 的空闲间隔。
 	 */
 	private maybeShowCacheMissNotice(message: AssistantMessage): void {
 		if (!this.settingsManager.getShowCacheMissNotices()) return;
 
 		// Entries don't contain `message` yet: message_end fires before persistence.
+		// 此时条目中还不包含 `message`：message_end 在持久化之前就已触发。
 		const miss = detectCacheMiss(this.sessionManager.getEntries(), message, this.session.modelRuntime);
 		if (miss) this.addCacheMissNotice(miss);
 	}
@@ -3541,6 +3742,7 @@ export class InteractiveMode {
 		this.renderProjectTrustWarningIfNeeded();
 
 		// Show compaction info if session was compacted
+		// 若会话曾被压缩，则显示压缩信息
 		const allEntries = this.sessionManager.getEntries();
 		const compactionCount = allEntries.filter((e) => e.type === "compaction").length;
 		if (compactionCount > 0) {
@@ -3590,6 +3792,7 @@ export class InteractiveMode {
 
 	// =========================================================================
 	// Key handlers
+	// 按键处理器
 	// =========================================================================
 
 	private handleCtrlC(): void {
@@ -3604,13 +3807,16 @@ export class InteractiveMode {
 
 	private handleCtrlD(): void {
 		// Only called when editor is empty (enforced by CustomEditor)
+		// 仅在编辑器为空时被调用（由 CustomEditor 保证）
 		void this.shutdown();
 	}
 
 	/**
 	 * Gracefully shutdown the agent.
+	 * 优雅地关闭智能体。
 	 * Stops the TUI before emitting shutdown events so extension UI cleanup cannot
 	 * repaint the final frame while the process is exiting.
+	 * 在发出关闭事件之前先停止 TUI，这样扩展的 UI 清理逻辑就无法在进程退出期间重绘最后一帧。
 	 */
 	private isShuttingDown = false;
 
@@ -3618,17 +3824,27 @@ export class InteractiveMode {
 		if (this.isShuttingDown) return;
 		this.isShuttingDown = true;
 		// Keep signal handlers registered until terminal cleanup has completed.
+		// 在终端清理完成之前，保持信号处理器处于注册状态。
 		// `signal-exit` checks the listener list during the same SIGTERM/SIGHUP
+		// `signal-exit` 会在同一次 SIGTERM/SIGHUP 分发过程中检查监听器列表，
 		// dispatch and re-sends the signal if only its own listeners remain.
+		// 如果只剩下它自己的监听器，就会重新发送该信号。
 
 		if (options?.fromSignal) {
 			// Signal-triggered shutdown (SIGTERM/SIGHUP). Emit extension cleanup
+			// 由信号触发的关闭（SIGTERM/SIGHUP）。在触碰终端之前先发出扩展清理事件
 			// (session_shutdown) BEFORE touching the terminal. Extension teardown
+			// （session_shutdown）。诸如移除套接字之类的扩展拆卸操作不会写入 tty，
 			// such as removing sockets does not write to the tty, so it must not be
+			// 因此当后续的终端恢复写入在已失效或卡住的终端上失败时，
 			// skipped if a later terminal-restore write fails on a dead or stalled
+			// 这些操作不能被跳过。
 			// terminal. If the terminal is gone, the restore writes below emit EIO,
+			// 如果终端已消失，下面的恢复写入会产生 EIO，
 			// which the stdout/stderr error handler turns into emergencyTerminalExit;
+			// stdout/stderr 的错误处理器会将其转为 emergencyTerminalExit；
 			// the render loop is already idle, so this cannot hot-spin (see #4144).
+			// 此时渲染循环已经空闲，因此不会出现忙等自旋（参见 #4144）。
 			await this.runtimeHost.dispose();
 			this.themeController.disableAutoSync();
 			await this.ui.terminal.drainInput(1000);
@@ -3637,10 +3853,14 @@ export class InteractiveMode {
 		}
 
 		// Interactive quit (Ctrl+D, Ctrl+C, /quit, extension shutdown()). Stop the
+		// 交互式退出（Ctrl+D、Ctrl+C、/quit、扩展调用 shutdown()）。在发出关闭事件之前
 		// TUI before emitting shutdown events so extension UI cleanup cannot repaint
+		// 先停止 TUI，这样扩展的 UI 清理逻辑就无法在进程退出期间重绘最后一帧。
 		// the final frame while the process is exiting.
 		// Drain any in-flight Kitty key release events before stopping.
+		// 停止前先排空仍在传输中的 Kitty 按键释放事件。
 		// This prevents escape sequences from leaking to the parent shell over slow SSH.
+		// 这可以防止转义序列在慢速 SSH 连接下泄漏到父 shell。
 		this.themeController.disableAutoSync();
 		await this.ui.terminal.drainInput(1000);
 
@@ -3660,7 +3880,9 @@ export class InteractiveMode {
 		this.unregisterSignalHandlers();
 		killTrackedDetachedChildren();
 		// The terminal is gone. Do not run normal shutdown because TUI and
+		// 终端已经消失。不要执行常规关闭流程，因为 TUI 与扩展的清理逻辑
 		// extension cleanup can write restore sequences and re-trigger EIO.
+		// 可能会写入恢复序列并再次触发 EIO。
 		process.exit(129);
 	}
 
@@ -3670,10 +3892,17 @@ export class InteractiveMode {
 	 * anywhere (e.g. an extension's async `ChildProcess.on("exit")` callback)
 	 * tears down the process while leaving the terminal in raw mode with no
 	 * cursor, requiring `stty sane && reset` to recover.
+	 * 未捕获异常的最后兜底处理器。TUI 会将 stdin 置于原始（raw）模式并隐藏光标；
+	 * 如果没有这个处理器，任何位置抛出的未捕获异常（例如扩展中异步的
+	 * `ChildProcess.on("exit")` 回调）都会终止进程，同时让终端停留在没有光标的
+	 * 原始模式下，必须执行 `stty sane && reset` 才能恢复。
 	 *
 	 * Unlike emergencyTerminalExit, the terminal is still alive here, so we
 	 * call ui.stop() to restore cooked mode, the cursor, and disable bracketed
 	 * paste / Kitty / modifyOtherKeys sequences.
+	 * 与 emergencyTerminalExit 不同，此处终端仍然可用，因此我们调用 ui.stop()
+	 * 来恢复熟（cooked）模式与光标，并禁用括号粘贴（bracketed paste）/ Kitty /
+	 * modifyOtherKeys 相关序列。
 	 */
 	private uncaughtCrash(error: Error): never {
 		if (this.isShuttingDown) {
@@ -3696,6 +3925,7 @@ export class InteractiveMode {
 
 	/**
 	 * Check if shutdown was requested and perform shutdown if so.
+	 * 检查是否已请求关闭，若是则执行关闭。
 	 */
 	private async checkShutdownRequested(): Promise<void> {
 		if (!this.shutdownRequested) return;
@@ -3713,9 +3943,13 @@ export class InteractiveMode {
 		for (const signal of signals) {
 			const handler = () => {
 				// SIGHUP no longer hard-exits: graceful shutdown emits session_shutdown
+				// SIGHUP 不再直接强制退出：优雅关闭会先发出 session_shutdown，
 				// first, then attempts terminal restore. A genuinely dead terminal
+				// 然后再尝试恢复终端。真正失效的终端会在恢复写入时表现为 EIO，
 				// surfaces as an EIO on the restore writes, which the stdout/stderr
+				// stdout/stderr 的错误处理器会将其转换为 emergencyTerminalExit
 				// error handler converts into emergencyTerminalExit (see #4144, #5080).
+				// （参见 #4144、#5080）。
 				killTrackedDetachedChildren();
 				void this.shutdown({ fromSignal: true });
 			};
@@ -3735,8 +3969,11 @@ export class InteractiveMode {
 		this.signalCleanupHandlers.push(() => process.stderr.off("error", terminalErrorHandler));
 
 		// Restore the terminal before the process dies on any uncaught throw.
+		// 在进程因任何未捕获异常而终止之前恢复终端。
 		// Without this, an unhandled exception from extension code (or anywhere
+		// 若不这样做，来自扩展代码（或 pi 中任何位置）的未处理异常
 		// in pi) leaves the terminal in raw mode with no cursor.
+		// 会让终端停留在没有光标的原始模式下。
 		const uncaughtExceptionHandler = (error: Error) => this.uncaughtCrash(error);
 		process.prependListener("uncaughtException", uncaughtExceptionHandler);
 		this.signalCleanupHandlers.push(() => process.off("uncaughtException", uncaughtExceptionHandler));
@@ -3756,16 +3993,22 @@ export class InteractiveMode {
 		}
 
 		// Keep the event loop alive while suspended. Without this, stopping the TUI
+		// 挂起期间保持事件循环存活。否则停止 TUI 后 Node 可能不再持有任何被引用的句柄，
 		// can leave Node with no ref'ed handles, causing the process to exit on fg
+		// 导致执行 fg 恢复时进程直接退出，
 		// before the SIGCONT handler gets a chance to restore the terminal.
+		// 而 SIGCONT 处理器还来不及恢复终端。
 		const suspendKeepAlive = setInterval(() => {}, 2 ** 30);
 
 		// Ignore SIGINT while suspended so Ctrl+C in the terminal does not
+		// 挂起期间忽略 SIGINT，这样在终端中按 Ctrl+C 不会杀死后台进程。
 		// kill the backgrounded process. The handler is removed on resume.
+		// 该处理器会在恢复时被移除。
 		const ignoreSigint = () => {};
 		process.on("SIGINT", ignoreSigint);
 
 		// Set up handler to restore TUI when resumed
+		// 设置处理器，在进程恢复时还原 TUI
 		process.once("SIGCONT", () => {
 			clearInterval(suspendKeepAlive);
 			process.removeListener("SIGINT", ignoreSigint);
@@ -3775,9 +4018,11 @@ export class InteractiveMode {
 
 		try {
 			// Stop the TUI (restore terminal to normal mode)
+			// 停止 TUI（将终端恢复到常规模式）
 			this.ui.stop();
 
 			// Send SIGTSTP to process group (pid=0 means all processes in group)
+			// 向进程组发送 SIGTSTP（pid=0 表示组内所有进程）
 			process.kill(0, "SIGTSTP");
 		} catch (error) {
 			clearInterval(suspendKeepAlive);
@@ -3791,6 +4036,7 @@ export class InteractiveMode {
 		if (!text) return;
 
 		// Queue input during compaction (extension commands execute immediately)
+		// 压缩期间将输入排队（扩展命令会立即执行）
 		if (this.session.isCompacting) {
 			if (this.isExtensionCommand(text)) {
 				this.editor.addToHistory?.(text);
@@ -3803,7 +4049,9 @@ export class InteractiveMode {
 		}
 
 		// Alt+Enter queues a follow-up message (waits until agent finishes)
+		// Alt+Enter 会将后续消息排队（等待智能体完成当前工作）
 		// This handles extension commands (execute immediately), prompt template expansion, and queueing
+		// 这会处理扩展命令（立即执行）、提示词模板展开以及排队
 		if (this.session.isStreaming) {
 			this.editor.addToHistory?.(text);
 			this.editor.setText("");
@@ -3812,6 +4060,7 @@ export class InteractiveMode {
 			this.ui.requestRender();
 		}
 		// If not streaming, Alt+Enter acts like regular Enter (trigger onSubmit)
+		// 若未处于流式输出状态，Alt+Enter 的行为等同于普通回车（触发 onSubmit）
 		else if (this.editor.onSubmit) {
 			this.editor.setText("");
 			this.editor.onSubmit(text);
@@ -3894,10 +4143,12 @@ export class InteractiveMode {
 		this.settingsManager.setHideThinkingBlock(this.hideThinkingBlock);
 
 		// Rebuild chat from session messages
+		// 根据会话消息重建聊天区
 		this.chatContainer.clear();
 		this.rebuildChatFromMessages();
 
 		// If streaming, re-add the streaming component with updated visibility and re-render
+		// 若正在流式输出，则以更新后的可见性重新添加流式组件并重新渲染
 		if (this.streamingComponent && this.streamingMessage) {
 			this.streamingComponent.setHideThinkingBlock(this.hideThinkingBlock);
 			this.streamingComponent.updateContent(this.streamingMessage);
@@ -3927,6 +4178,7 @@ export class InteractiveMode {
 
 	// =========================================================================
 	// UI helpers
+	// UI 辅助方法
 	// =========================================================================
 
 	clearEditor(): void {
@@ -3995,7 +4247,9 @@ export class InteractiveMode {
 
 	/**
 	 * Get all queued messages (read-only).
+	 * 获取所有排队中的消息（只读）。
 	 * Combines session queue and compaction queue.
+	 * 合并会话队列与压缩队列。
 	 */
 	private getAllQueuedMessages(): { steering: string[]; followUp: string[] } {
 		return {
@@ -4012,7 +4266,9 @@ export class InteractiveMode {
 
 	/**
 	 * Clear all queued messages and return their contents.
+	 * 清空所有排队中的消息并返回其内容。
 	 * Clears both session queue and compaction queue.
+	 * 会同时清空会话队列与压缩队列。
 	 */
 	private clearAllQueues(): { steering: string[]; followUp: string[] } {
 		const { steering, followUp } = this.session.clearQueue();
@@ -4110,6 +4366,7 @@ export class InteractiveMode {
 		try {
 			if (options?.willRetry) {
 				// When retry is pending, queue messages for the retry turn
+				// 当有待执行的重试时，将消息排队到重试轮次中
 				for (const message of queuedMessages) {
 					if (this.isExtensionCommand(message.text)) {
 						await this.session.prompt(message.text);
@@ -4124,9 +4381,11 @@ export class InteractiveMode {
 			}
 
 			// Find first non-extension-command message to use as prompt
+			// 找到第一条非扩展命令的消息作为提示词（prompt）
 			const firstPromptIndex = queuedMessages.findIndex((message) => !this.isExtensionCommand(message.text));
 			if (firstPromptIndex === -1) {
 				// All extension commands - execute them all
+				// 全部都是扩展命令——逐条执行
 				for (const message of queuedMessages) {
 					await this.session.prompt(message.text);
 				}
@@ -4134,6 +4393,7 @@ export class InteractiveMode {
 			}
 
 			// Execute any extension commands before the first prompt
+			// 执行位于第一条提示词之前的所有扩展命令
 			const preCommands = queuedMessages.slice(0, firstPromptIndex);
 			const firstPrompt = queuedMessages[firstPromptIndex];
 			const rest = queuedMessages.slice(firstPromptIndex + 1);
@@ -4143,6 +4403,7 @@ export class InteractiveMode {
 			}
 
 			// Start a prompt when idle, or queue it into a run still finishing compaction.
+			// 空闲时直接发起提示词请求；若某次运行仍在完成压缩，则将其排入该运行。
 			const promptPromise = this.session
 				.prompt(firstPrompt.text, { streamingBehavior: firstPrompt.mode })
 				.catch((error) => {
@@ -4150,6 +4411,7 @@ export class InteractiveMode {
 				});
 
 			// Queue remaining messages
+			// 将其余消息排队
 			for (const message of rest) {
 				if (this.isExtensionCommand(message.text)) {
 					await this.session.prompt(message.text);
@@ -4166,7 +4428,10 @@ export class InteractiveMode {
 		}
 	}
 
-	/** Move pending bash components from pending area to chat */
+	/**
+	 * Move pending bash components from pending area to chat
+	 * 将待处理的 bash 组件从待处理区域移入聊天区
+	 */
 	private flushPendingBashComponents(): void {
 		for (const component of this.pendingBashComponents) {
 			this.pendingMessagesContainer.removeChild(component);
@@ -4177,11 +4442,14 @@ export class InteractiveMode {
 
 	// =========================================================================
 	// Selectors
+	// 选择器
 	// =========================================================================
 
 	/**
 	 * Shows a selector component in place of the editor.
+	 * 在编辑器的位置显示一个选择器组件。
 	 * @param create Factory that receives a `done` callback and returns the component and focus target
+	 *               接收 `done` 回调并返回组件及焦点目标的工厂函数
 	 */
 	private showSelector(create: (done: () => void) => { component: Component; focus: Component }): void {
 		const done = () => {
@@ -4424,7 +4692,10 @@ export class InteractiveMode {
 		}
 	}
 
-	/** Update the footer's available provider count from the current snapshot without refreshing catalogs. */
+	/**
+	 * Update the footer's available provider count from the current snapshot without refreshing catalogs.
+	 * 根据当前快照更新底栏中的可用服务商数量，不刷新模型目录。
+	 */
 	private updateAvailableProviderCount(): void {
 		const models =
 			this.session.scopedModels.length > 0
@@ -4461,6 +4732,7 @@ export class InteractiveMode {
 			this.showWarning(ANTHROPIC_SUBSCRIPTION_AUTH_WARNING);
 		} catch {
 			// Ignore auth lookup failures for warning-only checks.
+			// 对于仅用于告警的检查，忽略认证信息查询失败。
 		}
 	}
 
@@ -4549,6 +4821,7 @@ export class InteractiveMode {
 
 	private async showModelsSelector(): Promise<void> {
 		// Get all available models
+		// 获取所有可用模型
 		await this.session.modelRuntime.refresh();
 		const allModels = [...(await this.session.modelRuntime.getAvailable())];
 		const allModelIds = new Set(allModels.map((model) => `${model.provider}/${model.id}`));
@@ -4565,13 +4838,16 @@ export class InteractiveMode {
 			: undefined;
 
 		// Check if session has scoped models (from previous session-only changes or CLI --models)
+		// 检查会话是否设置了限定范围的模型（来自此前仅作用于会话的更改或命令行 --models）
 		const hasSessionScope = sessionScopedModels.length > 0;
 
 		// Build enabled model IDs from session state or settings
+		// 根据会话状态或设置构建已启用的模型 ID 列表
 		let currentEnabledIds: string[] | null = null;
 
 		if (hasSessionScope) {
 			// Use current session's scoped models
+			// 使用当前会话限定范围的模型
 			currentEnabledIds = sessionScopedModels.map((scoped) => `${scoped.model.provider}/${scoped.model.id}`);
 		} else if (configuredScope) {
 			currentEnabledIds = configuredScope.scopedModels.map(
@@ -4586,6 +4862,7 @@ export class InteractiveMode {
 		}
 
 		// Helper to update session's scoped models (session-only, no persist)
+		// 用于更新会话限定范围模型的辅助函数（仅作用于会话，不持久化）
 		const updateSessionModels = async (enabledIds: string[] | null) => {
 			currentEnabledIds = enabledIds === null ? null : [...enabledIds];
 			const hasEnabledAvailableModel = enabledIds?.some((id) => allModelIds.has(id)) ?? false;
@@ -4601,6 +4878,7 @@ export class InteractiveMode {
 				);
 			} else {
 				// All enabled or none enabled = no filter
+				// 全部启用或全部未启用 = 不做过滤
 				this.session.setScopedModels([]);
 			}
 			await this.updateAvailableProviderCount();
@@ -4619,6 +4897,7 @@ export class InteractiveMode {
 					},
 					onPersist: (enabledIds) => {
 						// Persist to settings
+						// 持久化到设置中
 						const allEnabled =
 							enabledIds !== null &&
 							enabledIds.length === allModels.length &&
@@ -4713,6 +4992,7 @@ export class InteractiveMode {
 				this.ui.terminal.rows,
 				async (entryId) => {
 					// Selecting the current leaf is a no-op (already there)
+					// 选择当前叶子节点不执行任何操作（本来就在该位置）
 					if (entryId === this.sessionManager.getLeafId()) {
 						done();
 						this.showStatus("Already at this point");
@@ -4720,13 +5000,16 @@ export class InteractiveMode {
 					}
 
 					// Ask about summarization
-					done(); // Close selector first
+					// 询问是否需要生成摘要
+					done(); // Close selector first / 先关闭选择器
 
 					// Loop until user makes a complete choice or cancels to tree
+					// 循环直到用户做出完整选择，或取消并返回树形选择器
 					let wantsSummary = false;
 					let customInstructions: string | undefined;
 
 					// Check if we should skip the prompt (user preference to always default to no summary)
+					// 检查是否应跳过询问（用户偏好设置为始终默认不生成摘要）
 					if (!this.settingsManager.getBranchSummarySkipPrompt()) {
 						while (true) {
 							const summaryChoice = await this.showExtensionSelector("Summarize branch?", [
@@ -4737,6 +5020,7 @@ export class InteractiveMode {
 
 							if (summaryChoice === undefined) {
 								// User pressed escape - re-show tree selector with same selection
+								// 用户按下了 Esc——以相同的选中项重新显示树形选择器
 								this.showTreeSelector(entryId);
 								return;
 							}
@@ -4747,22 +5031,26 @@ export class InteractiveMode {
 								customInstructions = await this.showExtensionEditor("Custom summarization instructions");
 								if (customInstructions === undefined) {
 									// User cancelled - loop back to summary selector
+									// 用户取消了——循环回到摘要选择器
 									continue;
 								}
 							}
 
 							// User made a complete choice
+							// 用户已做出完整选择
 							break;
 						}
 					}
 
 					// The user committed to navigating: stop the active response first.
+					// 用户已确认要进行导航：先停止当前正在进行的响应。
 					if (this.session.isStreaming) {
 						this.restoreQueuedMessagesToEditor();
 						await this.session.abort();
 					}
 
 					// Set up escape handler and status indicator if summarizing
+					// 若需要生成摘要，则设置 Esc 处理器与状态指示器
 					let showingSummaryIndicator = false;
 					const originalOnEscape = this.defaultEditor.onEscape;
 
@@ -4784,6 +5072,7 @@ export class InteractiveMode {
 
 						if (result.aborted) {
 							// Summarization aborted - re-show tree selector with same selection
+							// 摘要生成已中止——以相同的选中项重新显示树形选择器
 							this.showStatus("Branch summarization cancelled");
 							this.showTreeSelector(entryId);
 							return;
@@ -4794,6 +5083,7 @@ export class InteractiveMode {
 						}
 
 						// Update UI
+						// 更新 UI
 						this.chatContainer.clear();
 						this.renderInitialMessages();
 						if (result.editorText && !this.editor.getText().trim()) {
@@ -5234,6 +5524,7 @@ export class InteractiveMode {
 			providerId,
 			(_success, _message) => {
 				// Completion handled below
+				// 完成逻辑在下方处理
 			},
 			providerName,
 		);
@@ -5383,6 +5674,7 @@ export class InteractiveMode {
 
 	// =========================================================================
 	// Command handlers
+	// 命令处理器
 	// =========================================================================
 
 	private async handleReloadCommand(): Promise<void> {
@@ -5580,6 +5872,7 @@ export class InteractiveMode {
 
 	private async handleShareCommand(): Promise<void> {
 		// Check if gh is available and logged in
+		// 检查 gh 是否可用且已登录
 		try {
 			const authResult = spawnSync("gh", ["auth", "status"], { encoding: "utf-8" });
 			if (authResult.status !== 0) {
@@ -5592,6 +5885,7 @@ export class InteractiveMode {
 		}
 
 		// Export to a temp file
+		// 导出到临时文件
 		const tmpFile = path.join(os.tmpdir(), "session.html");
 		try {
 			await this.session.exportToHtml(tmpFile);
@@ -5601,6 +5895,7 @@ export class InteractiveMode {
 		}
 
 		// Show cancellable loader, replacing the editor
+		// 显示可取消的加载指示器，替换编辑器
 		const loader = new BorderedLoader(this.ui, theme, "Creating gist...");
 		this.editorContainer.clear();
 		this.editorContainer.addChild(loader);
@@ -5616,10 +5911,12 @@ export class InteractiveMode {
 				fs.unlinkSync(tmpFile);
 			} catch {
 				// Ignore cleanup errors
+				// 忽略清理过程中的错误
 			}
 		};
 
 		// Create a secret gist asynchronously
+		// 异步创建一个私密 gist
 		let proc: ReturnType<typeof spawn> | null = null;
 
 		loader.onAbort = () => {
@@ -5653,7 +5950,9 @@ export class InteractiveMode {
 			}
 
 			// Extract gist ID from the URL returned by gh
+			// 从 gh 返回的 URL 中提取 gist ID
 			// gh returns something like: https://gist.github.com/username/GIST_ID
+			// gh 返回的形式类似：https://gist.github.com/username/GIST_ID
 			const gistUrl = result.stdout?.trim();
 			const gistId = gistUrl?.split("/").pop();
 			if (!gistId) {
@@ -5662,6 +5961,7 @@ export class InteractiveMode {
 			}
 
 			// Create the preview URL
+			// 生成预览 URL
 			const previewUrl = getShareViewerUrl(gistId);
 			this.showStatus(`Share URL: ${previewUrl}\nGist: ${gistUrl}`);
 		} catch (error: unknown) {
@@ -5718,8 +6018,11 @@ export class InteractiveMode {
 		const cacheWaste = computeCacheWaste(entries, this.session.modelRuntime);
 
 		// Cost/token totals per provider/model actually used (e.g. OpenRouter `auto`
+		// 按实际使用的服务商/模型统计费用与 token 总量（例如 OpenRouter 的 `auto`
 		// resolves to a concrete responseModel). Usage without model attribution is
+		// 会解析为一个具体的 responseModel）。无法归属到具体模型的用量会被单独分组，
 		// grouped separately so the breakdown reconciles with the session total.
+		// 以便明细能够与会话总量对得上。
 		const usageBreakdown = getUsageCostBreakdown(entries);
 
 		let info = `${theme.bold("Session Info")}\n\n`;
@@ -5735,9 +6038,13 @@ export class InteractiveMode {
 		info += `${theme.fg("dim", "Tools:")} ${stats.toolCalls} calls, ${stats.toolResults} results\n\n`;
 		info += `${theme.bold("Tokens")}\n`;
 		// "Input" is the full prompt volume. With cache activity, split it into
+		// “Input”表示完整的提示词量。若存在缓存活动，则将其拆分为
 		// cached (served from cache) vs uncached (everything else) - the only
+		// 已缓存（由缓存提供）与未缓存（其余全部）两部分——这是唯一
 		// provider-independent split. Cache writes, where reported, are a detail
+		// 与服务商无关的拆分方式。缓存写入（若有上报）属于未缓存部分的
 		// of the uncached portion.
+		// 一个细分项。
 		const { input, cacheRead, cacheWrite } = stats.tokens;
 		const promptTokens = input + cacheRead + cacheWrite;
 		info += `${theme.fg("dim", "Input:")} ${promptTokens.toLocaleString()}\n`;
@@ -5797,6 +6104,7 @@ export class InteractiveMode {
 
 	/**
 	 * Get capitalized display string for an app keybinding action.
+	 * 获取应用快捷键动作的首字母大写展示字符串。
 	 */
 	private getAppKeyDisplay(action: AppKeybinding): string {
 		return keyDisplayText(action);
@@ -5804,6 +6112,7 @@ export class InteractiveMode {
 
 	/**
 	 * Get capitalized display string for an editor keybinding action.
+	 * 获取编辑器快捷键动作的首字母大写展示字符串。
 	 */
 	private getEditorKeyDisplay(action: Keybinding): string {
 		return keyDisplayText(action);
@@ -5811,6 +6120,7 @@ export class InteractiveMode {
 
 	private handleHotkeysCommand(): void {
 		// Navigation keybindings
+		// 导航类快捷键
 		const cursorUp = this.getEditorKeyDisplay("tui.editor.cursorUp");
 		const cursorDown = this.getEditorKeyDisplay("tui.editor.cursorDown");
 		const cursorLeft = this.getEditorKeyDisplay("tui.editor.cursorLeft");
@@ -5825,6 +6135,7 @@ export class InteractiveMode {
 		const pageDown = this.getEditorKeyDisplay("tui.editor.pageDown");
 
 		// Editing keybindings
+		// 编辑类快捷键
 		const submit = this.getEditorKeyDisplay("tui.input.submit");
 		const newLine = this.getEditorKeyDisplay("tui.input.newLine");
 		const deleteWordBackward = this.getEditorKeyDisplay("tui.editor.deleteWordBackward");
@@ -5837,6 +6148,7 @@ export class InteractiveMode {
 		const tab = this.getEditorKeyDisplay("tui.input.tab");
 
 		// App keybindings
+		// 应用类快捷键
 		const interrupt = this.getAppKeyDisplay("app.interrupt");
 		const clear = this.getAppKeyDisplay("app.clear");
 		const exit = this.getAppKeyDisplay("app.exit");
@@ -5902,6 +6214,7 @@ export class InteractiveMode {
 `;
 
 		// Add extension-registered shortcuts
+		// 添加由扩展注册的快捷键
 		const extensionRunner = this.session.extensionRunner;
 		const shortcuts = extensionRunner.getShortcuts(this.keybindings.getEffectiveConfig());
 		if (shortcuts.size > 0) {
@@ -6002,6 +6315,7 @@ export class InteractiveMode {
 		const extensionRunner = this.session.extensionRunner;
 
 		// Emit user_bash event to let extensions intercept
+		// 发出 user_bash 事件，以便扩展进行拦截
 		const eventResult = await extensionRunner.emitUserBash({
 			type: "user_bash",
 			command,
@@ -6010,10 +6324,12 @@ export class InteractiveMode {
 		});
 
 		// If extension returned a full result, use it directly
+		// 如果扩展返回了完整结果，则直接使用
 		if (eventResult?.result) {
 			const result = eventResult.result;
 
 			// Create UI component for display
+			// 创建用于展示的 UI 组件
 			this.bashComponent = new BashExecutionComponent(command, this.ui, excludeFromContext);
 			if (this.session.isStreaming) {
 				this.pendingMessagesContainer.addChild(this.bashComponent);
@@ -6023,6 +6339,7 @@ export class InteractiveMode {
 			}
 
 			// Show output and complete
+			// 显示输出并标记为完成
 			if (result.output) {
 				this.bashComponent.appendOutput(result.output);
 			}
@@ -6034,6 +6351,7 @@ export class InteractiveMode {
 			);
 
 			// Record the result in session
+			// 将结果记录到会话中
 			this.session.recordBashResult(command, result, { excludeFromContext });
 			this.bashComponent = undefined;
 			this.ui.requestRender();
@@ -6041,15 +6359,18 @@ export class InteractiveMode {
 		}
 
 		// Normal execution path (possibly with custom operations)
+		// 常规执行路径（可能带有自定义操作）
 		const isDeferred = this.session.isStreaming;
 		this.bashComponent = new BashExecutionComponent(command, this.ui, excludeFromContext);
 
 		if (isDeferred) {
 			// Show in pending area when agent is streaming
+			// 智能体正在流式输出时，显示在待处理区域
 			this.pendingMessagesContainer.addChild(this.bashComponent);
 			this.pendingBashComponents.push(this.bashComponent);
 		} else {
 			// Show in chat immediately when agent is idle
+			// 智能体空闲时，立即显示在聊天区
 			this.chatContainer.addChild(this.bashComponent);
 		}
 		this.ui.requestRender();
@@ -6092,6 +6413,7 @@ export class InteractiveMode {
 			await this.session.compact(customInstructions);
 		} catch {
 			// Ignore, will be emitted as an event
+			// 忽略，该错误会以事件的形式发出
 		}
 	}
 

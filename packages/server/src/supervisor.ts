@@ -34,10 +34,16 @@ function cloneInstance(record: InstanceRecord): InstanceRecord {
 // Only refresh persisted session metadata after commands that can plausibly change
 // the instance identity/details we store in instances.json. Most RPCs mutate transient
 // runtime state only, so forcing a follow-up get_state after every command is wasted IO.
+// 仅在那些可能真正改变实例标识/详情（即我们存储在 instances.json 中的内容）的命令之后，
+// 才刷新已持久化的会话元数据。大多数 RPC 只会修改瞬时的运行时状态，
+// 因此在每条命令后都强制追加一次 get_state 属于无谓的 IO 开销。
 //
 // - new_session / switch_session / fork / clone can change sessionId/sessionFile
+//   new_session / switch_session / fork / clone 可能改变 sessionId/sessionFile
 // - set_session_name changes a persisted session detail we may want reflected externally
+//   set_session_name 会改变已持久化的会话细节，我们可能希望它对外可见
 // - prompt can materialize or advance persisted session state after the child processes it
+//   prompt 在子进程处理后，可能会生成或推进已持久化的会话状态
 const SESSION_METADATA_COMMANDS: ReadonlySet<RpcCommand["type"]> = new Set([
 	"new_session",
 	"switch_session",

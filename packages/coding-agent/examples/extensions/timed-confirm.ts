@@ -1,16 +1,22 @@
 /**
  * Example extension demonstrating timed dialogs with live countdown.
+ * 演示带实时倒计时的定时对话框的示例扩展。
  *
  * Commands:
+ * 命令:
  * - /timed - Shows confirm dialog that auto-cancels after 5 seconds with countdown
+ *   /timed —— 显示一个带倒计时、5 秒后自动取消的确认对话框
  * - /timed-select - Shows select dialog that auto-cancels after 10 seconds with countdown
+ *   /timed-select —— 显示一个带倒计时、10 秒后自动取消的选择对话框
  * - /timed-signal - Shows confirm using AbortSignal (manual approach)
+ *   /timed-signal —— 使用 AbortSignal 显示确认对话框(手动方式)
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
 	// Simple approach: use timeout option (recommended)
+	// 简单方式:使用 timeout 选项(推荐)
 	pi.registerCommand("timed", {
 		description: "Show a timed confirmation dialog (auto-cancels in 5s with countdown)",
 		handler: async (_args, ctx) => {
@@ -42,6 +48,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	// Manual approach: use AbortSignal for more control
+	// 手动方式:使用 AbortSignal 以获得更精细的控制
 	pi.registerCommand("timed-signal", {
 		description: "Show a timed confirm using AbortSignal (manual approach)",
 		handler: async (_args, ctx) => {

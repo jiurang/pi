@@ -1,6 +1,8 @@
 /**
  * Multi-line editor component for extensions.
+ * 供扩展使用的多行编辑器组件。
  * Supports Ctrl+G for external editor.
+ * 支持通过 Ctrl+G 打开外部编辑器。
  */
 
 import {
@@ -59,19 +61,23 @@ export class ExtensionEditorComponent extends Container implements Focusable {
 		this.onCancelCallback = onCancel;
 
 		// Add top border
+		// 添加顶部边框
 		this.addChild(new DynamicBorder());
 		this.addChild(new Spacer(1));
 
 		// Add title
+		// 添加标题
 		this.addChild(new Text(theme.fg("accent", title), 1, 0));
 		this.addChild(new Spacer(1));
 
 		// Create editor
+		// 创建编辑器
 		this.editor = new Editor(tui, getEditorTheme(), options);
 		if (prefill) {
 			this.editor.setText(prefill);
 		}
 		// Wire up Enter to submit (Shift+Enter for newlines, like the main editor)
+		// 绑定 Enter 为提交（Shift+Enter 换行，与主编辑器保持一致）
 		this.editor.onSubmit = (text: string) => {
 			this.onSubmitCallback(text);
 		};
@@ -80,6 +86,7 @@ export class ExtensionEditorComponent extends Container implements Focusable {
 		this.addChild(new Spacer(1));
 
 		// Add hint
+		// 添加提示信息
 		const hint =
 			keyHint("tui.select.confirm", "submit") +
 			"  " +
@@ -92,24 +99,28 @@ export class ExtensionEditorComponent extends Container implements Focusable {
 		this.addChild(new Spacer(1));
 
 		// Add bottom border
+		// 添加底部边框
 		this.addChild(new DynamicBorder());
 	}
 
 	handleInput(keyData: string): void {
 		const kb = getKeybindings();
 		// Escape or Ctrl+C to cancel
+		// 按 Escape 或 Ctrl+C 取消
 		if (kb.matches(keyData, "tui.select.cancel")) {
 			this.onCancelCallback();
 			return;
 		}
 
 		// External editor (app keybinding)
+		// 外部编辑器（应用级快捷键绑定）
 		if (this.keybindings.matches(keyData, "app.editor.external")) {
 			void this.handleOpenExternalEditor();
 			return;
 		}
 
 		// Forward to editor
+		// 转发给编辑器处理
 		this.editor.handleInput(keyData);
 	}
 

@@ -7,7 +7,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Interactive example of using coding-agent via RpcClient.
+ * 通过 RpcClient 使用 coding-agent 的交互式示例。
  * Usage: npx tsx test/rpc-example.ts
+ * 用法：npx tsx test/rpc-example.ts
  */
 
 async function main() {
@@ -19,6 +21,7 @@ async function main() {
 	});
 
 	// Stream events to console
+	// 将事件以流式方式输出到控制台
 	client.onEvent((event) => {
 		if (event.type === "message_update") {
 			const { assistantMessageEvent } = event;
@@ -43,6 +46,7 @@ async function main() {
 	console.log(`Thinking: ${state.thinkingLevel ?? "off"}\n`);
 
 	// Handle user input
+	// 处理用户输入
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout,

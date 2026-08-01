@@ -2,7 +2,10 @@ const FRAME_HEADER_LENGTH = 4;
 const MAX_UINT32 = 0xffff_ffff;
 const PAYLOAD_BLOCK_SIZE = 64 * 1024;
 
-/** Default upper bound for one framed CBOR payload. */
+/**
+ * Default upper bound for one framed CBOR payload.
+ * 单个 CBOR 帧负载（payload）的默认长度上限。
+ */
 export const DEFAULT_MAX_FRAME_LENGTH = 16 * 1024 * 1024;
 
 export interface FrameDecoderOptions {
@@ -24,7 +27,10 @@ function resolveMaxFrameLength(options: FrameDecoderOptions | undefined): number
 	return value;
 }
 
-/** Prefixes a payload with its unsigned 32-bit big-endian byte length. */
+/**
+ * Prefixes a payload with its unsigned 32-bit big-endian byte length.
+ * 在负载（payload）前添加其 32 位无符号大端序（big-endian）字节长度前缀。
+ */
 export function encodeFrame(payload: Uint8Array): Uint8Array {
 	if (!(payload instanceof Uint8Array)) throw new TypeError("Frame payload must be a Uint8Array");
 	if (payload.byteLength > MAX_UINT32) throw new RangeError("Frame payload exceeds the unsigned 32-bit length limit");
@@ -38,7 +44,10 @@ export function encodeFrame(payload: Uint8Array): Uint8Array {
 	return frame;
 }
 
-/** Validates that bytes contain exactly one complete frame within the configured limit. */
+/**
+ * Validates that bytes contain exactly one complete frame within the configured limit.
+ * 校验字节数据恰好包含一个完整的帧，且未超出配置的长度上限。
+ */
 export function assertCompleteFrame(frame: Uint8Array, options?: FrameDecoderOptions): void {
 	if (!(frame instanceof Uint8Array)) throw new TypeError("Frame must be a Uint8Array");
 	if (frame.byteLength < FRAME_HEADER_LENGTH) throw new FrameError("Frame does not contain a complete length prefix");
@@ -54,7 +63,10 @@ export function assertCompleteFrame(frame: Uint8Array, options?: FrameDecoderOpt
 
 type DecoderState = "open" | "ended" | "failed";
 
-/** Incrementally splits arbitrary byte chunks into length-prefixed payloads. */
+/**
+ * Incrementally splits arbitrary byte chunks into length-prefixed payloads.
+ * 增量式地将任意字节块（chunk）切分为带长度前缀的负载（payload）。
+ */
 export class FrameDecoder {
 	private readonly header = new Uint8Array(FRAME_HEADER_LENGTH);
 	private headerLength = 0;

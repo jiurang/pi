@@ -19,10 +19,10 @@ function isOfflineModeEnabled(): boolean {
 
 interface ToolConfig {
 	name: string;
-	repo: string; // GitHub repo (e.g., "sharkdp/fd")
-	binaryName: string; // Name of the binary inside the archive
-	systemBinaryNames?: string[]; // Alternative system command names to try before downloading
-	tagPrefix: string; // Prefix for tags (e.g., "v" for v1.0.0, "" for 1.0.0)
+	repo: string; // GitHub repo (e.g., "sharkdp/fd") | GitHub 仓库（例如 "sharkdp/fd"）
+	binaryName: string; // Name of the binary inside the archive | 压缩包内可执行文件（binary）的名称
+	systemBinaryNames?: string[]; // Alternative system command names to try before downloading | 下载前优先尝试的备选系统命令名
+	tagPrefix: string; // Prefix for tags (e.g., "v" for v1.0.0, "" for 1.0.0) | 标签前缀（例如 v1.0.0 用 "v"，1.0.0 用 ""）
 	getAssetName: (version: string, plat: string, architecture: string) => string | null;
 }
 
@@ -71,10 +71,12 @@ const TOOLS: Record<string, ToolConfig> = {
 };
 
 // Check if a command exists in PATH by trying to run it
+// 通过尝试运行命令来检查它是否存在于 PATH 中
 function commandExists(cmd: string): boolean {
 	try {
 		const result = spawnSync(cmd, ["--version"], { stdio: "pipe" });
 		// Check for ENOENT error (command not found)
+		// 检查是否出现 ENOENT 错误（命令未找到）
 		return result.error === undefined || result.error === null;
 	} catch {
 		return false;
@@ -82,17 +84,20 @@ function commandExists(cmd: string): boolean {
 }
 
 // Get the path to a tool (system-wide or in our tools dir)
+// 获取某个工具的路径（系统全局安装的，或位于我们自己的 tools 目录中的）
 export function getToolPath(tool: "fd" | "rg"): string | null {
 	const config = TOOLS[tool];
 	if (!config) return null;
 
 	// Check our tools directory first
+	// 先检查我们自己的 tools 目录
 	const localPath = join(TOOLS_DIR, config.binaryName + (platform() === "win32" ? ".exe" : ""));
 	if (existsSync(localPath)) {
 		return localPath;
 	}
 
 	// Check system PATH - if found, just return the command name (it's in PATH)
+	// 检查系统 PATH —— 若找到则直接返回命令名（因为它已在 PATH 中）
 	const systemBinaryNames = config.systemBinaryNames ?? [config.binaryName];
 	for (const systemBinaryName of systemBinaryNames) {
 		if (commandExists(systemBinaryName)) {
@@ -104,6 +109,7 @@ export function getToolPath(tool: "fd" | "rg"): string | null {
 }
 
 // Fetch latest release version from GitHub
+// 从 GitHub 获取最新的发布（release）版本号
 async function getLatestVersion(repo: string): Promise<string> {
 	const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
 		headers: { "User-Agent": `${APP_NAME}-coding-agent` },
@@ -119,6 +125,7 @@ async function getLatestVersion(repo: string): Promise<string> {
 }
 
 // Download a file from URL
+// 从 URL 下载文件
 async function downloadFile(url: string, dest: string): Promise<void> {
 	const response = await fetch(url, {
 		signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
@@ -205,6 +212,8 @@ function extractZipArchive(archivePath: string, extractDir: string, assetName: s
 	if (platform() === "win32") {
 		// Windows ships bsdtar as tar.exe, which supports zip files. Prefer the
 		// System32 binary over Git Bash's GNU tar, which does not handle zip archives.
+		// Windows 自带的 tar.exe 实际是 bsdtar，支持 zip 文件。优先使用 System32 下的可执行文件，
+		// 而不是 Git Bash 的 GNU tar，因为后者无法处理 zip 压缩包。
 		const tarFailure = runExtractionCommand(getWindowsTarCommand(), ["xf", archivePath, "-C", extractDir]);
 		if (!tarFailure) return;
 		failures.push(tarFailure);
@@ -238,6 +247,7 @@ function extractZipArchive(archivePath: string, extractDir: string, assetName: s
 }
 
 // Download and install a tool
+// 下载并安装一个工具
 async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 	const config = TOOLS[tool];
 	if (!config) throw new Error(`Unknown tool: ${tool}`);
@@ -246,18 +256,21 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 	const architecture = arch();
 
 	// Get latest version
+	// 获取最新版本号
 	let version = await getLatestVersion(config.repo);
 	if (tool === "fd" && plat === "darwin" && architecture === "x64") {
 		version = "10.3.0";
 	}
 
 	// Get asset name for this platform
+	// 获取当前平台对应的发布产物（asset）名称
 	const assetName = config.getAssetName(version, plat, architecture);
 	if (!assetName) {
 		throw new Error(`Unsupported platform: ${plat}/${architecture}`);
 	}
 
 	// Create tools directory
+	// 创建 tools 目录
 	mkdirSync(TOOLS_DIR, { recursive: true });
 
 	const downloadUrl = `https://github.com/${config.repo}/releases/download/${config.tagPrefix}${version}/${assetName}`;
@@ -266,10 +279,13 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 	const binaryPath = join(TOOLS_DIR, config.binaryName + binaryExt);
 
 	// Download
+	// 下载
 	await downloadFile(downloadUrl, archivePath);
 
 	// Extract into a unique temp directory. fd and rg downloads can run concurrently
 	// during startup, so sharing a fixed directory causes races.
+	// 解压到一个唯一的临时目录。启动期间 fd 和 rg 的下载可能并发执行，
+	// 共用固定目录会引发竞态（race）问题。
 	const extractDir = join(
 		TOOLS_DIR,
 		`extract_tmp_${config.binaryName}_${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`,
@@ -287,6 +303,8 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 
 		// Find the binary in extracted files. Some archives contain files directly
 		// at root, others nest under a versioned subdirectory.
+		// 在解压出的文件中查找可执行文件。有些压缩包把文件直接放在根目录，
+		// 另一些则嵌套在带版本号的子目录下。
 		const binaryFileName = config.binaryName + binaryExt;
 		const extractedDir = join(extractDir, assetName.replace(/\.(tar\.gz|zip)$/, ""));
 		const extractedBinaryCandidates = [join(extractedDir, binaryFileName), join(extractDir, binaryFileName)];
@@ -303,11 +321,13 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 		}
 
 		// Make executable (Unix only)
+		// 赋予可执行权限（仅 Unix 平台）
 		if (plat !== "win32") {
 			chmodSync(binaryPath, 0o755);
 		}
 	} finally {
 		// Cleanup
+		// 清理
 		rmSync(archivePath, { force: true });
 		rmSync(extractDir, { recursive: true, force: true });
 	}
@@ -316,13 +336,16 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 }
 
 // Termux package names for tools
+// 各工具在 Termux 中对应的软件包名
 const TERMUX_PACKAGES: Record<string, string> = {
 	fd: "fd",
 	rg: "ripgrep",
 };
 
 // Ensure a tool is available, downloading if necessary
+// 确保工具可用，必要时进行下载
 // Returns the path to the tool, or null if unavailable
+// 返回该工具的路径；若不可用则返回 null
 export async function ensureTool(tool: "fd" | "rg", silent: boolean = false): Promise<string | undefined> {
 	const existingPath = getToolPath(tool);
 	if (existingPath) {
@@ -341,6 +364,8 @@ export async function ensureTool(tool: "fd" | "rg", silent: boolean = false): Pr
 
 	// On Android/Termux, Linux binaries don't work due to Bionic libc incompatibility.
 	// Users must install via pkg.
+	// 在 Android/Termux 上，由于 Bionic libc 不兼容，Linux 可执行文件无法运行。
+	// 用户必须通过 pkg 安装。
 	if (platform() === "android") {
 		const pkgName = TERMUX_PACKAGES[tool] ?? tool;
 		if (!silent) {
@@ -350,6 +375,7 @@ export async function ensureTool(tool: "fd" | "rg", silent: boolean = false): Pr
 	}
 
 	// Tool not found - download it
+	// 未找到该工具 —— 执行下载
 	if (!silent) {
 		console.log(chalk.dim(`${config.name} not found. Downloading...`));
 	}

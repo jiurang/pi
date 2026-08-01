@@ -1,5 +1,6 @@
 /**
  * xAI OAuth device-code flow.
+ * xAI OAuth 设备码（device-code）鉴权流程。
  */
 
 import type { AuthInteraction, OAuthAuth, OAuthCredential } from "../types.ts";
@@ -10,6 +11,7 @@ const XAI_SCOPE = "openid profile email offline_access grok-cli:access api:acces
 const XAI_DEVICE_CODE_URL = "https://auth.x.ai/oauth2/device/code";
 const XAI_TOKEN_URL = "https://auth.x.ai/oauth2/token";
 // Refresh slightly before the reported expiry to avoid using a token that dies mid-request.
+// 略早于所报告的过期时间进行刷新，以避免使用会在请求中途失效的 token。
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
 const DEFAULT_TOKEN_LIFETIME_SECONDS = 3600;
 
@@ -47,7 +49,9 @@ function positiveNumber(body: JsonObject, field: string): number {
 }
 
 // The verification URI is opened in the user's browser; force it to be an https URL
+// 验证 URI 会在用户浏览器中打开；强制要求它必须是 https URL，
 // so a malicious response cannot make `open` launch something else.
+// 从而使恶意响应无法诱使 `open` 启动其他内容。
 function validateVerificationUri(raw: string): string {
 	let url: URL;
 	try {
@@ -107,7 +111,9 @@ function requestFailure(action: string, response: OAuthHttpResponse): Error {
 
 function parseDeviceCode(body: JsonObject): XaiDeviceCode {
 	// RFC 8628 allows interval 0 (no minimum wait); fall back to the poller's
+	// RFC 8628 允许 interval 为 0（即无最小等待时间）；对于非正数或格式错误的值，
 	// default instead of failing on non-positive or malformed values.
+	// 回退到轮询器（poller）的默认值，而不是直接报错失败。
 	const interval = body.interval;
 	const intervalSeconds =
 		typeof interval === "number" && Number.isFinite(interval) && interval > 0 ? interval : undefined;
@@ -128,6 +134,7 @@ function parseDeviceCode(body: JsonObject): XaiDeviceCode {
 function credentialsFromTokenResponse(body: JsonObject, previousRefreshToken?: string): OAuthCredential {
 	const access = requiredString(body, "access_token");
 	// xAI may omit refresh_token on refresh when the token is not rotated.
+	// 当 token 未发生轮换（rotate）时，xAI 在刷新响应中可能会省略 refresh_token。
 	const refresh =
 		body.refresh_token === undefined && previousRefreshToken
 			? previousRefreshToken

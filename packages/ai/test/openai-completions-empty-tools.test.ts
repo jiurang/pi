@@ -2,9 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getModel, streamSimple } from "../src/compat.ts";
 
 // Empty tools arrays must NOT be serialized as `tools: []` — some OpenAI-compatible
+// 空的 tools 数组绝不能被序列化为 `tools: []` —— 某些 OpenAI 兼容的
 // backends (e.g. DashScope / Aliyun Qwen via compatible-mode) reject the request with
+// 后端(例如通过 compatible-mode 接入的 DashScope / 阿里云 Qwen)会在 `--no-tools` 产生空数组时,
 // `"[] is too short - 'tools'"` (HTTP 400) when `--no-tools` produces an empty array.
+// 以 `"[] is too short - 'tools'"`(HTTP 400)拒绝该请求。
 // Regression for https://github.com/earendil-works/pi-mono/issues/<issue-number>
+// 对应回归测试:https://github.com/earendil-works/pi-mono/issues/<issue-number>
 
 const mockState = vi.hoisted(() => ({
 	lastParams: undefined as unknown,

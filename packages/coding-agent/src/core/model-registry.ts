@@ -23,7 +23,9 @@ export { clearApiKeyCache } from "./provider-composer.ts";
 
 /**
  * Synchronous compatibility facade exposed to extensions.
+ * 向扩展暴露的同步兼容性外观（facade）。
  * Coding-agent internals use ModelRuntime directly.
+ * coding-agent 内部直接使用 ModelRuntime。
  */
 export class ModelRegistry {
 	private readonly runtime: ModelRuntime;
@@ -32,7 +34,10 @@ export class ModelRegistry {
 		this.runtime = runtime;
 	}
 
-	/** Reload models.json asynchronously. Await before making synchronous registry reads. */
+	/**
+	 * Reload models.json asynchronously. Await before making synchronous registry reads.
+	 * 异步重新加载 models.json。在进行同步注册表读取之前需先 await。
+	 */
 	async refresh(): Promise<void> {
 		await this.runtime.refresh();
 	}

@@ -3,6 +3,8 @@ import { type TUnsafe, Type } from "typebox";
 /**
  * Creates a string enum schema compatible with Google's API and other providers
  * that don't support anyOf/const patterns.
+ * 创建一个字符串枚举 schema，兼容 Google 的 API 以及其他不支持
+ * anyOf/const 模式的提供商。
  *
  * @example
  * const OperationSchema = StringEnum(["add", "subtract", "multiply", "divide"], {

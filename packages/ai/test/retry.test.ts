@@ -118,6 +118,7 @@ describe("retryAssistantCall", () => {
 		const res = await retryAssistantCall(produce, enabled, undefined, { onRetryScheduled, onRetryFinished });
 		expect(res.stopReason).toBe("error");
 		expect(produce).toHaveBeenCalledTimes(4); // 1 initial + 3 retries
+		// 1 次初始调用 + 3 次重试
 		expect(onRetryScheduled).toHaveBeenCalledTimes(3);
 		expect(onRetryFinished).toHaveBeenCalledWith(false, 3, "terminated");
 	});
@@ -201,6 +202,7 @@ describe("retryAssistantCall", () => {
 		const onRetryFinished = vi.fn();
 		const p = retryAssistantCall(produce, policy, controller.signal, { onRetryFinished });
 		// Let one error call resolve and the first backoff sleep start, then abort.
+		// 先让一次出错的调用完成并进入第一次退避(backoff)等待,然后再中止。
 		await vi.waitFor(() => expect(produce).toHaveBeenCalled());
 		controller.abort();
 		const res = await p;

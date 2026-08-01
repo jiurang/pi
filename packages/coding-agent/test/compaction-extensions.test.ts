@@ -1,6 +1,7 @@
 import { createModelRegistry, getModelRuntime } from "./model-runtime-test-utils.ts";
 /**
  * Tests for compaction extension events (before_compact / compact).
+ * 针对压缩(compaction)相关扩展事件（before_compact / compact）的测试。
  */
 
 import { existsSync, mkdirSync, rmSync } from "node:fs";
@@ -149,6 +150,7 @@ describe.skipIf(!API_KEY)("Compaction extensions", () => {
 		expect(typeof beforeEvent.preparation.isSplitTurn).toBe("boolean");
 		expect(beforeEvent.branchEntries).toBeDefined();
 		// sessionManager, modelRegistry, and model are now on ctx, not event
+		// sessionManager、modelRegistry 与 model 现在挂在 ctx 上，而不是 event 上
 
 		const afterEvent = compactEvents[0];
 		expect(afterEvent.compactionEntry).toBeDefined();
@@ -222,6 +224,7 @@ describe.skipIf(!API_KEY)("Compaction extensions", () => {
 		const afterEvent = compactEvents[0];
 		if (afterEvent.type === "session_compact") {
 			// sessionManager is now on ctx, use session.sessionManager directly
+			// sessionManager 现在挂在 ctx 上，此处直接使用 session.sessionManager
 			const entries = session.sessionManager.getEntries();
 			const hasCompactionEntry = entries.some((e: { type: string }) => e.type === "compaction");
 			expect(hasCompactionEntry).toBe(true);
@@ -380,6 +383,7 @@ describe.skipIf(!API_KEY)("Compaction extensions", () => {
 		expect(Array.isArray(event.branchEntries)).toBe(true);
 
 		// sessionManager and model runtime remain available on the session.
+		// sessionManager 与 model runtime 依然可以从 session 上访问到。
 		expect(typeof session.sessionManager.getEntries).toBe("function");
 		expect(typeof session.modelRuntime.getAuth).toBe("function");
 

@@ -1100,7 +1100,10 @@ export class AgentHarness<
 		this.streamOptions = cloneStreamOptions(streamOptions);
 	}
 
-	/** Permanently stop this harness instance without deleting its durable session. */
+	/**
+	 * Permanently stop this harness instance without deleting its durable session.
+	 * 永久停止该 harness 实例，但不删除其持久化的会话。
+	 */
 	requestShutdown(): void {
 		if (this.isShutdown) return;
 		this.isShutdown = true;
@@ -1112,7 +1115,10 @@ export class AgentHarness<
 		this.shutdownPromise = this.waitForTasks();
 	}
 
-	/** Waits for work active when shutdown was requested to settle. */
+	/**
+	 * Waits for work active when shutdown was requested to settle.
+	 * 等待请求关闭时仍在进行中的工作全部结束。
+	 */
 	waitForShutdown(): Promise<void> {
 		if (!this.shutdownPromise) {
 			return Promise.reject(new AgentHarnessError("invalid_state", "Shutdown has not been requested"));

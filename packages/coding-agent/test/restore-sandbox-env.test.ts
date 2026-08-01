@@ -50,6 +50,7 @@ describe("restoreSandboxEnv", () => {
 		});
 
 		// Clear env to simulate the bun sandbox bug.
+		// 清空环境变量，以模拟 bun 沙箱（sandbox）的这个缺陷。
 		const envBackup = { ...process.env };
 		for (const key of Object.keys(process.env)) {
 			delete process.env[key];
@@ -64,6 +65,7 @@ describe("restoreSandboxEnv", () => {
 		expect(process.env.BAZ).toBe("qux");
 
 		// Restore.
+		// 恢复现场。
 		for (const key of Object.keys(process.env)) {
 			delete process.env[key];
 		}

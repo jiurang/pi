@@ -18,6 +18,7 @@ describe("createAgentSession skills option", () => {
 		mkdirSync(skillsDir, { recursive: true });
 
 		// Create a test skill in the pi skills directory
+		// 在 pi 的 skills 目录下创建一个测试用的技能（skill）
 		writeFileSync(
 			join(skillsDir, "SKILL.md"),
 			`---
@@ -46,6 +47,7 @@ This is a test skill.
 		});
 
 		// Skills should be discovered and exposed on the session
+		// 技能应当被发现，并暴露在 session 上
 		expect(session.resourceLoader.getSkills().skills.length).toBeGreaterThan(0);
 		expect(session.resourceLoader.getSkills().skills.some((s) => s.name === "test-skill")).toBe(true);
 	});

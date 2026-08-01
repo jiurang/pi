@@ -2,9 +2,15 @@ import { convertImageBytesToPng } from "./image-convert.ts";
 import { formatDimensionNote, type ImageResizeOptions, resizeImage } from "./image-resize.ts";
 
 export interface ProcessImageOptions {
-	/** Whether to resize images to inline provider limits. Default: true */
+	/**
+	 * Whether to resize images to inline provider limits. Default: true
+	 * 是否将图片缩放到提供商（provider）的内联图片尺寸限制内。默认值：true
+	 */
 	autoResizeImages?: boolean;
-	/** Optional resize overrides. Uses resizeImage defaults when omitted. */
+	/**
+	 * Optional resize overrides. Uses resizeImage defaults when omitted.
+	 * 可选的缩放参数覆盖项。省略时使用 resizeImage 的默认值。
+	 */
 	resizeOptions?: ImageResizeOptions;
 }
 

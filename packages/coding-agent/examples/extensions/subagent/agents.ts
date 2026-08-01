@@ -1,5 +1,6 @@
 /**
  * Agent discovery and configuration
+ * Agent 的发现与配置
  */
 
 import * as fs from "node:fs";

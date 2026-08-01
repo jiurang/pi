@@ -101,6 +101,7 @@ describe("Qwen Token Plan models", () => {
 	});
 
 	// docs: https://modelstudio.console.alibabacloud.com/ap-southeast-1?tab=api&commonbuy=1#/api/?type=model&url=3016807
+	// 文档:https://modelstudio.console.alibabacloud.com/ap-southeast-1?tab=api&commonbuy=1#/api/?type=model&url=3016807
 	it.each(QWEN_THINKING_MODEL_CASES)(
 		"sends Qwen thinking fields for $provider/$modelId",
 		async ({ provider, modelId }) => {

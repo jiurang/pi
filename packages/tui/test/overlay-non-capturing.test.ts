@@ -263,7 +263,9 @@ describe("TUI overlay non-capturing", () => {
 			tui.start();
 			try {
 				// Simulate showExtensionCustom: factory creates timer synchronously,
+				// 模拟 showExtensionCustom：工厂函数同步创建 timer，
 				// then .then() pushes controller as a microtask
+				// 然后通过 .then() 以微任务（microtask）的方式压入 controller
 				let timerHandle: ReturnType<typeof tui.showOverlay> | null = null;
 				let doneFn: () => void = () => {
 					throw new Error("doneFn was not initialized");
@@ -278,6 +280,7 @@ describe("TUI overlay non-capturing", () => {
 					};
 					timerHandle = tui.showOverlay(timer, { nonCapturing: true });
 					// .then() runs as microtask — same as showExtensionCustom
+					// .then() 以微任务（microtask）方式运行 —— 与 showExtensionCustom 一致
 					Promise.resolve(controller).then((c) => {
 						tui.showOverlay(c);
 					});
@@ -290,8 +293,10 @@ describe("TUI overlay non-capturing", () => {
 				assert.strictEqual(editor.focused, false);
 
 				// Simulate Esc: cleanup + close (from inside handleInput)
+				// 模拟按下 Esc：清理并关闭（从 handleInput 内部触发）
 				doneFn();
 				// Now await the promise (simulating showExtensionCustom resolving)
+				// 此处等待该 promise（模拟 showExtensionCustom 完成 resolve）
 				await overlayPromise;
 				await renderAndFlush(tui, terminal);
 

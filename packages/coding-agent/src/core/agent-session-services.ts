@@ -17,10 +17,14 @@ import { SettingsManager } from "./settings-manager.ts";
 
 /**
  * Non-fatal issues collected while creating services or sessions.
+ * 创建服务或会话过程中收集到的非致命问题。
  *
  * Runtime creation returns diagnostics to the caller instead of printing or
- * exiting. The app layer decides whether warnings should be shown and whether
+ * exiting.
+ * 运行时（runtime）创建过程会把诊断信息返回给调用方，而不是直接打印或退出进程。
+ * The app layer decides whether warnings should be shown and whether
  * errors should abort startup.
+ * 由应用层决定是否展示警告，以及错误是否应中止启动。
  */
 export interface AgentSessionRuntimeDiagnostic {
 	type: "info" | "warning" | "error";
@@ -29,10 +33,13 @@ export interface AgentSessionRuntimeDiagnostic {
 
 /**
  * Inputs for creating cwd-bound runtime services.
+ * 创建与 cwd（当前工作目录）绑定的运行时服务所需的输入参数。
  *
  * These services are recreated whenever the effective session cwd changes.
+ * 每当生效的会话 cwd 发生变化时，这些服务都会被重新创建。
  * CLI-provided resource paths should be resolved to absolute paths before they
  * reach this function, so later cwd switches do not reinterpret them.
+ * 由 CLI 提供的资源路径应在传入本函数之前解析为绝对路径，这样后续切换 cwd 时才不会被重新解释。
  */
 export interface CreateAgentSessionServicesOptions {
 	cwd: string;
@@ -46,9 +53,11 @@ export interface CreateAgentSessionServicesOptions {
 
 /**
  * Inputs for creating an AgentSession from already-created services.
+ * 基于已创建好的服务来创建 AgentSession 所需的输入参数。
  *
  * Use this after services exist and any cwd-bound model/tool/session options
  * have been resolved against those services.
+ * 请在服务已存在，且所有与 cwd 绑定的模型/工具/会话选项都已基于这些服务解析完成之后再使用它。
  */
 export interface CreateAgentSessionFromServicesOptions {
 	services: AgentSessionServices;
@@ -65,9 +74,13 @@ export interface CreateAgentSessionFromServicesOptions {
 
 /**
  * Coherent cwd-bound runtime services for one effective session cwd.
+ * 面向单个生效会话 cwd 的一组彼此一致、与 cwd 绑定的运行时服务。
  *
- * This is infrastructure only. The AgentSession itself is created separately so
+ * This is infrastructure only.
+ * 这里只包含基础设施部分。
+ * The AgentSession itself is created separately so
  * session options can be resolved against these services first.
+ * AgentSession 本身是单独创建的，以便先基于这些服务解析会话选项。
  */
 export interface AgentSessionServices {
 	cwd: string;
@@ -128,8 +141,12 @@ function applyExtensionFlagValues(
 
 /**
  * Create cwd-bound runtime services.
+ * 创建与 cwd 绑定的运行时服务。
  *
- * Returns services plus diagnostics. It does not create an AgentSession.
+ * Returns services plus diagnostics.
+ * 返回服务实例以及诊断信息。
+ * It does not create an AgentSession.
+ * 本函数不会创建 AgentSession。
  */
 export async function createAgentSessionServices(
 	options: CreateAgentSessionServicesOptions,
@@ -192,10 +209,12 @@ export async function createAgentSessionServices(
 
 /**
  * Create an AgentSession from previously created services.
+ * 基于此前创建好的服务来创建 AgentSession。
  *
  * This keeps session creation separate from service creation so callers can
  * resolve model, thinking, tools, and other session inputs against the target
  * cwd before constructing the session.
+ * 这样可以将会话创建与服务创建解耦，使调用方能够在构造会话之前，先针对目标 cwd 解析模型、思考（thinking）级别、工具等会话输入。
  */
 export async function createAgentSessionFromServices(
 	options: CreateAgentSessionFromServicesOptions,

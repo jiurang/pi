@@ -1,5 +1,6 @@
 /**
  * Verify the documentation example from extensions.md compiles and works.
+ * 验证 extensions.md 文档中的示例能够正常编译并运行。
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -15,16 +16,20 @@ const { default: customCompactionExtension } = await import("../examples/extensi
 describe("Documentation example", () => {
 	it("custom compaction example should type-check correctly", () => {
 		// This is the example from extensions.md - verify it compiles
+		// 这是来自 extensions.md 的示例 —— 验证其能够通过编译
 		const exampleExtension = (pi: ExtensionAPI) => {
 			pi.on("session_before_compact", async (event: SessionBeforeCompactEvent, ctx) => {
 				// All these should be accessible on the event
+				// 以下这些都应当可以从 event 上获取
 				const { preparation, branchEntries } = event;
 				// sessionManager, modelRegistry, and model come from ctx
+				// sessionManager、modelRegistry 和 model 来自 ctx
 				const { sessionManager, modelRegistry } = ctx;
 				const { messagesToSummarize, turnPrefixMessages, tokensBefore, firstKeptEntryId, isSplitTurn } =
 					preparation;
 
 				// Verify types
+				// 校验类型
 				expect(Array.isArray(messagesToSummarize)).toBe(true);
 				expect(Array.isArray(turnPrefixMessages)).toBe(true);
 				expect(typeof isSplitTurn).toBe("boolean");
@@ -40,6 +45,7 @@ describe("Documentation example", () => {
 					.join("\n");
 
 				// Extensions return compaction content - SessionManager adds id/parentId
+				// 扩展只需返回压缩(compaction)内容 —— id/parentId 由 SessionManager 补充
 				return {
 					compaction: {
 						summary: `User requests:\n${summary}`,
@@ -51,6 +57,7 @@ describe("Documentation example", () => {
 		};
 
 		// Just verify the function exists and is callable
+		// 仅验证该函数存在且可被调用
 		expect(typeof exampleExtension).toBe("function");
 	});
 
@@ -133,6 +140,7 @@ describe("Documentation example", () => {
 		const checkCompactEvent = (pi: ExtensionAPI) => {
 			pi.on("session_compact", async (event: SessionCompactEvent) => {
 				// These should all be accessible
+				// 以下这些都应当可以访问
 				const entry = event.compactionEntry;
 				const fromExtension = event.fromExtension;
 

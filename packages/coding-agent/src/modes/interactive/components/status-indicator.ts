@@ -105,6 +105,7 @@ export class BranchSummaryStatusIndicator extends StatusIndicator {
 export class IdleStatus implements Component {
 	invalidate(): void {
 		// No cached state to invalidate.
+		// 没有需要失效（invalidate）的缓存状态。
 	}
 
 	render(width: number): string[] {

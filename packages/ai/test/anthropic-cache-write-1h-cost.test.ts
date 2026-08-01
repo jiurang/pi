@@ -57,6 +57,7 @@ function eventsWithCacheCreation(
 }
 
 // claude-opus-4-8: input 5, cacheWrite (5m) 6.25 per Mtok. 1h write = 2x input = 10.
+// claude-opus-4-8:输入每百万 token 5,缓存写入(5 分钟)每百万 token 6.25。1 小时写入 = 输入的 2 倍 = 10。
 const context: Context = { messages: [{ role: "user", content: "hi", timestamp: Date.now() }] };
 
 describe("Anthropic 1h cache write cost", () => {
@@ -70,6 +71,7 @@ describe("Anthropic 1h cache write cost", () => {
 		expect(result.usage.cacheWrite).toBe(1_000_000);
 		expect(result.usage.cacheWrite1h).toBe(400_000);
 		// 600k * 6.25/Mtok + 400k * 10/Mtok = 3.75 + 4.0 = 7.75
+		// 60 万 * 6.25/百万 token + 40 万 * 10/百万 token = 3.75 + 4.0 = 7.75
 		expect(result.usage.cost.cacheWrite).toBeCloseTo(7.75, 10);
 	});
 
@@ -81,6 +83,7 @@ describe("Anthropic 1h cache write cost", () => {
 		expect(result.usage.cacheWrite).toBe(1_000_000);
 		expect(result.usage.cacheWrite1h ?? 0).toBe(0);
 		// 1M * 6.25/Mtok = 6.25
+		// 100 万 * 6.25/百万 token = 6.25
 		expect(result.usage.cost.cacheWrite).toBeCloseTo(6.25, 10);
 	});
 });

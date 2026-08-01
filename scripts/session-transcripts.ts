@@ -2,11 +2,17 @@
 /**
  * Extracts session transcripts for a given cwd, splits into context-sized files,
  * optionally spawns subagents to analyze patterns.
+ * 提取指定工作目录（cwd）下的会话记录（transcript），将其切分为符合上下文大小的文件，
+ * 并可选地派生子代理（subagent）来分析其中的模式。
  *
  * Usage: node scripts/session-transcripts.ts [--analyze] [--output <dir>] [cwd]
+ * 用法：node scripts/session-transcripts.ts [--analyze] [--output <dir>] [cwd]
  *   --analyze      Spawn pi subagents to analyze each transcript file
+ *                  派生 pi 子代理（subagent）来分析每个会话记录文件
  *   --output <dir> Output directory for transcript files (defaults to ./session-transcripts)
+ *                  会话记录文件的输出目录（默认为 ./session-transcripts）
  *   cwd            Working directory to extract sessions for (defaults to current)
+ *                  要提取会话的工作目录（默认为当前目录）
  */
 
 import { readFileSync, readdirSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -17,11 +23,15 @@ import { join, resolve } from "path";
 import { parseSessionEntries, type SessionMessageEntry } from "../packages/coding-agent/src/core/session-manager.ts";
 import chalk from "chalk";
 
-const MAX_CHARS_PER_FILE = 100_000; // ~20k tokens, leaving room for prompt + analysis + output
+// ~20k tokens, leaving room for prompt + analysis + output
+// 约 2 万 token，为提示词（prompt）、分析过程与输出留出余量
+const MAX_CHARS_PER_FILE = 100_000;
 
 function cwdToSessionDir(cwd: string): string {
 	const normalized = resolve(cwd).replace(/\//g, "-");
-	return `--${normalized.slice(1)}--`; // Remove leading slash, wrap with --
+	// Remove leading slash, wrap with --
+	// 去掉开头的斜杠，并在两端包裹 --
+	return `--${normalized.slice(1)}--`;
 }
 
 function extractTextContent(content: string | Array<{ type: string; text?: string }>): string {
@@ -97,11 +107,13 @@ function runSubagent(prompt: string, cwd: string): Promise<{ success: boolean }>
 					}
 				} else if (event.type === "tool_execution_start" && event.toolName) {
 					// Print accumulated text before tool starts
+					// 在工具开始执行前，先打印已累积的文本
 					if (textBuffer.trim()) {
 						console.log(chalk.dim("  " + truncateLine(textBuffer, MAX_DISPLAY_WIDTH)));
 						textBuffer = "";
 					}
 					// Format tool call with args
+					// 将工具调用及其参数格式化输出
 					let argsStr = "";
 					if (event.args) {
 						if (event.toolName === "read") {
@@ -115,6 +127,7 @@ function runSubagent(prompt: string, cwd: string): Promise<{ success: boolean }>
 					console.log(chalk.cyan(`  [${event.toolName}] ${argsStr}`));
 				} else if (event.type === "turn_end") {
 					// Print any remaining text at turn end
+					// 在一轮对话（turn）结束时打印剩余的文本
 					if (textBuffer.trim()) {
 						console.log(chalk.dim("  " + truncateLine(textBuffer, MAX_DISPLAY_WIDTH)));
 					}
@@ -122,6 +135,7 @@ function runSubagent(prompt: string, cwd: string): Promise<{ success: boolean }>
 				}
 			} catch {
 				// Ignore malformed JSON
+				// 忽略格式错误的 JSON
 			}
 		});
 
@@ -145,6 +159,7 @@ async function main() {
 	const analyzeFlag = args.includes("--analyze");
 
 	// Parse --output <dir>
+	// 解析 --output <dir> 参数
 	const outputIdx = args.indexOf("--output");
 	let outputDir = resolve("./session-transcripts");
 	if (outputIdx !== -1 && args[outputIdx + 1]) {
@@ -152,6 +167,7 @@ async function main() {
 	}
 
 	// Find cwd (positional arg that's not a flag or flag value)
+	// 查找 cwd（即既不是选项标志、也不是标志取值的位置参数）
 	const flagIndices = new Set<number>();
 	flagIndices.add(args.indexOf("--analyze"));
 	if (outputIdx !== -1) {
@@ -179,6 +195,7 @@ async function main() {
 	console.log(`Found ${sessionFiles.length} session files in ${sessionDir}`);
 
 	// Collect all transcripts
+	// 收集全部会话记录（transcript）
 	const allTranscripts: string[] = [];
 	for (const file of sessionFiles) {
 		const filePath = join(sessionDir, file);
@@ -194,12 +211,14 @@ async function main() {
 	}
 
 	// Split into files respecting MAX_CHARS_PER_FILE
+	// 在遵守 MAX_CHARS_PER_FILE 限制的前提下切分为多个文件
 	const outputFiles: string[] = [];
 	let currentContent = "";
 	let fileIndex = 0;
 
 	for (const transcript of allTranscripts) {
 		// If adding this transcript would exceed limit, write current and start new
+		// 如果加入这条会话记录会超出上限，则先写出当前内容并开始新文件
 		if (currentContent.length > 0 && currentContent.length + transcript.length + 2 > MAX_CHARS_PER_FILE) {
 			const filename = `session-transcripts-${String(fileIndex).padStart(3, "0")}.txt`;
 			writeFileSync(join(outputDir, filename), currentContent);
@@ -210,8 +229,10 @@ async function main() {
 		}
 
 		// If this single transcript exceeds limit, write it to its own file
+		// 如果单条会话记录本身就超出上限，则将其单独写入一个文件
 		if (transcript.length > MAX_CHARS_PER_FILE) {
 			// Write any pending content first
+			// 先写出尚未落盘的待处理内容
 			if (currentContent.length > 0) {
 				const filename = `session-transcripts-${String(fileIndex).padStart(3, "0")}.txt`;
 				writeFileSync(join(outputDir, filename), currentContent);
@@ -221,6 +242,7 @@ async function main() {
 				fileIndex++;
 			}
 			// Write the large transcript to its own file
+			// 将这条超大的会话记录单独写入一个文件
 			const filename = `session-transcripts-${String(fileIndex).padStart(3, "0")}.txt`;
 			writeFileSync(join(outputDir, filename), transcript);
 			outputFiles.push(filename);
@@ -233,6 +255,7 @@ async function main() {
 	}
 
 	// Write remaining content
+	// 写出剩余内容
 	if (currentContent.length > 0) {
 		const filename = `session-transcripts-${String(fileIndex).padStart(3, "0")}.txt`;
 		writeFileSync(join(outputDir, filename), currentContent);
@@ -248,6 +271,7 @@ async function main() {
 	}
 
 	// Find AGENTS.md files to compare against
+	// 查找用于对照比较的 AGENTS.md 文件
 	const globalAgentsMd = join(homedir(), ".pi/agent/AGENTS.md");
 	const localAgentsMd = join(cwd, "AGENTS.md");
 	const agentsMdFiles = [globalAgentsMd, localAgentsMd].filter(existsSync);
@@ -257,6 +281,7 @@ async function main() {
 			: "";
 
 	// Spawn subagents to analyze each file
+	// 派生子代理（subagent）来分析每个文件
 	const analysisPrompt = `You are analyzing session transcripts to identify recurring user instructions that could be automated.
 
 ${agentsMdSection}READING THE TRANSCRIPT:
@@ -323,6 +348,7 @@ Rules:
 	}
 
 	// Collect all created summary files
+	// 收集所有已生成的摘要（summary）文件
 	const summaryFiles = readdirSync(outputDir)
 		.filter((f) => f.endsWith(".summary.txt"))
 		.sort();
@@ -336,6 +362,7 @@ Rules:
 	}
 
 	// Final aggregation step
+	// 最终的汇总（aggregation）步骤
 	console.log("\nAggregating findings into final summary...");
 
 	const summaryPaths = summaryFiles.map((f) => join(outputDir, f)).join("\n");

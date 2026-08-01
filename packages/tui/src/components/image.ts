@@ -18,7 +18,10 @@ export interface ImageOptions {
 	maxWidthCells?: number;
 	maxHeightCells?: number;
 	filename?: string;
-	/** Kitty image ID. If provided, reuses this ID (for animations/updates). */
+	/**
+	 * Kitty image ID. If provided, reuses this ID (for animations/updates).
+	 * Kitty 图片 ID。如果提供了该值，则复用此 ID（用于动画/更新）。
+	 */
 	imageId?: number;
 }
 
@@ -48,7 +51,7 @@ export class Image implements Component {
 		this.imageId = options.imageId;
 	}
 
-	/** Get the Kitty image ID used by this image (if any). */
+	/** Get the Kitty image ID used by this image (if any). 获取该图片使用的 Kitty 图片 ID（如果有的话）。 */
 	getImageId(): number | undefined {
 		return this.imageId;
 	}
@@ -84,24 +87,32 @@ export class Image implements Component {
 
 			if (result) {
 				// Store the image ID for later cleanup
+				// 保存图片 ID 以便后续清理
 				if (result.imageId) {
 					this.imageId = result.imageId;
 				}
 
 				if (caps.images === "kitty") {
 					// For Kitty: C=1 prevents cursor movement.
+					// 对于 Kitty：C=1 可阻止光标移动。
 					// Don't need the cursor movement.
+					// 无需进行光标移动。
 					lines = [result.sequence];
 
 					// Return `rows` lines so TUI accounts for image height.
+					// 返回 `rows` 行，以便 TUI 能计入图片的高度。
 					for (let i = 0; i < result.rows - 1; i++) {
 						lines.push("");
 					}
 				} else {
 					// Return `rows` lines so TUI accounts for image height.
+					// 返回 `rows` 行，以便 TUI 能计入图片的高度。
 					// First (rows-1) lines are empty and cleared before the image is drawn.
+					// 前 (rows-1) 行为空行，并会在绘制图片之前被清除。
 					// Last line: move cursor back up, draw the image, then move back down
 					// so TUI cursor accounting stays inside the scroll area.
+					// 最后一行：将光标上移，绘制图片，然后再移回下方，
+					// 以使 TUI 的光标计算始终保持在滚动区域内。
 					lines = [];
 					for (let i = 0; i < result.rows - 1; i++) {
 						lines.push("");

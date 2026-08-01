@@ -2,10 +2,13 @@ import { type KeyId, matchesKey } from "./keys.ts";
 
 /**
  * Global keybinding registry.
+ * 全局快捷键绑定注册表。
  * Downstream packages can add keybindings via declaration merging.
+ * 下游包可以通过声明合并（declaration merging）来添加快捷键绑定。
  */
 export interface Keybindings {
 	// Editor navigation and editing
+	// 编辑器导航与编辑操作
 	"tui.editor.cursorUp": true;
 	"tui.editor.cursorDown": true;
 	"tui.editor.cursorLeft": true;
@@ -28,11 +31,13 @@ export interface Keybindings {
 	"tui.editor.yankPop": true;
 	"tui.editor.undo": true;
 	// Generic input actions
+	// 通用输入操作
 	"tui.input.newLine": true;
 	"tui.input.submit": true;
 	"tui.input.tab": true;
 	"tui.input.copy": true;
 	// Generic selection actions
+	// 通用选择操作
 	"tui.select.up": true;
 	"tui.select.down": true;
 	"tui.select.pageUp": true;
@@ -40,6 +45,7 @@ export interface Keybindings {
 	"tui.select.confirm": true;
 	"tui.select.cancel": true;
 	// Alternate-screen viewport navigation
+	// 备用屏幕（alternate screen）视口导航
 	"tui.altScreen.pageUp": true;
 	"tui.altScreen.pageDown": true;
 	"tui.altScreen.top": true;

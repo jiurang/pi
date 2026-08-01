@@ -8,6 +8,7 @@ export default function (pi: ExtensionAPI) {
 		appendFileSync(logFile, `${JSON.stringify(event.payload, null, 2)}\n\n`, "utf8");
 
 		// Optional: replace the payload instead of only logging it.
+		// 可选：替换请求负载（payload），而不仅仅是记录日志。
 		// return { ...event.payload, temperature: 0 };
 	});
 

@@ -1,8 +1,10 @@
 /**
  * Minimal Kimi deferred-tool loading demo.
+ * Kimi 延迟(deferred)工具加载的最小示例。
  *
  *   pi -e ./kimi-deferred-tools.ts
  *    example prompt: Use the available tools to calculate 100 + 500. Do not calculate it yourself.
+ *    示例提示词：Use the available tools to calculate 100 + 500. Do not calculate it yourself.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";

@@ -38,6 +38,7 @@ async function decodeEntryRows(entryRows: SessionEntryRow[]): Promise<{
 			leafId = leafIdAfterEntry(entry);
 		} catch {
 			// Keep JSONL-like permissive resume behavior: skip malformed entries.
+			// 保持与 JSONL 类似的宽松恢复（resume）行为：跳过格式错误的条目。
 		}
 	}
 	return { entries, leafId };
@@ -60,7 +61,9 @@ async function loadEntryRowsByIds(
 
 async function loadActiveBranchId(db: SqliteDatabase, sessionId: string): Promise<string | null> {
 	// branch_entries includes leaf navigation entries for the active branch, so the
+	// branch_entries 中包含活跃分支的 leaf 导航条目，因此
 	// newest branch_entries row identifies the branch that was most recently made active.
+	// branch_entries 中最新的一行即可标识最近被置为活跃状态的分支。
 	const row = await db
 		.prepare(
 			"SELECT branch_id FROM branch_entries WHERE session_id = ? ORDER BY entry_seq DESC, branch_id DESC LIMIT 1",
@@ -147,7 +150,10 @@ export class SqliteSessionStorage implements SessionStorage<SqliteSessionMetadat
 		const branchId = uuidv7();
 		// Rebuild the branch path only when branch membership changes: branch switch
 		// (leaf navigation) or a new fork from a parent that already has a child.
+		// 仅在分支归属发生变化时才重建分支路径：包括分支切换（leaf 导航），
+		// 或从一个已有子节点的父节点上新建分叉（fork）。
 		// Linear appends stay cheap and extend the active branch incrementally.
+		// 线性追加则保持低开销，只是增量式地延长当前活跃分支。
 		const path = await this.getPathToRootOrCompactionEntries(leafId);
 		const entryRowsById = await loadEntryRowsByIds(
 			this.db,
@@ -170,6 +176,8 @@ export class SqliteSessionStorage implements SessionStorage<SqliteSessionMetadat
 		}
 		// After a branch is materialized/resynced, subsequent linear appends only add the
 		// new tip entry. We do not rebuild the full branch on every append.
+		// 在分支被物化（materialize）/重新同步之后，后续的线性追加只会新增末端（tip）条目；
+		// 我们不会在每次追加时都重建整条分支。
 		if (!this.activeBranchId) {
 			throw invalidSession(`active branch missing for session ${this.metadata.id}`);
 		}
@@ -380,6 +388,7 @@ export class SqliteSessionStorage implements SessionStorage<SqliteSessionMetadat
 				entries.push(entry);
 			} catch {
 				// Keep JSONL-like permissive resume behavior: skip malformed entries.
+				// 保持与 JSONL 类似的宽松恢复（resume）行为：跳过格式错误的条目。
 			}
 		}
 		return entries;

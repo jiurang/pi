@@ -12,6 +12,7 @@ describe("tree navigation during an active response", () => {
 
 		try {
 			// Navigate from inside the response factory, while the run is active.
+			// 在响应工厂（response factory）内部、且本次运行仍在进行时执行导航。
 			harness.setResponses([
 				async () => {
 					const activeLeafId = harness.sessionManager.getLeafId();

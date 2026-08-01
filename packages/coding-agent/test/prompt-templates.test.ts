@@ -1,11 +1,17 @@
 /**
  * Tests for prompt template argument parsing and substitution.
+ * 针对提示词模板（prompt template）参数解析与替换的测试。
  *
  * Tests verify:
+ * 这些测试用于验证：
  * - Argument parsing with quotes and special characters
+ * - 含引号与特殊字符的参数解析
  * - Placeholder substitution ($1, $2, $@, $ARGUMENTS)
+ * - 占位符替换（$1、$2、$@、$ARGUMENTS）
  * - No recursive substitution of patterns in argument values
+ * - 参数值中的模式不会被递归替换
  * - Edge cases and integration between parsing and substitution
+ * - 各类边界情况，以及解析与替换之间的集成表现
  */
 
 import { mkdirSync, rmSync, writeFileSync } from "fs";
@@ -39,6 +45,7 @@ describe("substituteArgs", () => {
 	});
 
 	// CRITICAL: argument values containing patterns should remain literal
+	// 关键：参数值中包含的模式应保持字面量原样，不被替换
 	test("should NOT recursively substitute patterns in argument values", () => {
 		expect(substituteArgs("$ARGUMENTS", ["$1", "$ARGUMENTS"])).toBe("$1 $ARGUMENTS");
 		expect(substituteArgs("$@", ["$100", "$1"])).toBe("$100 $1");
@@ -79,11 +86,13 @@ describe("substituteArgs", () => {
 
 	test("should handle special characters in arguments", () => {
 		// Note: $100 in argument doesn't get partially matched - full strings are substituted
+		// 注意：参数中的 $100 不会被部分匹配——替换以完整字符串为单位进行
 		expect(substituteArgs("$1 $2: $ARGUMENTS", ["arg100", "@user"])).toBe("arg100 @user: arg100 @user");
 	});
 
 	test("should handle out-of-range numbered placeholders", () => {
 		// Note: Out-of-range placeholders become empty strings (preserving spaces from template)
+		// 注意：超出范围的占位符会变成空字符串（模板中的空格会被保留）
 		expect(substituteArgs("$1 $2 $3 $4 $5", ["a", "b"])).toBe("a b   ");
 	});
 
@@ -172,6 +181,7 @@ describe("substituteArgs", () => {
 
 	test("should handle escaped dollar signs (literal backslash preserved)", () => {
 		// Note: No escape mechanism exists - backslash is treated literally
+		// 注意：并不存在转义机制——反斜杠会被按字面量处理
 		expect(substituteArgs("Price: \\$100", [])).toBe("Price: \\");
 	});
 
@@ -192,6 +202,7 @@ describe("substituteArgs", () => {
 
 // ============================================================================
 // substituteArgs - Positional Defaults
+// substituteArgs —— 位置参数默认值
 // ============================================================================
 
 describe("substituteArgs - positional defaults", () => {
@@ -247,6 +258,7 @@ describe("substituteArgs - positional defaults", () => {
 
 // ============================================================================
 // substituteArgs - Array Slicing (Bash-Style)
+// substituteArgs —— 数组切片（Bash 风格）
 // ============================================================================
 
 describe("substituteArgs - array slicing", () => {
@@ -384,6 +396,7 @@ describe("parseCommandArgs", () => {
 
 	test("should handle quoted empty string", () => {
 		// Note: Empty quotes are skipped by current implementation
+		// 注意：当前实现会跳过空引号对
 		expect(parseCommandArgs('"" " "')).toEqual([" "]);
 	});
 
@@ -416,6 +429,7 @@ describe("parseCommandArgs", () => {
 
 	test("should handle escaped quotes inside quoted strings", () => {
 		// Note: This implementation doesn't handle escaped quotes - backslash is literal
+		// 注意：该实现不处理转义引号——反斜杠按字面量处理
 		expect(parseCommandArgs('"quoted \\"text\\""')).toEqual(["quoted \\text\\"]);
 	});
 
@@ -430,6 +444,7 @@ describe("parseCommandArgs", () => {
 
 // ============================================================================
 // Integration
+// 集成测试
 // ============================================================================
 
 describe("expandPromptTemplate", () => {
@@ -464,6 +479,7 @@ describe("expandPromptTemplate", () => {
 
 // ============================================================================
 // Integration
+// 集成测试
 // ============================================================================
 
 describe("parseCommandArgs + substituteArgs integration", () => {
@@ -495,6 +511,7 @@ describe("parseCommandArgs + substituteArgs integration", () => {
 
 // ============================================================================
 // loadPromptTemplates - argument-hint frontmatter
+// loadPromptTemplates —— frontmatter 中的 argument-hint 字段
 // ============================================================================
 
 describe("loadPromptTemplates - argument-hint", () => {

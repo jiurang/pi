@@ -27,10 +27,13 @@ function byteLength(text: string): number {
 
 /**
  * Incrementally tracks streaming output with bounded memory.
+ * 以受限的内存占用增量式地跟踪流式输出。
  *
  * Appends decode chunks with a streaming UTF-8 decoder, keeps only a decoded
  * tail for display snapshots, and opens a temp file when the full output needs
  * to be preserved.
+ * 使用流式 UTF-8 解码器追加解码后的数据块，仅保留解码后的尾部内容用于展示快照；
+ * 当需要完整保留全部输出时，则会打开一个临时文件。
  */
 export class OutputAccumulator {
 	private readonly maxLines: number;

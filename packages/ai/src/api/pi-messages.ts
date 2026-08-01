@@ -1,5 +1,6 @@
 /**
  * pi-messages API implementation.
+ * pi-messages API 实现。
  *
  * Streams pi's own message protocol directly to a backend: the request is a
  * single POST of `{ model, context, options }` to `<baseUrl>/messages`, the
@@ -7,6 +8,12 @@
  * terminal `done`/`error` event. This is the wire protocol spoken by the
  * Radius gateway, but any backend implementing it can be used, e.g. via a
  * models.json custom provider with `"api": "pi-messages"`.
+ * 将 pi 自有的消息协议直接以流式(stream)方式发送到后端:请求是向
+ * `<baseUrl>/messages` 发起的一次 POST,body 为 `{ model, context, options }`;
+ * 响应是一个 SSE 流,包含序列化后的助手消息(assistant-message)事件,以及一个
+ * 终结性的 `done`/`error` 事件。这是 Radius 网关所使用的传输协议,但任何实现了该
+ * 协议的后端都可以使用,例如通过 models.json 中 `"api": "pi-messages"` 的自定义
+ * 供应商(provider)配置。
  */
 
 import type {
@@ -31,14 +38,20 @@ import { getProviderEnvValue } from "../utils/provider-env.ts";
 export interface PiMessagesOptions extends StreamOptions {
 	reasoning?: ThinkingLevel;
 	toolChoice?: "auto" | "none" | "required" | { type: "function"; function: { name: string } };
-	/** Ask the backend for debug metadata (e.g. routing response headers). */
+	/**
+	 * Ask the backend for debug metadata (e.g. routing response headers).
+	 * 请求后端返回调试元数据(例如路由相关的响应头)。
+	 */
 	debug?: boolean;
 }
 
 type PiMessagesUsage = AssistantMessage["usage"];
 type PiMessagesStopReason = AssistantMessage["stopReason"];
 
-/** Impact summary of a server-side message rewrite (e.g. a gateway policy). */
+/**
+ * Impact summary of a server-side message rewrite (e.g. a gateway policy).
+ * 服务端消息重写(例如网关策略)所产生影响的摘要。
+ */
 export type PiMessagesRewriteImpact = {
 	policyId: string;
 	policyVersion: number;
@@ -48,7 +61,10 @@ export type PiMessagesRewriteImpact = {
 	systemPromptChanged: boolean;
 };
 
-/** Serialized assistant-message event as sent by a pi-messages backend. */
+/**
+ * Serialized assistant-message event as sent by a pi-messages backend.
+ * 由 pi-messages 后端发送的序列化助手消息(assistant-message)事件。
+ */
 export type PiMessagesEvent =
 	| { type: "start" }
 	| { type: "text_start"; contentIndex: number }
@@ -339,6 +355,7 @@ function resolveCacheRetention(cacheRetention?: CacheRetention, env?: ProviderEn
 		return cacheRetention;
 	}
 	// Backend defaults apply when unset; only the legacy env opt-in is mapped.
+	// 未设置时采用后端默认值;此处仅映射旧版环境变量的启用开关。
 	return getProviderEnvValue("PI_CACHE_RETENTION", env) === "long" ? "long" : undefined;
 }
 

@@ -1,8 +1,11 @@
 /**
  * Tests for StdinBuffer
+ * StdinBuffer 的测试
  *
  * Based on code from OpenTUI (https://github.com/anomalyco/opentui)
+ * 基于 OpenTUI 的代码实现（https://github.com/anomalyco/opentui）
  * MIT License - Copyright (c) 2025 opentui
+ * MIT 许可证 - 版权所有 (c) 2025 opentui
  */
 
 import assert from "node:assert";
@@ -17,6 +20,7 @@ describe("StdinBuffer", () => {
 		buffer = new StdinBuffer({ timeout: 10 });
 
 		// Collect emitted sequences
+		// 收集已发出的序列
 		emittedSequences = [];
 		buffer.on("data", (sequence) => {
 			emittedSequences.push(sequence);
@@ -24,11 +28,13 @@ describe("StdinBuffer", () => {
 	});
 
 	// Helper to process data through the buffer
+	// 用于将数据送入缓冲区处理的辅助函数
 	function processInput(data: string | Buffer): void {
 		buffer.process(data);
 	}
 
 	// Helper to wait for async operations
+	// 用于等待异步操作的辅助函数
 	async function wait(ms: number): Promise<void> {
 		return new Promise((resolve) => setTimeout(resolve, ms));
 	}
@@ -129,6 +135,7 @@ describe("StdinBuffer", () => {
 			assert.deepStrictEqual(emittedSequences, []);
 
 			// Wait for timeout
+			// 等待超时触发
 			await wait(15);
 
 			assert.deepStrictEqual(emittedSequences, ["\x1b[<35"]);
@@ -164,45 +171,55 @@ describe("StdinBuffer", () => {
 	describe("Kitty Keyboard Protocol", () => {
 		it("should handle Kitty CSI u press events", () => {
 			// Press 'a' in Kitty protocol
+			// 在 Kitty 协议下按下 'a'
 			processInput("\x1b[97u");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[97u"]);
 		});
 
 		it("should handle Kitty CSI u release events", () => {
 			// Release 'a' in Kitty protocol
+			// 在 Kitty 协议下释放 'a'
 			processInput("\x1b[97;1:3u");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[97;1:3u"]);
 		});
 
 		it("should handle batched Kitty press and release", () => {
 			// Press 'a', release 'a' batched together (common over SSH)
+			// 按下 'a' 与释放 'a' 被合并成一批发送（在 SSH 环境中较常见）
 			processInput("\x1b[97u\x1b[97;1:3u");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[97u", "\x1b[97;1:3u"]);
 		});
 
 		it("should handle multiple batched Kitty events", () => {
 			// Press 'a', release 'a', press 'b', release 'b'
+			// 按下 'a'、释放 'a'、按下 'b'、释放 'b'
 			processInput("\x1b[97u\x1b[97;1:3u\x1b[98u\x1b[98;1:3u");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[97u", "\x1b[97;1:3u", "\x1b[98u", "\x1b[98;1:3u"]);
 		});
 
 		it("should handle Kitty arrow keys with event type", () => {
 			// Up arrow press with event type
+			// 带事件类型的上方向键按下
 			processInput("\x1b[1;1:1A");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[1;1:1A"]);
 		});
 
 		it("should handle Kitty functional keys with event type", () => {
 			// Delete key release
+			// Delete 键释放
 			processInput("\x1b[3;1:3~");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[3;1:3~"]);
 		});
 
 		it("should split ESC+ESC+CSI into standalone ESC and the CSI sequence (WezTerm Escape key regression)", () => {
 			// WezTerm with enable_kitty_keyboard sends Escape key press as raw \x1b
+			// 启用 enable_kitty_keyboard 的 WezTerm 会将 Escape 按下事件以原始 \x1b 发送，
 			// and the release as a full Kitty CSI-u sequence, concatenated.
+			// 而释放事件则以完整的 Kitty CSI-u 序列发送，两者拼接在一起。
 			// The buffer must not treat \x1b\x1b as a complete meta-key when the
+			// 当后续字节开始一个新的转义序列时，缓冲区不得将 \x1b\x1b
 			// following byte starts a new escape sequence.
+			// 当作一个完整的 meta 组合键处理。
 			processInput("\x1b\x1b[27;129:3u");
 			assert.deepStrictEqual(emittedSequences, ["\x1b", "\x1b[27;129:3u"]);
 		});
@@ -214,12 +231,14 @@ describe("StdinBuffer", () => {
 
 		it("should still emit ESC+ESC as a single sequence when not followed by a new escape", () => {
 			// \x1b\x1b alone (no following CSI) stays as-is — e.g. ctrl+alt+[
+			// 单独的 \x1b\x1b（后面没有跟 CSI）保持原样 —— 例如 ctrl+alt+[
 			processInput("\x1b\x1b");
 			assert.deepStrictEqual(emittedSequences, ["\x1b\x1b"]);
 		});
 
 		it("should handle plain characters mixed with Kitty sequences", () => {
 			// Plain 'a' followed by Kitty release
+			// 普通字符 'a' 后跟一个 Kitty 释放事件
 			processInput("a\x1b[97;1:3u");
 			assert.deepStrictEqual(emittedSequences, ["a", "\x1b[97;1:3u"]);
 		});
@@ -247,6 +266,7 @@ describe("StdinBuffer", () => {
 
 		it("should handle rapid typing simulation with Kitty protocol", () => {
 			// Simulates typing "hi" quickly with releases interleaved
+			// 模拟快速输入 "hi"，并夹杂按键释放事件
 			processInput("\x1b[104u\x1b[104;1:3u\x1b[105u\x1b[105;1:3u");
 			assert.deepStrictEqual(emittedSequences, ["\x1b[104u", "\x1b[104;1:3u", "\x1b[105u", "\x1b[105;1:3u"]);
 		});
@@ -302,6 +322,7 @@ describe("StdinBuffer", () => {
 		it("should handle empty input", () => {
 			processInput("");
 			// Empty string emits an empty data event
+			// 空字符串会发出一个空的 data 事件
 			assert.deepStrictEqual(emittedSequences, [""]);
 		});
 
@@ -310,6 +331,7 @@ describe("StdinBuffer", () => {
 			assert.deepStrictEqual(emittedSequences, []);
 
 			// After timeout, should emit
+			// 超时之后应当发出该序列
 			await wait(15);
 			assert.deepStrictEqual(emittedSequences, ["\x1b"]);
 		});
@@ -352,6 +374,7 @@ describe("StdinBuffer", () => {
 			assert.deepStrictEqual(emittedSequences, []);
 
 			// Wait for timeout to flush
+			// 等待超时以触发刷新（flush）
 			await wait(15);
 
 			assert.deepStrictEqual(emittedSequences, ["\x1b[<35"]);
@@ -376,12 +399,14 @@ describe("StdinBuffer", () => {
 			buffer = new StdinBuffer({ timeout: 10 });
 
 			// Collect emitted sequences
+			// 收集已发出的序列
 			emittedSequences = [];
 			buffer.on("data", (sequence) => {
 				emittedSequences.push(sequence);
 			});
 
 			// Collect paste events
+			// 收集粘贴（paste）事件
 			emittedPaste = [];
 			buffer.on("paste", (data) => {
 				emittedPaste.push(data);
@@ -396,7 +421,7 @@ describe("StdinBuffer", () => {
 			processInput(pasteStart + content + pasteEnd);
 
 			assert.deepStrictEqual(emittedPaste, ["hello world"]);
-			assert.deepStrictEqual(emittedSequences, []); // No data events during paste
+			assert.deepStrictEqual(emittedSequences, []); // No data events during paste | 粘贴过程中不产生 data 事件
 		});
 
 		it("should handle paste arriving in chunks", () => {
@@ -449,9 +474,11 @@ describe("StdinBuffer", () => {
 			buffer.destroy();
 
 			// Wait longer than timeout
+			// 等待超过超时时长
 			await wait(15);
 
 			// Should not have emitted anything
+			// 不应发出任何内容
 			assert.deepStrictEqual(emittedSequences, []);
 		});
 	});

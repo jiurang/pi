@@ -11,7 +11,9 @@ const __dirname = dirname(__filename);
 
 /**
  * Detect if we're running as a Bun compiled binary.
+ * 检测当前是否以 Bun 编译出的二进制文件（compiled binary）形式运行。
  * Bun binaries have import.meta.url containing "$bunfs", "~BUN", or "%7EBUN" (Bun's virtual filesystem path)
+ * Bun 二进制文件的 import.meta.url 中会包含 "$bunfs"、"~BUN" 或 "%7EBUN"（Bun 的虚拟文件系统路径）
  */
 export const isBunBinary =
 	import.meta.url.includes("$bunfs") || import.meta.url.includes("~BUN") || import.meta.url.includes("%7EBUN");

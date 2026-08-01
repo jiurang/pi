@@ -1,8 +1,11 @@
 /**
  * Permission Gate Extension
+ * 权限闸门扩展(Extension)
  *
  * Prompts for confirmation before running potentially dangerous bash commands.
+ * 在执行潜在危险的 bash 命令之前弹出确认提示。
  * Patterns checked: rm -rf, sudo, chmod/chown 777
+ * 会检查的模式：rm -rf、sudo、chmod/chown 777
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -19,6 +22,7 @@ export default function (pi: ExtensionAPI) {
 		if (isDangerous) {
 			if (!ctx.hasUI) {
 				// In non-interactive mode, block by default
+				// 在非交互模式下，默认予以拦截
 				return { block: true, reason: "Dangerous command blocked (no UI for confirmation)" };
 			}
 

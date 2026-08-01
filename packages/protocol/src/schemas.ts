@@ -34,7 +34,10 @@ export const ThinkingLevelSchema = Type.Union([
 ]);
 export type ThinkingLevel = Static<typeof ThinkingLevelSchema>;
 
-/** Matches AgentHarnessPhase so adapters do not need a second phase vocabulary. */
+/**
+ * Matches AgentHarnessPhase so adapters do not need a second phase vocabulary.
+ * 与 AgentHarnessPhase 保持一致，这样适配器（adapter）无需再维护第二套阶段（phase）术语。
+ */
 export const SessionPhaseSchema = Type.Union([
 	Type.Literal("idle"),
 	Type.Literal("turn"),
@@ -171,7 +174,10 @@ export type AssistantTranscriptItem = Static<typeof AssistantTranscriptItemSchem
 export type ToolTranscriptItem = Static<typeof ToolTranscriptItemSchema>;
 export type TranscriptItem = Static<typeof TranscriptItemSchema>;
 
-/** Normalized incremental activity. Snapshots remain authoritative. */
+/**
+ * Normalized incremental activity. 归一化后的增量活动信息。
+ * Snapshots remain authoritative. 快照（snapshot）仍是权威数据来源。
+ */
 export const TranscriptProgressSchema = Type.Union([
 	StrictObject({
 		type: Type.Literal("item_started"),
@@ -342,7 +348,11 @@ export type ResultForCommand<TCommand extends Command> = TCommand["command"] ext
 		? Static<typeof DetachResultSchema>
 		: Extract<CommandResult, { command: TCommand["command"] }>;
 
-/** Must be the first frame sent by a client. Version is intentionally an integer, not a coercible string. */
+/**
+ * Must be the first frame sent by a client. 必须是客户端发送的第一个帧（frame）。
+ * Version is intentionally an integer, not a coercible string.
+ * version 字段有意设计为整数，而非可隐式转换的字符串。
+ */
 export const ClientHelloSchema = StrictObject({
 	type: Type.Literal("hello"),
 	version: Type.Integer({ minimum: 0 }),

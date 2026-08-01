@@ -1,5 +1,6 @@
 /**
  * Minimal TUI implementation with differential rendering
+ * 极简 TUI 实现，采用差分渲染（differential rendering）
  */
 
 import * as os from "node:os";
@@ -19,29 +20,38 @@ import { extractSegments, normalizeTerminalOutput, sliceByColumn, sliceWithWidth
 
 /**
  * Component interface - all components must implement this
+ * 组件接口 —— 所有组件都必须实现该接口
  */
 export interface Component {
 	/**
 	 * Render the component to lines for the given viewport width
+	 * 按给定的视口宽度将组件渲染为文本行
 	 * @param width - Current viewport width
+	 *                当前视口宽度
 	 * @returns Array of strings, each representing a line
+	 *          字符串数组，每个元素代表一行
 	 */
 	render(width: number): string[];
 
 	/**
 	 * Optional handler for keyboard input when component has focus
+	 * 可选的键盘输入处理器，在组件获得焦点时调用
 	 */
 	handleInput?(data: string): void;
 
 	/**
 	 * If true, component receives key release events (Kitty protocol).
+	 * 若为 true，组件将接收按键释放（key release）事件（Kitty 协议）。
 	 * Default is false - release events are filtered out.
+	 * 默认为 false —— 释放事件会被过滤掉。
 	 */
 	wantsKeyRelease?: boolean;
 
 	/**
 	 * Invalidate any cached rendering state.
+	 * 使所有缓存的渲染状态失效。
 	 * Called when theme changes or when component needs to re-render from scratch.
+	 * 在主题变化时，或组件需要从零重新渲染时调用。
 	 */
 	invalidate(): void;
 }
@@ -56,25 +66,34 @@ type PendingOsc11BackgroundQuery = {
 
 /**
  * Interface for components that can receive focus and display a hardware cursor.
+ * 可获得焦点并显示硬件光标（hardware cursor）的组件所使用的接口。
  * When focused, the component should emit CURSOR_MARKER at the cursor position
  * in its render output. TUI will find this marker and position the hardware
  * cursor there for proper IME candidate window positioning.
+ * 获得焦点时，组件应在其渲染输出中的光标位置输出 CURSOR_MARKER。TUI 会找到该标记并把硬件光标定位到那里，
+ * 以便输入法（IME）候选词窗口能正确定位。
  */
 export interface Focusable {
 	/** Set by TUI when focus changes. Component should emit CURSOR_MARKER when true. */
+	/** 由 TUI 在焦点变化时设置。为 true 时组件应输出 CURSOR_MARKER。 */
 	focused: boolean;
 }
 
 /** Type guard to check if a component implements Focusable */
+/** 类型守卫（type guard），用于检查组件是否实现了 Focusable */
 export function isFocusable(component: Component | null): component is Component & Focusable {
 	return component !== null && "focused" in component;
 }
 
 /**
  * Cursor position marker - APC (Application Program Command) sequence.
+ * 光标位置标记 —— APC（Application Program Command，应用程序命令）序列。
  * This is a zero-width escape sequence that terminals ignore.
+ * 这是一个终端会忽略的零宽转义序列。
  * Components emit this at the cursor position when focused.
+ * 组件在获得焦点时会在光标位置输出该标记。
  * TUI finds and strips this marker, then positions the hardware cursor there.
+ * TUI 会找到并剥离该标记，然后将硬件光标定位到那里。
  */
 export const CURSOR_MARKER = "\x1b_pi:c\x07";
 
@@ -82,6 +101,7 @@ export { visibleWidth };
 
 /**
  * Anchor position for overlays
+ * 浮层（overlay）的锚点位置
  */
 export type OverlayAnchor =
 	| "center"
@@ -96,6 +116,7 @@ export type OverlayAnchor =
 
 /**
  * Margin configuration for overlays
+ * 浮层（overlay）的外边距配置
  */
 export interface OverlayMargin {
 	top?: number;
@@ -105,13 +126,16 @@ export interface OverlayMargin {
 }
 
 /** Value that can be absolute (number) or percentage (string like "50%") */
+/** 可以是绝对值（数字）或百分比（形如 "50%" 的字符串）的取值 */
 export type SizeValue = number | `${number}%`;
 
 /** Parse a SizeValue into absolute value given a reference size */
+/** 在给定参考尺寸的前提下，将 SizeValue 解析为绝对值 */
 function parseSizeValue(value: SizeValue | undefined, referenceSize: number): number | undefined {
 	if (value === undefined) return undefined;
 	if (typeof value === "number") return value;
 	// Parse percentage string like "50%"
+	// 解析形如 "50%" 的百分比字符串
 	const match = value.match(/^(\d+(?:\.\d+)?)%$/);
 	if (match) {
 		return Math.floor((referenceSize * parseFloat(match[1])) / 100);
@@ -121,67 +145,96 @@ function parseSizeValue(value: SizeValue | undefined, referenceSize: number): nu
 
 /**
  * Options for overlay positioning and sizing.
+ * 用于浮层（overlay）定位与尺寸设置的选项。
  * Values can be absolute numbers or percentage strings (e.g., "50%").
+ * 取值可以是绝对数字，也可以是百分比字符串（例如 "50%"）。
  */
 export interface OverlayOptions {
 	// === Sizing ===
+	// === 尺寸 ===
 	/** Width in columns, or percentage of terminal width (e.g., "50%") */
+	/** 宽度（以列为单位），或终端宽度的百分比（例如 "50%"） */
 	width?: SizeValue;
 	/** Minimum width in columns */
+	/** 最小宽度（以列为单位） */
 	minWidth?: number;
 	/** Maximum height in rows, or percentage of terminal height (e.g., "50%") */
+	/** 最大高度（以行为单位），或终端高度的百分比（例如 "50%"） */
 	maxHeight?: SizeValue;
 
 	// === Positioning - anchor-based ===
+	// === 定位 —— 基于锚点 ===
 	/** Anchor point for positioning (default: 'center') */
+	/** 用于定位的锚点（默认值：'center'） */
 	anchor?: OverlayAnchor;
 	/** Horizontal offset from anchor position (positive = right) */
+	/** 相对锚点位置的水平偏移（正值 = 向右） */
 	offsetX?: number;
 	/** Vertical offset from anchor position (positive = down) */
+	/** 相对锚点位置的垂直偏移（正值 = 向下） */
 	offsetY?: number;
 
 	// === Positioning - percentage or absolute ===
+	// === 定位 —— 百分比或绝对值 ===
 	/** Row position: absolute number, or percentage (e.g., "25%" = 25% from top) */
+	/** 行位置：绝对数字，或百分比（例如 "25%" 表示距顶部 25%） */
 	row?: SizeValue;
 	/** Column position: absolute number, or percentage (e.g., "50%" = centered horizontally) */
+	/** 列位置：绝对数字，或百分比（例如 "50%" 表示水平居中） */
 	col?: SizeValue;
 
 	// === Margin from terminal edges ===
+	// === 距终端边缘的外边距 ===
 	/** Margin from terminal edges. Number applies to all sides. */
+	/** 距终端边缘的外边距。若为数字则应用于四边。 */
 	margin?: OverlayMargin | number;
 
 	// === Visibility ===
+	// === 可见性 ===
 	/**
 	 * Control overlay visibility based on terminal dimensions.
+	 * 根据终端尺寸控制浮层（overlay）的可见性。
 	 * If provided, overlay is only rendered when this returns true.
+	 * 若提供该回调，则仅当其返回 true 时才渲染浮层。
 	 * Called each render cycle with current terminal dimensions.
+	 * 每个渲染周期都会以当前终端尺寸调用一次。
 	 */
 	visible?: (termWidth: number, termHeight: number) => boolean;
 	/** If true, don't capture keyboard focus when shown */
+	/** 若为 true，则显示时不抢占键盘焦点 */
 	nonCapturing?: boolean;
 }
 
 /** Options for {@link OverlayHandle.unfocus}. */
+/** {@link OverlayHandle.unfocus} 的选项。 */
 export interface OverlayUnfocusOptions {
 	/** Explicit target to focus after releasing this overlay. */
+	/** 释放本浮层焦点后要聚焦的显式目标。 */
 	target: Component | null;
 }
 
 /**
  * Handle returned by showOverlay for controlling the overlay
+ * 由 showOverlay 返回、用于控制该浮层（overlay）的句柄
  */
 export interface OverlayHandle {
 	/** Permanently remove the overlay (cannot be shown again) */
+	/** 永久移除该浮层（无法再次显示） */
 	hide(): void;
 	/** Temporarily hide or show the overlay */
+	/** 临时隐藏或显示该浮层 */
 	setHidden(hidden: boolean): void;
 	/** Check if overlay is temporarily hidden */
+	/** 检查浮层当前是否处于临时隐藏状态 */
 	isHidden(): boolean;
 	/** Focus this overlay and bring it to the visual front */
+	/** 聚焦该浮层并将其提到视觉最前层 */
 	focus(): void;
 	/** Release focus to the next visible capturing overlay or previous target, or to an explicit target when provided */
+	/** 将焦点释放给下一个可见的抢占式浮层或此前的目标；若提供了显式目标，则释放给该目标 */
 	unfocus(options?: OverlayUnfocusOptions): void;
 	/** Check if this overlay currently has focus */
+	/** 检查该浮层当前是否拥有焦点 */
 	isFocused(): boolean;
 }
 
@@ -207,6 +260,7 @@ type OverlayFocusRestorePolicy = "clear" | "preserve";
 
 /**
  * Container - a component that contains other components
+ * Container —— 一个可以包含其他组件的组件
  */
 export class Container implements Component {
 	children: Component[] = [];
@@ -246,10 +300,12 @@ export class Container implements Component {
 
 /**
  * TUI - Main class for managing terminal UI with differential rendering
+ * TUI —— 使用差分渲染（differential rendering）管理终端界面的主类
  */
 const SEGMENT_RESET = "\x1b[0m\x1b]8;;\x07";
 
 /** Composite overlay content into a terminal line at a fixed column. */
+/** 将浮层（overlay）内容合成到终端某一行的固定列位置上。 */
 export function compositeTuiLine(
 	baseLine: string,
 	overlayLine: string,
@@ -325,6 +381,7 @@ export abstract class TuiBase extends Container implements TUI {
 	private inputListeners = new Set<TuiInputListener>();
 
 	/** Global callback for debug key (Shift+Ctrl+D). Called before input is forwarded to focused component. */
+	/** 调试按键（Shift+Ctrl+D）的全局回调。在输入被转发给聚焦组件之前调用。 */
 	public onDebug?: () => void;
 	private renderRequested = false;
 	private renderTimer: NodeJS.Timeout | undefined;
@@ -341,6 +398,7 @@ export abstract class TuiBase extends Container implements TUI {
 	protected readonly logDirectory: string;
 
 	// Overlay stack for modal components rendered on top of base content
+	// 浮层（overlay）栈，用于渲染在基础内容之上的模态组件
 	private focusOrderCounter = 0;
 	private overlayStack: OverlayStackEntry[] = [];
 
@@ -393,8 +451,11 @@ export abstract class TuiBase extends Container implements TUI {
 
 	/**
 	 * Set whether to trigger full re-render when content shrinks.
+	 * 设置内容收缩时是否触发整屏重新渲染。
 	 * When true (default), empty rows are cleared when content shrinks.
+	 * 为 true 时（默认），内容收缩后会清除多余的空行。
 	 * When false, empty rows remain (reduces redraws on slower terminals).
+	 * 为 false 时，空行会保留（可减少较慢终端上的重绘次数）。
 	 */
 	setClearOnShrink(enabled: boolean): void {
 		this.clearOnShrink = enabled;
@@ -529,7 +590,9 @@ export abstract class TuiBase extends Container implements TUI {
 
 	/**
 	 * Show an overlay component with configurable positioning and sizing.
+	 * 显示一个浮层（overlay）组件，其定位与尺寸均可配置。
 	 * Returns a handle to control the overlay's visibility.
+	 * 返回一个用于控制该浮层可见性的句柄。
 	 */
 	showOverlay(component: Component, options?: OverlayOptions): OverlayHandle {
 		const entry: OverlayStackEntry = {
@@ -541,6 +604,7 @@ export abstract class TuiBase extends Container implements TUI {
 		};
 		this.overlayStack.push(entry);
 		// Only focus if overlay is actually visible
+		// 仅当浮层确实可见时才设置焦点
 		if (!options?.nonCapturing && this.isOverlayVisible(entry)) {
 			this.setFocus(component);
 		}
@@ -548,6 +612,7 @@ export abstract class TuiBase extends Container implements TUI {
 		this.requestRender();
 
 		// Return handle for controlling this overlay
+		// 返回用于控制该浮层的句柄
 		return {
 			hide: () => {
 				const index = this.overlayStack.indexOf(entry);
@@ -556,6 +621,7 @@ export abstract class TuiBase extends Container implements TUI {
 					this.retargetOverlayPreFocus(entry);
 					this.overlayStack.splice(index, 1);
 					// Restore focus if this overlay had focus
+					// 若该浮层此前拥有焦点，则恢复焦点
 					if (this.focusedComponent === component) {
 						const topVisible = this.getTopmostVisibleOverlay();
 						this.setFocus(topVisible?.component ?? entry.preFocus);
@@ -568,15 +634,18 @@ export abstract class TuiBase extends Container implements TUI {
 				if (entry.hidden === hidden) return;
 				entry.hidden = hidden;
 				// Update focus when hiding/showing
+				// 在隐藏/显示时更新焦点
 				if (hidden) {
 					this.clearOverlayFocusRestoreFor(entry);
 					// If this overlay had focus, move focus to next visible or preFocus
+					// 若该浮层此前拥有焦点，则将焦点移到下一个可见浮层或 preFocus
 					if (this.focusedComponent === component) {
 						const topVisible = this.getTopmostVisibleOverlay();
 						this.setFocus(topVisible?.component ?? entry.preFocus);
 					}
 				} else {
 					// Restore focus to this overlay when showing (if it's actually visible)
+					// 显示时把焦点恢复到该浮层（前提是它确实可见）
 					if (!options?.nonCapturing && this.isOverlayVisible(entry)) {
 						entry.focusOrder = ++this.focusOrderCounter;
 						this.setFocus(component);
@@ -627,6 +696,7 @@ export abstract class TuiBase extends Container implements TUI {
 	}
 
 	/** Hide the topmost overlay and restore previous focus. */
+	/** 隐藏最顶层的浮层（overlay）并恢复此前的焦点。 */
 	hideOverlay(): void {
 		const overlay = this.overlayStack[this.overlayStack.length - 1];
 		if (!overlay) return;
@@ -635,6 +705,7 @@ export abstract class TuiBase extends Container implements TUI {
 		this.overlayStack.pop();
 		if (this.focusedComponent === overlay.component) {
 			// Find topmost visible overlay, or fall back to preFocus
+			// 查找最顶层的可见浮层，否则回退到 preFocus
 			const topVisible = this.getTopmostVisibleOverlay();
 			this.setFocus(topVisible?.component ?? overlay.preFocus);
 		}
@@ -643,11 +714,13 @@ export abstract class TuiBase extends Container implements TUI {
 	}
 
 	/** Check if there are any visible overlays */
+	/** 检查是否存在任何可见的浮层（overlay） */
 	hasOverlay(): boolean {
 		return this.overlayStack.some((o) => this.isOverlayVisible(o));
 	}
 
 	/** Check if an overlay entry is currently visible */
+	/** 检查某个浮层（overlay）条目当前是否可见 */
 	private isOverlayVisible(entry: OverlayStackEntry): boolean {
 		if (entry.hidden) return false;
 		if (entry.options?.visible) {
@@ -657,6 +730,7 @@ export abstract class TuiBase extends Container implements TUI {
 	}
 
 	/** Find the visual-frontmost visible capturing overlay, if any */
+	/** 查找视觉上位于最前的、可见且会抢占焦点的浮层（若存在） */
 	private getTopmostVisibleOverlay(): OverlayStackEntry | undefined {
 		let topmost: OverlayStackEntry | undefined;
 		for (const overlay of this.overlayStack) {
@@ -719,11 +793,14 @@ export abstract class TuiBase extends Container implements TUI {
 
 	private queryCellSize(): void {
 		// Only query if terminal supports images (cell size is only used for image rendering)
+		// 仅在终端支持图像时才查询（单元格尺寸只用于图像渲染）
 		if (!getCapabilities().images) {
 			return;
 		}
 		// Query terminal for cell size in pixels: CSI 16 t
+		// 向终端查询以像素为单位的单元格尺寸：CSI 16 t
 		// Response format: CSI 6 ; height ; width t
+		// 响应格式：CSI 6 ; height ; width t
 		this.terminal.write("\x1b[16t");
 	}
 
@@ -811,21 +888,26 @@ export abstract class TuiBase extends Container implements TUI {
 		}
 
 		// Consume terminal cell size responses without blocking unrelated input.
+		// 消费终端单元格尺寸响应，同时不阻塞无关输入。
 		if (this.consumeCellSizeResponse(data)) {
 			return;
 		}
 
 		// Global debug key handler (Shift+Ctrl+D)
+		// 全局调试按键处理器（Shift+Ctrl+D）
 		if (matchesKey(data, "shift+ctrl+d") && this.onDebug) {
 			this.onDebug();
 			return;
 		}
 
 		// If focused component is an overlay, verify it's still visible
+		// 若聚焦组件是一个浮层（overlay），需确认它当前仍然可见
 		// (visibility can change due to terminal resize or visible() callback)
+		// （可见性可能因终端尺寸变化或 visible() 回调而改变）
 		const focusedOverlay = this.overlayStack.find((o) => o.component === this.focusedComponent);
 		if (focusedOverlay && !this.isOverlayVisible(focusedOverlay)) {
 			// Focused overlay is no longer visible, redirect to topmost visible overlay
+			// 聚焦的浮层已不可见，改为重定向到最顶层的可见浮层
 			const topVisible = this.getTopmostVisibleOverlay();
 			if (topVisible) {
 				this.setFocus(topVisible.component);
@@ -850,9 +932,12 @@ export abstract class TuiBase extends Container implements TUI {
 		}
 
 		// Pass input to focused component (including Ctrl+C)
+		// 将输入传递给聚焦组件（包括 Ctrl+C）
 		// The focused component can decide how to handle Ctrl+C
+		// 由聚焦组件自行决定如何处理 Ctrl+C
 		if (this.focusedComponent?.handleInput) {
 			// Filter out key release events unless component opts in
+			// 过滤掉按键释放（key release）事件，除非组件显式声明需要
 			if (isKeyRelease(data) && !this.focusedComponent.wantsKeyRelease) {
 				return;
 			}
@@ -899,6 +984,7 @@ export abstract class TuiBase extends Container implements TUI {
 
 	private consumeCellSizeResponse(data: string): boolean {
 		// Response format: ESC [ 6 ; height ; width t
+		// 响应格式：ESC [ 6 ; height ; width t
 		const match = data.match(/^\x1b\[6;(\d+);(\d+)t$/);
 		if (!match) {
 			return false;
@@ -912,6 +998,7 @@ export abstract class TuiBase extends Container implements TUI {
 
 		setCellDimensions({ widthPx, heightPx });
 		// Invalidate all components so images re-render with correct dimensions.
+		// 使所有组件失效，以便图像按正确尺寸重新渲染。
 		this.invalidate();
 		this.requestRender();
 		return true;
@@ -919,7 +1006,9 @@ export abstract class TuiBase extends Container implements TUI {
 
 	/**
 	 * Resolve overlay layout from options.
+	 * 根据选项解析出浮层（overlay）的布局。
 	 * Returns { width, row, col, maxHeight } for rendering.
+	 * 返回用于渲染的 { width, row, col, maxHeight }。
 	 */
 	private resolveOverlayLayout(
 		options: OverlayOptions | undefined,
@@ -930,6 +1019,7 @@ export abstract class TuiBase extends Container implements TUI {
 		const opt = options ?? {};
 
 		// Parse margin (clamp to non-negative)
+		// 解析外边距（钳制为非负值）
 		const margin =
 			typeof opt.margin === "number"
 				? { top: opt.margin, right: opt.margin, bottom: opt.margin, left: opt.margin }
@@ -940,35 +1030,44 @@ export abstract class TuiBase extends Container implements TUI {
 		const marginLeft = Math.max(0, margin.left ?? 0);
 
 		// Available space after margins
+		// 扣除外边距后的可用空间
 		const availWidth = Math.max(1, termWidth - marginLeft - marginRight);
 		const availHeight = Math.max(1, termHeight - marginTop - marginBottom);
 
 		// === Resolve width ===
+		// === 解析宽度 ===
 		let width = parseSizeValue(opt.width, termWidth) ?? Math.min(80, availWidth);
 		// Apply minWidth
+		// 应用 minWidth
 		if (opt.minWidth !== undefined) {
 			width = Math.max(width, opt.minWidth);
 		}
 		// Clamp to available space
+		// 钳制到可用空间范围内
 		width = Math.max(1, Math.min(width, availWidth));
 
 		// === Resolve maxHeight ===
+		// === 解析 maxHeight ===
 		let maxHeight = parseSizeValue(opt.maxHeight, termHeight);
 		// Clamp to available space
+		// 钳制到可用空间范围内
 		if (maxHeight !== undefined) {
 			maxHeight = Math.max(1, Math.min(maxHeight, availHeight));
 		}
 
 		// Effective overlay height (may be clamped by maxHeight)
+		// 浮层的有效高度（可能被 maxHeight 钳制）
 		const effectiveHeight = maxHeight !== undefined ? Math.min(overlayHeight, maxHeight) : overlayHeight;
 
 		// === Resolve position ===
+		// === 解析位置 ===
 		let row: number;
 		let col: number;
 
 		if (opt.row !== undefined) {
 			if (typeof opt.row === "string") {
 				// Percentage: 0% = top, 100% = bottom (overlay stays within bounds)
+				// 百分比：0% = 顶部，100% = 底部（浮层始终保持在边界内）
 				const match = opt.row.match(/^(\d+(?:\.\d+)?)%$/);
 				if (match) {
 					const maxRow = Math.max(0, availHeight - effectiveHeight);
@@ -976,14 +1075,17 @@ export abstract class TuiBase extends Container implements TUI {
 					row = marginTop + Math.floor(maxRow * percent);
 				} else {
 					// Invalid format, fall back to center
+					// 格式无效，回退为居中
 					row = this.resolveAnchorRow("center", effectiveHeight, availHeight, marginTop);
 				}
 			} else {
 				// Absolute row position
+				// 绝对行位置
 				row = opt.row;
 			}
 		} else {
 			// Anchor-based (default: center)
+			// 基于锚点（默认：居中）
 			const anchor = opt.anchor ?? "center";
 			row = this.resolveAnchorRow(anchor, effectiveHeight, availHeight, marginTop);
 		}
@@ -991,6 +1093,7 @@ export abstract class TuiBase extends Container implements TUI {
 		if (opt.col !== undefined) {
 			if (typeof opt.col === "string") {
 				// Percentage: 0% = left, 100% = right (overlay stays within bounds)
+				// 百分比：0% = 左侧，100% = 右侧（浮层始终保持在边界内）
 				const match = opt.col.match(/^(\d+(?:\.\d+)?)%$/);
 				if (match) {
 					const maxCol = Math.max(0, availWidth - width);
@@ -998,23 +1101,28 @@ export abstract class TuiBase extends Container implements TUI {
 					col = marginLeft + Math.floor(maxCol * percent);
 				} else {
 					// Invalid format, fall back to center
+					// 格式无效，回退为居中
 					col = this.resolveAnchorCol("center", width, availWidth, marginLeft);
 				}
 			} else {
 				// Absolute column position
+				// 绝对列位置
 				col = opt.col;
 			}
 		} else {
 			// Anchor-based (default: center)
+			// 基于锚点（默认：居中）
 			const anchor = opt.anchor ?? "center";
 			col = this.resolveAnchorCol(anchor, width, availWidth, marginLeft);
 		}
 
 		// Apply offsets
+		// 应用偏移量
 		if (opt.offsetY !== undefined) row += opt.offsetY;
 		if (opt.offsetX !== undefined) col += opt.offsetX;
 
 		// Clamp to terminal bounds (respecting margins)
+		// 钳制到终端边界内（同时遵循外边距）
 		row = Math.max(marginTop, Math.min(row, termHeight - marginBottom - effectiveHeight));
 		col = Math.max(marginLeft, Math.min(col, termWidth - marginRight - width));
 
@@ -1056,11 +1164,13 @@ export abstract class TuiBase extends Container implements TUI {
 	}
 
 	/** Composite all overlays into content lines (sorted by focusOrder, higher = on top). */
+	/** 将所有浮层（overlay）合成到内容行中（按 focusOrder 排序，值越大越靠上层）。 */
 	protected compositeOverlays(lines: string[], termWidth: number, termHeight: number): string[] {
 		if (this.overlayStack.length === 0) return lines;
 		const result = [...lines];
 
 		// Pre-render all visible overlays and calculate positions
+		// 预渲染所有可见浮层并计算其位置
 		const rendered: { overlayLines: string[]; row: number; col: number; w: number }[] = [];
 		let minLinesNeeded = result.length;
 
@@ -1070,18 +1180,23 @@ export abstract class TuiBase extends Container implements TUI {
 			const { component, options } = entry;
 
 			// Get layout with height=0 first to determine width and maxHeight
+			// 先以 height=0 求一次布局，以确定 width 与 maxHeight
 			// (width and maxHeight don't depend on overlay height)
+			// （width 与 maxHeight 并不依赖浮层高度）
 			const { width, maxHeight } = this.resolveOverlayLayout(options, 0, termWidth, termHeight);
 
 			// Render component at calculated width
+			// 按计算出的宽度渲染组件
 			let overlayLines = component.render(width);
 
 			// Apply maxHeight if specified
+			// 若指定了 maxHeight 则应用之
 			if (maxHeight !== undefined && overlayLines.length > maxHeight) {
 				overlayLines = overlayLines.slice(0, maxHeight);
 			}
 
 			// Get final row/col with actual overlay height
+			// 用实际的浮层高度求出最终的 row/col
 			const { row, col } = this.resolveOverlayLayout(options, overlayLines.length, termWidth, termHeight);
 
 			rendered.push({ overlayLines, row, col, w: width });
@@ -1089,11 +1204,15 @@ export abstract class TuiBase extends Container implements TUI {
 		}
 
 		// Pad to at least terminal height so overlays have screen-relative positions.
+		// 至少填充到终端高度，使浮层拥有相对屏幕的定位基准。
 		// Excludes maxLinesRendered: the historical high-water mark caused self-reinforcing
 		// inflation that pushed content into scrollback on terminal widen.
+		// 此处不采用 maxLinesRendered：该历史最高水位值会造成自我强化式的膨胀，
+		// 在终端变宽时会把内容挤入回滚缓冲区（scrollback）。
 		const workingHeight = Math.max(result.length, termHeight, minLinesNeeded);
 
 		// Extend result with empty lines if content is too short for overlay placement or working area
+		// 若内容不足以容纳浮层位置或工作区域，则用空行扩展 result
 		while (result.length < workingHeight) {
 			result.push("");
 		}
@@ -1101,12 +1220,15 @@ export abstract class TuiBase extends Container implements TUI {
 		const viewportStart = Math.max(0, workingHeight - termHeight);
 
 		// Composite each overlay
+		// 逐个合成每个浮层
 		for (const { overlayLines, row, col, w } of rendered) {
 			for (let i = 0; i < overlayLines.length; i++) {
 				const idx = viewportStart + row + i;
 				if (idx >= 0 && idx < result.length) {
 					// Defensive: truncate overlay line to declared width before compositing
+					// 防御性处理：合成前先将浮层行截断到声明的宽度
 					// (components should already respect width, but this ensures it)
+					// （组件本应已遵守宽度限制，此处只是再做一层保证）
 					const truncatedOverlayLine =
 						visibleWidth(overlayLines[i]) > w ? sliceByColumn(overlayLines[i], 0, w, true) : overlayLines[i];
 					result[idx] = this.compositeLineAt(result[idx], truncatedOverlayLine, col, w, termWidth);
@@ -1140,24 +1262,33 @@ export abstract class TuiBase extends Container implements TUI {
 
 	/**
 	 * Find and extract cursor position from rendered lines.
+	 * 从已渲染的行中查找并提取光标位置。
 	 * Searches for CURSOR_MARKER, calculates its position, and strips it from the output.
+	 * 搜索 CURSOR_MARKER，计算其位置，并将其从输出中剥离。
 	 * Only scans the bottom terminal height lines (visible viewport).
+	 * 只扫描底部与终端高度等长的那些行（即可见视口）。
 	 * @param lines - Rendered lines to search
+	 *                待搜索的已渲染行
 	 * @param height - Terminal height (visible viewport size)
+	 *                 终端高度（可见视口大小）
 	 * @returns Cursor position { row, col } or null if no marker found
+	 *          光标位置 { row, col }；若未找到标记则返回 null
 	 */
 	protected extractCursorPosition(lines: string[], height: number): { row: number; col: number } | null {
 		// Only scan the bottom `height` lines (visible viewport)
+		// 只扫描底部的 `height` 行（可见视口）
 		const viewportTop = Math.max(0, lines.length - height);
 		for (let row = lines.length - 1; row >= viewportTop; row--) {
 			const line = lines[row];
 			const markerIndex = line.indexOf(CURSOR_MARKER);
 			if (markerIndex !== -1) {
 				// Calculate visual column (width of text before marker)
+				// 计算视觉列号（标记之前文本的显示宽度）
 				const beforeMarker = line.slice(0, markerIndex);
 				const col = visibleWidth(beforeMarker);
 
 				// Strip marker from the line
+				// 从该行中剥离标记
 				lines[row] = line.slice(0, markerIndex) + line.slice(markerIndex + CURSOR_MARKER.length);
 
 				return { row, col };
@@ -1168,8 +1299,11 @@ export abstract class TuiBase extends Container implements TUI {
 
 	/**
 	 * Query the terminal's default background color with OSC 11 (`ESC ] 11 ; ? BEL`).
+	 * 使用 OSC 11（`ESC ] 11 ; ? BEL`）查询终端的默认背景色。
 	 * @param timeoutMs Query timeout in milliseconds.
+	 *                  查询超时时间（毫秒）。
 	 * @returns Promise containing the parsed RGB color, or undefined if it times out or fails to parse.
+	 *          返回包含已解析 RGB 颜色的 Promise；若超时或解析失败则为 undefined。
 	 */
 	queryTerminalBackgroundColor({ timeoutMs }: { timeoutMs: number }): Promise<RgbColor | undefined> {
 		return new Promise((resolve) => {
@@ -1196,8 +1330,10 @@ export abstract class TuiBase extends Container implements TUI {
 
 	/**
 	 * Query the terminal's color-scheme preference with DSR (`CSI ? 996 n`).
+	 * 使用 DSR（`CSI ? 996 n`）查询终端的配色方案（color scheme）偏好。
 	 * Terminals that support the color palette notification protocol reply with
 	 * `CSI ? 997 ; 1 n` for dark or `CSI ? 997 ; 2 n` for light.
+	 * 支持调色板通知协议的终端会回复 `CSI ? 997 ; 1 n` 表示深色，或 `CSI ? 997 ; 2 n` 表示浅色。
 	 */
 	queryTerminalColorScheme({ timeoutMs }: { timeoutMs: number }): Promise<TerminalColorScheme | undefined> {
 		return new Promise((resolve) => {

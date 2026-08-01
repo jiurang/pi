@@ -1,6 +1,7 @@
 import { createModelRegistry, getModelRuntime } from "./model-runtime-test-utils.ts";
 /**
  * Tests for AgentSession concurrent prompt guard.
+ * 针对 AgentSession 并发提示词(prompt)保护机制的测试。
  */
 
 import { existsSync, mkdirSync, rmSync } from "node:fs";
@@ -25,6 +26,7 @@ import type { BuildSystemPromptOptions } from "../src/core/system-prompt.ts";
 import { createTestExtensionsResult, createTestResourceLoader } from "./utilities.ts";
 
 // Mock stream that mimics AssistantMessageEventStream
+// 模拟 AssistantMessageEventStream 行为的 mock 流
 class MockAssistantStream extends EventStream<AssistantMessageEvent, AssistantMessage> {
 	constructor() {
 		super(
@@ -83,6 +85,7 @@ describe("AgentSession concurrent prompt guard", () => {
 		let abortSignal: AbortSignal | undefined;
 
 		// Use a stream function that responds to abort
+		// 使用一个能够响应中止(abort)的流函数
 		const agent = new Agent({
 			getApiKey: () => "test-key",
 			initialState: {
@@ -113,6 +116,7 @@ describe("AgentSession concurrent prompt guard", () => {
 		const authStorage = AuthStorage.create(join(tempDir, "auth.json"));
 		const modelRegistry = await createModelRegistry(authStorage, tempDir);
 		// Set a runtime API key so validation passes
+		// 设置一个运行时 API key，以便通过校验
 		await authStorage.modify("anthropic", async () => ({ type: "api_key", key: "test-key" }));
 
 		session = new AgentSession({
@@ -131,36 +135,44 @@ describe("AgentSession concurrent prompt guard", () => {
 		await createSession();
 
 		// Start first prompt (don't await, it will block until abort)
+		// 启动第一个提示词(不要 await，它会一直阻塞直到中止)
 		const firstPrompt = session.prompt("First message");
 
 		// Wait a tick for isStreaming to be set
+		// 等待一个时间片，让 isStreaming 被置位
 		await new Promise((resolve) => setTimeout(resolve, 10));
 
 		// Verify we're streaming
+		// 验证当前处于流式输出状态
 		expect(session.isStreaming).toBe(true);
 
 		// Second prompt should reject
+		// 第二个提示词应当被拒绝
 		await expect(session.prompt("Second message")).rejects.toThrow(
 			"Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message.",
 		);
 
 		// Cleanup
+		// 清理
 		await session.abort();
-		await firstPrompt.catch(() => {}); // Ignore abort error
+		await firstPrompt.catch(() => {}); // Ignore abort error 忽略中止错误
 	});
 
 	it("should allow steer() while streaming", async () => {
 		await createSession();
 
 		// Start first prompt
+		// 启动第一个提示词
 		const firstPrompt = session.prompt("First message");
 		await new Promise((resolve) => setTimeout(resolve, 10));
 
 		// steer should work while streaming
+		// 在流式输出期间 steer 应当可以正常工作
 		expect(() => session.steer("Steering message")).not.toThrow();
 		expect(session.pendingMessageCount).toBe(1);
 
 		// Cleanup
+		// 清理
 		await session.abort();
 		await firstPrompt.catch(() => {});
 	});
@@ -169,14 +181,17 @@ describe("AgentSession concurrent prompt guard", () => {
 		await createSession();
 
 		// Start first prompt
+		// 启动第一个提示词
 		const firstPrompt = session.prompt("First message");
 		await new Promise((resolve) => setTimeout(resolve, 10));
 
 		// followUp should work while streaming
+		// 在流式输出期间 followUp 应当可以正常工作
 		expect(() => session.followUp("Follow-up message")).not.toThrow();
 		expect(session.pendingMessageCount).toBe(1);
 
 		// Cleanup
+		// 清理
 		await session.abort();
 		await firstPrompt.catch(() => {});
 	});
@@ -293,6 +308,7 @@ describe("AgentSession concurrent prompt guard", () => {
 
 	it("should allow prompt() after previous completes", async () => {
 		// Create session with a stream that completes immediately
+		// 使用一个会立即完成的流来创建会话
 		const model = getModel("anthropic", "claude-sonnet-4-5")!;
 		const agent = new Agent({
 			getApiKey: () => "test-key",
@@ -327,12 +343,15 @@ describe("AgentSession concurrent prompt guard", () => {
 		});
 
 		// First prompt completes
+		// 第一个提示词执行完成
 		await session.prompt("First message");
 
 		// Should not be streaming anymore
+		// 此时应当不再处于流式输出状态
 		expect(session.isStreaming).toBe(false);
 
 		// Second prompt should work
+		// 第二个提示词应当可以正常执行
 		await expect(session.prompt("Second message")).resolves.not.toThrow();
 	});
 

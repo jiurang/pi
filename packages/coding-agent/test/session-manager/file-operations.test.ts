@@ -190,6 +190,7 @@ describe("findMostRecentSession", () => {
 
 		writeFileSync(file1, '{"type":"session","id":"old","timestamp":"2025-01-01T00:00:00Z","cwd":"/tmp"}\n');
 		// Small delay to ensure different mtime
+		// 短暂延迟，确保两个文件的 mtime 不同
 		await new Promise((r) => setTimeout(r, 10));
 		writeFileSync(file2, '{"type":"session","id":"new","timestamp":"2025-01-01T00:00:00Z","cwd":"/tmp"}\n');
 
@@ -316,11 +317,13 @@ describe("SessionManager.setSessionFile with corrupted files", () => {
 		const sm = SessionManager.open(emptyFile, tempDir);
 
 		// Should have created a new session with valid header
+		// 应当已创建一个带有合法头部（header）的新会话
 		expect(sm.getSessionId()).toBeTruthy();
 		expect(sm.getHeader()).toBeTruthy();
 		expect(sm.getHeader()?.type).toBe("session");
 
 		// File should now contain a valid header
+		// 此时文件应当包含一个合法的头部
 		const content = readFileSync(emptyFile, "utf-8");
 		const lines = content.trim().split("\n").filter(Boolean);
 		expect(lines.length).toBe(1);
@@ -359,6 +362,7 @@ describe("SessionManager.setSessionFile with corrupted files", () => {
 		const sm = SessionManager.open(explicitPath, tempDir);
 
 		// The session file path should be preserved
+		// 会话文件路径应当被保留
 		expect(sm.getSessionFile()).toBe(explicitPath);
 	});
 

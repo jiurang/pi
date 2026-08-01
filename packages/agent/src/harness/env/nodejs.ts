@@ -58,6 +58,7 @@ function resolvePath(cwd: string, path: string): string {
 			normalized = fileURLToPath(normalized);
 		} catch {
 			// Keep malformed URLs as ordinary paths so filesystem methods preserve their non-throwing contract.
+			// 将格式错误的 URL 当作普通路径保留，以便文件系统方法维持其不抛异常的约定。
 		}
 	}
 	return isAbsolute(normalized) ? resolve(normalized) : resolve(cwd, normalized);
@@ -257,6 +258,7 @@ function killProcessTree(pid: number): void {
 			});
 		} catch {
 			// Ignore errors.
+			// 忽略错误。
 		}
 		return;
 	}
@@ -268,6 +270,7 @@ function killProcessTree(pid: number): void {
 			process.kill(pid, "SIGKILL");
 		} catch {
 			// Process already dead.
+			// 进程已经结束。
 		}
 	}
 }

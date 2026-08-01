@@ -26,7 +26,10 @@ interface AppPromptTemplate extends PromptTemplate {
 	source: "project" | "user";
 }
 
-/** Shared collection; each faux provider gets a unique id so coexisting fakes route correctly. */
+/**
+ * Shared collection; each faux provider gets a unique id so coexisting fakes route correctly.
+ * 共享的模型集合；每个伪造的 provider 都会获得唯一 id，从而让并存的假实现能正确路由。
+ */
 const models = createModels();
 let fauxCount = 0;
 

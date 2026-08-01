@@ -5,17 +5,17 @@ import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "../utils.ts";
 import { Input } from "./input.ts";
 
 export interface SettingItem {
-	/** Unique identifier for this setting */
+	/** Unique identifier for this setting 该设置项的唯一标识符 */
 	id: string;
-	/** Display label (left side) */
+	/** Display label (left side) 显示用的标签（左侧） */
 	label: string;
-	/** Optional description shown when selected */
+	/** Optional description shown when selected 选中时显示的可选描述 */
 	description?: string;
-	/** Current value to display (right side) */
+	/** Current value to display (right side) 要显示的当前值（右侧） */
 	currentValue: string;
-	/** If provided, Enter/Space cycles through these values */
+	/** If provided, Enter/Space cycles through these values 若提供，则按 Enter/空格 在这些值之间循环切换 */
 	values?: string[];
-	/** If provided, Enter opens this submenu. Receives current value and done callback. */
+	/** If provided, Enter opens this submenu. Receives current value and done callback. 若提供，则按 Enter 打开该子菜单。它接收当前值和 done 回调。 */
 	submenu?: (currentValue: string, done: (selectedValue?: string) => void) => Component;
 }
 
@@ -43,6 +43,7 @@ export class SettingsList implements Component {
 	private searchEnabled: boolean;
 
 	// Submenu state
+	// 子菜单状态
 	private submenuComponent: Component | null = null;
 	private submenuItemIndex: number | null = null;
 
@@ -66,7 +67,7 @@ export class SettingsList implements Component {
 		}
 	}
 
-	/** Update an item's currentValue */
+	/** Update an item's currentValue 更新某个条目的 currentValue */
 	updateValue(id: string, newValue: string): void {
 		const item = this.items.find((i) => i.id === id);
 		if (item) {
@@ -80,6 +81,7 @@ export class SettingsList implements Component {
 
 	render(width: number): string[] {
 		// If submenu is active, render it instead
+		// 如果子菜单处于激活状态，则改为渲染子菜单
 		if (this.submenuComponent) {
 			return this.submenuComponent.render(width);
 		}
@@ -111,6 +113,7 @@ export class SettingsList implements Component {
 		}
 
 		// Calculate visible range with scrolling
+		// 结合滚动计算可见范围
 		const startIndex = Math.max(
 			0,
 			Math.min(this.selectedIndex - Math.floor(this.maxVisible / 2), displayItems.length - this.maxVisible),
@@ -118,9 +121,11 @@ export class SettingsList implements Component {
 		const endIndex = Math.min(startIndex + this.maxVisible, displayItems.length);
 
 		// Calculate max label width for alignment
+		// 计算最大标签宽度以便对齐
 		const maxLabelWidth = Math.min(30, Math.max(...this.items.map((item) => visibleWidth(item.label))));
 
 		// Render visible items
+		// 渲染可见条目
 		for (let i = startIndex; i < endIndex; i++) {
 			const item = displayItems[i];
 			if (!item) continue;
@@ -130,10 +135,12 @@ export class SettingsList implements Component {
 			const prefixWidth = visibleWidth(prefix);
 
 			// Pad label to align values
+			// 填充标签以对齐各个值
 			const labelPadded = item.label + " ".repeat(Math.max(0, maxLabelWidth - visibleWidth(item.label)));
 			const labelText = this.theme.label(labelPadded, isSelected);
 
 			// Calculate space for value
+			// 计算留给值的空间
 			const separator = "  ";
 			const usedWidth = prefixWidth + maxLabelWidth + visibleWidth(separator);
 			const valueMaxWidth = width - usedWidth - 2;
@@ -144,12 +151,14 @@ export class SettingsList implements Component {
 		}
 
 		// Add scroll indicator if needed
+		// 必要时添加滚动指示器
 		if (startIndex > 0 || endIndex < displayItems.length) {
 			const scrollText = `  (${this.selectedIndex + 1}/${displayItems.length})`;
 			lines.push(this.theme.hint(truncateToWidth(scrollText, width - 2, "")));
 		}
 
 		// Add description for selected item
+		// 为选中的条目添加描述
 		const selectedItem = displayItems[this.selectedIndex];
 		if (selectedItem?.description) {
 			lines.push("");
@@ -160,6 +169,7 @@ export class SettingsList implements Component {
 		}
 
 		// Add hint
+		// 添加提示信息
 		this.addHintLine(lines, width);
 
 		return lines;
@@ -167,13 +177,16 @@ export class SettingsList implements Component {
 
 	handleInput(data: string): void {
 		// If submenu is active, delegate all input to it
+		// 如果子菜单处于激活状态，则把所有输入都委托给它
 		// The submenu's onCancel (triggered by escape) will call done() which closes it
+		// 子菜单的 onCancel（由 Esc 触发）会调用 done()，从而关闭子菜单
 		if (this.submenuComponent) {
 			this.submenuComponent.handleInput?.(data);
 			return;
 		}
 
 		// Main list input handling
+		// 主列表的输入处理
 		const kb = getKeybindings();
 		const displayItems = this.searchEnabled ? this.filteredItems : this.items;
 		if (kb.matches(data, "tui.select.up")) {
@@ -202,6 +215,7 @@ export class SettingsList implements Component {
 
 		if (item.submenu) {
 			// Open submenu, passing current value so it can pre-select correctly
+			// 打开子菜单，并传入当前值以便它能正确地预先选中
 			this.submenuItemIndex = this.selectedIndex;
 			this.submenuComponent = item.submenu(item.currentValue, (selectedValue?: string) => {
 				if (selectedValue !== undefined) {
@@ -212,6 +226,7 @@ export class SettingsList implements Component {
 			});
 		} else if (item.values && item.values.length > 0) {
 			// Cycle through values
+			// 在各个值之间循环切换
 			const currentIndex = item.values.indexOf(item.currentValue);
 			const nextIndex = (currentIndex + 1) % item.values.length;
 			const newValue = item.values[nextIndex];
@@ -223,6 +238,7 @@ export class SettingsList implements Component {
 	private closeSubmenu(): void {
 		this.submenuComponent = null;
 		// Restore selection to the item that opened the submenu
+		// 将选中项恢复为打开该子菜单的那个条目
 		if (this.submenuItemIndex !== null) {
 			this.selectedIndex = this.submenuItemIndex;
 			this.submenuItemIndex = null;

@@ -1,14 +1,21 @@
 /**
  * OpenRouter OAuth PKCE flow.
+ * OpenRouter OAuth PKCE 流程。
  *
  * OpenRouter exchanges an authorization code for a permanent, user-controlled
  * API key rather than an expiring access/refresh token pair. The callback is
  * handled by a one-shot loopback server on an ephemeral port, raced against a
  * manual prompt so remote/headless sessions can paste the redirect URL when
  * the browser cannot reach the loopback server.
+ * OpenRouter 使用授权码（authorization code）换取的是一个永久、由用户掌控的
+ * API key，而非会过期的 access/refresh token 组合。回调由监听临时端口的一次性
+ * 回环（loopback）服务器处理，并与手动输入提示相互竞争（race），以便在浏览器
+ * 无法访问该回环服务器时，远程/无头（headless）会话可以直接粘贴重定向 URL。
  *
  * NOTE: This module uses Node.js http.createServer for the OAuth callback server.
+ * 注意：本模块使用 Node.js 的 http.createServer 作为 OAuth 回调服务器。
  * It is only intended for CLI use, not browser environments.
+ * 它仅适用于 CLI 场景，不适用于浏览器环境。
  */
 
 import { createServer, type Server, type ServerResponse } from "node:http";
@@ -30,14 +37,23 @@ type JsonObject = Record<string, unknown>;
 
 type OpenRouterCallbackServer = {
 	callbackUrl: string;
-	/** Stop listening and release timers without settling `waitForCredential`. */
+	/**
+	 * Stop listening and release timers without settling `waitForCredential`.
+	 * 停止监听并释放定时器，但不会让 `waitForCredential` 落定（settle）。
+	 */
 	close: () => void;
-	/** Hand the login over to manual code entry unless a callback already claimed the exchange. */
+	/**
+	 * Hand the login over to manual code entry unless a callback already claimed the exchange.
+	 * 将登录流程移交给手动输入授权码，除非已有回调认领（claim）了该次换取操作。
+	 */
 	cancelWait: () => void;
 	/**
 	 * Resolves with the credential once a browser callback completes the key
 	 * exchange, or with null once `cancelWait` hands the login over to manual
 	 * code entry. Rejects on timeout, cancellation, or a failed exchange.
+	 * 当浏览器回调完成 key 换取后，以该凭据（credential）resolve；当 `cancelWait`
+	 * 将登录移交给手动输入授权码时，则以 null resolve。若超时、被取消或换取失败，
+	 * 则 reject。
 	 */
 	waitForCredential: () => Promise<OAuthCredential | null>;
 };
@@ -57,6 +73,7 @@ function parseAuthorizationInput(input: string): string | undefined {
 		return new URL(value).searchParams.get("code") ?? undefined;
 	} catch {
 		// not a URL
+		// 不是一个 URL
 	}
 
 	if (value.includes("code=")) {
@@ -232,6 +249,7 @@ async function startCallbackServer(
 		callbackUrl: `http://${callbackHost}:${address.port}${callbackPath}`,
 		close,
 		// A claimed callback is already exchanging its code; let that exchange settle the login.
+		// 已被认领（claimed）的回调正在换取其授权码；交由该换取过程来决定登录结果。
 		cancelWait: () => {
 			if (!claimed) finish({ credential: null });
 		},

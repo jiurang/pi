@@ -6,12 +6,15 @@ describe("SessionManager.saveCustomEntry", () => {
 		const session = SessionManager.inMemory();
 
 		// Save a message
+		// 保存一条消息
 		const msgId = session.appendMessage({ role: "user", content: "hello", timestamp: 1 });
 
 		// Save a custom entry
+		// 保存一条自定义条目(custom entry)
 		const customId = session.appendCustomEntry("my_data", { foo: "bar" });
 
 		// Save another message
+		// 再保存一条消息
 		const msg2Id = session.appendMessage({
 			role: "assistant",
 			content: [{ type: "text", text: "hi" }],
@@ -31,6 +34,7 @@ describe("SessionManager.saveCustomEntry", () => {
 		});
 
 		// Custom entry should be in entries
+		// 自定义条目应当出现在 entries 中
 		const entries = session.getEntries();
 		expect(entries).toHaveLength(3);
 
@@ -42,6 +46,7 @@ describe("SessionManager.saveCustomEntry", () => {
 		expect(customEntry.parentId).toBe(msgId);
 
 		// Tree structure should be correct
+		// 树形结构应当正确
 		const path = session.getBranch();
 		expect(path).toHaveLength(3);
 		expect(path[0].id).toBe(msgId);
@@ -49,7 +54,8 @@ describe("SessionManager.saveCustomEntry", () => {
 		expect(path[2].id).toBe(msg2Id);
 
 		// buildSessionContext should work (custom entries skipped in messages)
+		// buildSessionContext 应能正常工作（消息中会跳过自定义条目）
 		const ctx = session.buildSessionContext();
-		expect(ctx.messages).toHaveLength(2); // only message entries
+		expect(ctx.messages).toHaveLength(2); // only message entries 仅包含消息类条目
 	});
 });

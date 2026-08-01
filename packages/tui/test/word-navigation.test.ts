@@ -28,6 +28,7 @@ describe("findWordBackward", () => {
 		assert.strictEqual(findWordBackward(text, 12), 8);
 		assert.strictEqual(findWordBackward(text, 8), 7);
 		// "/to" is one word-like segment with "/" as punctuation boundary
+		// "/to" 属于一个类词（word-like）片段，其中 "/" 作为标点边界
 		assert.strictEqual(findWordBackward(text, 7), 5);
 		assert.strictEqual(findWordBackward(text, 5), 4);
 		assert.strictEqual(findWordBackward(text, 4), 0);
@@ -37,6 +38,7 @@ describe("findWordBackward", () => {
 		const text = "你好世界 test";
 		assert.strictEqual(findWordBackward(text, text.length), 5);
 		// Intl.Segmenter treats each CJK char as a separate word-like segment
+		// Intl.Segmenter 会把每个 CJK 字符视为一个独立的类词（word-like）片段
 		assert.strictEqual(findWordBackward(text, 5), 2);
 		assert.strictEqual(findWordBackward(text, 2), 0);
 	});
@@ -95,6 +97,7 @@ describe("findWordForward", () => {
 		assert.ok(firstEnd > 0);
 		assert.ok(firstEnd <= 4);
 		// Walk to end
+		// 逐步遍历至末尾
 		let pos = 0;
 		while (pos < text.length) {
 			const next = findWordForward(text, pos);
@@ -128,10 +131,12 @@ describe("atomic segments", () => {
 	const isAtomic = (s: string) => s === marker;
 
 	// The functions slice text before calling segment(), so we map each expected
+	// 这些函数会在调用 segment() 之前先对文本做切片，因此我们将每个预期的
 	// substring to its pre-split segments.
+	// 子串映射到其预先切分好的片段列表。
 	const segmentMap = new Map<string, Intl.SegmentData[]>([
 		[
-			text, // full text (not used but for clarity)
+			text, // full text (not used but for clarity) | 完整文本（此处未实际使用，仅为清晰起见）
 			[
 				{ segment: "hello", index: 0, input: text, isWordLike: true },
 				{ segment: " ", index: 5, input: text, isWordLike: false },
@@ -142,6 +147,7 @@ describe("atomic segments", () => {
 		],
 		[
 			// backward from end: slice(0, 31) = full text
+			// 从末尾向前：slice(0, 31) 即完整文本
 			text.slice(0, text.length),
 			[
 				{ segment: "hello", index: 0, input: text, isWordLike: true },
@@ -153,6 +159,7 @@ describe("atomic segments", () => {
 		],
 		[
 			// backward from 26: slice(0, 26) = "hello [paste #1 +5 lines] "
+			// 从位置 26 向前：slice(0, 26) 即 "hello [paste #1 +5 lines] "
 			text.slice(0, 26),
 			[
 				{ segment: "hello", index: 0, input: text, isWordLike: true },
@@ -163,6 +170,7 @@ describe("atomic segments", () => {
 		],
 		[
 			// forward from 6: slice(6) = "[paste #1 +5 lines] world"
+			// 从位置 6 向后：slice(6) 即 "[paste #1 +5 lines] world"
 			text.slice(6),
 			[
 				{ segment: marker, index: 0, input: text, isWordLike: true },

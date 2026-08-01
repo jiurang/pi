@@ -99,6 +99,8 @@ describe("SqliteSessionStore with explicit SQLite FTS5 search", () => {
 describe("JsonlSessionStore with SQLite search index", () => {
 	// This is not the intended production pairing; it exists to demonstrate that
 	// Canonical session storage and search are independently swappable/composable.
+	// 这并非生产环境中预期的搭配方式；它的存在是为了说明
+	// 规范会话存储与搜索是可以各自独立替换/组合的。
 	it("writes JSONL session entries into the configured SQLite search", async () => {
 		const root = createTempDir();
 		const env = new NodeExecutionEnv({ cwd: root });

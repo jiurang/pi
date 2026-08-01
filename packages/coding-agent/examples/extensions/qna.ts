@@ -1,10 +1,15 @@
 /**
  * Q&A extraction extension - extracts questions from assistant responses
+ * 问答提取扩展 —— 从助手回复中提取问题
  *
  * Demonstrates the "prompt generator" pattern:
+ * 演示"提示词生成器"(prompt generator)模式:
  * 1. /qna command gets the last assistant message
+ *    /qna 命令获取最后一条助手消息
  * 2. Shows a spinner while extracting (hides editor)
+ *    提取过程中显示加载动画(隐藏编辑器)
  * 3. Loads the result into the editor for user to fill in answers
+ *    将结果载入编辑器,供用户填写答案
  */
 
 import type { UserMessage } from "@earendil-works/pi-ai";
@@ -42,6 +47,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// Find the last assistant message on the current branch
+			// 查找当前分支上最后一条助手消息
 			const branch = ctx.sessionManager.getBranch();
 			let lastAssistantText: string | undefined;
 
@@ -71,11 +77,13 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// Run extraction with loader UI
+			// 使用加载界面执行提取
 			const result = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
 				const loader = new BorderedLoader(tui, theme, `Extracting questions using ${ctx.model!.id}...`);
 				loader.onAbort = () => done(null);
 
 				// Do the work
+				// 执行实际工作
 				const doExtract = async () => {
 					const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model!);
 					if (!auth.ok || !auth.apiKey) {

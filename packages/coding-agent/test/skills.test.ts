@@ -124,6 +124,7 @@ describe("skills", () => {
 			});
 
 			// no-frontmatter has no description, so it should be skipped
+			// no-frontmatter 没有 description,因此应当被跳过
 			expect(skills).toHaveLength(0);
 			expect(diagnostics.some((d: ResourceDiagnostic) => d.message.includes("description is required"))).toBe(true);
 		});
@@ -167,8 +168,10 @@ describe("skills", () => {
 			});
 
 			// Should load all skills that have descriptions (even with warnings)
+			// 应当加载所有带有 description 的技能(即使存在警告)
 			// valid-skill, name-mismatch, invalid-name-chars, long-name, unknown-field, nested/child-skill, consecutive-hyphens
 			// NOT: missing-description, no-frontmatter (both missing descriptions)
+			// 不包括:missing-description、no-frontmatter(两者都缺少 description)
 			expect(skills.length).toBeGreaterThanOrEqual(6);
 		});
 
@@ -184,8 +187,11 @@ describe("skills", () => {
 
 		it("should use parent directory name when name not in frontmatter", () => {
 			// The no-frontmatter fixture has no name in frontmatter, so it should use "no-frontmatter"
+			// no-frontmatter 这个 fixture 的 frontmatter 中没有 name,因此应当使用 "no-frontmatter"
 			// But it also has no description, so it won't load
+			// 但它同样缺少 description,所以不会被加载
 			// Let's test with a valid skill that relies on directory name
+			// 这里改用一个依赖目录名的有效技能来测试
 			const { skills } = loadSkillsFromDir({
 				dir: join(fixturesDir, "valid-skill"),
 				source: "test",
@@ -205,6 +211,7 @@ describe("skills", () => {
 			expect(skills[0].name).toBe("disable-model-invocation");
 			expect(skills[0].disableModelInvocation).toBe(true);
 			// Should not warn about unknown field
+			// 不应针对未知字段发出警告
 			expect(diagnostics.some((d: ResourceDiagnostic) => d.message.includes("unknown frontmatter field"))).toBe(
 				false,
 			);
@@ -393,6 +400,7 @@ describe("skills", () => {
 	describe("collision handling", () => {
 		it("should detect name collisions and keep first skill", () => {
 			// Load from first directory
+			// 从第一个目录加载
 			const first = loadSkillsFromDir({
 				dir: join(collisionFixturesDir, "first"),
 				source: "first",
@@ -404,6 +412,7 @@ describe("skills", () => {
 			});
 
 			// Simulate the collision behavior from loadSkills()
+			// 模拟 loadSkills() 中的命名冲突处理行为
 			const skillMap = new Map<string, Skill>();
 			const collisionWarnings: Array<{ skillPath: string; message: string }> = [];
 

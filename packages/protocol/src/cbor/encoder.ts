@@ -207,7 +207,10 @@ function encodeValue(
 	throw new CborError(`Unsupported CBOR value type: ${typeof value}`);
 }
 
-/** Encodes the protocol's strict, definite-length RFC 8949 subset. */
+/**
+ * Encodes the protocol's strict, definite-length RFC 8949 subset.
+ * 按本协议严格的、确定长度（definite-length）的 RFC 8949 子集进行编码。
+ */
 export function encodeCbor(value: unknown, options?: CborOptions): Uint8Array {
 	const resolved = resolveOptions(options);
 	const writer = new CborWriter(resolved.maxByteLength);

@@ -33,7 +33,9 @@ export async function getMaterializedBranchPathOrCompaction(
 	const entries: SessionTreeEntry[] = [];
 	for (const branchRow of branchRows) {
 		// leaf entries are navigation markers used to mark which branch became active;
+		// leaf 条目是用于标记哪个分支变为活跃状态的导航标记；
 		// they are not part of the model/context path reconstructed from branch_entries.
+		// 它们并不属于从 branch_entries 重建出来的模型/上下文路径。
 		const cached = byId.get(branchRow.entry_id);
 		if (cached) {
 			if (cached.type !== "leaf") {

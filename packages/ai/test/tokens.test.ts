@@ -10,6 +10,7 @@ import { hasCloudflareAiGatewayCredentials, hasCloudflareWorkersAICredentials } 
 import { resolveApiKey } from "./oauth.ts";
 
 // Resolve OAuth tokens at module level (async, runs before tests)
+// 在模块层级解析 OAuth 令牌(异步执行,在测试之前运行)
 const oauthTokens = await Promise.all([
 	resolveApiKey("anthropic"),
 	resolveApiKey("github-copilot"),
@@ -49,8 +50,13 @@ async function testTokensOnAbort<TApi extends Api>(llm: Model<TApi>, options: St
 	expect(msg.stopReason).toBe("aborted");
 
 	// OpenAI providers, OpenAI Codex, zai, and Amazon Bedrock only send usage in the final chunk,
-	// so when aborted they have no token stats. Anthropic and Google send usage information early in the stream.
+	// so when aborted they have no token stats.
+	// OpenAI 系列 provider、OpenAI Codex、zai 以及 Amazon Bedrock 只会在最后一个数据块(chunk)中
+	// 发送用量(usage)信息,因此请求被中止时它们没有 token 统计数据。
+	// Anthropic and Google send usage information early in the stream.
+	// Anthropic 和 Google 会在流的早期就发送用量信息。
 	// MiniMax and Kimi report input tokens but not output tokens differently on aborted requests.
+	// 对于被中止的请求,MiniMax 和 Kimi 的行为有所不同:它们会上报输入 token,但不上报输出 token。
 	if (
 		llm.api === "openai-completions" ||
 		llm.api === "mistral-conversations" ||
@@ -65,10 +71,12 @@ async function testTokensOnAbort<TApi extends Api>(llm: Model<TApi>, options: St
 		expect(msg.usage.output).toBe(0);
 	} else if (llm.provider === "minimax") {
 		// MiniMax M2.7 does not report token usage for aborted requests.
+		// MiniMax M2.7 不会为被中止的请求上报 token 用量。
 		expect(msg.usage.input).toBe(0);
 		expect(msg.usage.output).toBe(0);
 	} else if (llm.provider === "kimi-coding") {
 		// Kimi reports input tokens early but output tokens only in the final chunk.
+		// Kimi 会较早上报输入 token,但输出 token 只在最后一个数据块中上报。
 		expect(msg.usage.input).toBeGreaterThan(0);
 		expect(msg.usage.output).toBe(0);
 	} else {
@@ -76,6 +84,7 @@ async function testTokensOnAbort<TApi extends Api>(llm: Model<TApi>, options: St
 		expect(msg.usage.output).toBeGreaterThan(0);
 
 		// Some providers (Copilot) have zero cost rates
+		// 某些 provider(如 Copilot)的计价费率为零
 		if (llm.cost.input > 0) {
 			expect(msg.usage.cost.input).toBeGreaterThan(0);
 			expect(msg.usage.cost.total).toBeGreaterThan(0);
@@ -238,9 +247,15 @@ describe("Token Statistics on Abort", () => {
 
 		// FIXME(xiaomi): Xiaomi's Anthropic-compatible stream does not populate
 		// usage in the message_start event the way Anthropic does — usage only
-		// arrives at message_stop. Aborting mid-stream therefore loses input/output
+		// arrives at message_stop.
+		// FIXME(xiaomi):小米的 Anthropic 兼容流不像 Anthropic 那样在 message_start
+		// 事件中填充用量(usage)信息——用量只在 message_stop 时才到达。
+		// Aborting mid-stream therefore loses input/output
 		// token counts. Non-streaming usage works (see total-tokens.test.ts).
+		// 因此在流中途中止会丢失输入 / 输出的 token 计数。非流式的用量统计是正常的
+		// (参见 total-tokens.test.ts)。
 		// Re-enable once upstream sends usage in message_start.
+		// 一旦上游在 message_start 中发送用量信息,即可重新启用本用例。
 		it.skip("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
 			await testTokensOnAbort(llm);
 		});
@@ -251,6 +266,8 @@ describe("Token Statistics on Abort", () => {
 
 		// FIXME(xiaomi): see the API-billing block above — same upstream streaming
 		// usage limitation applies to Token Plan endpoints.
+		// FIXME(xiaomi):参见上面 API 计费(API-billing)的代码块——同样的上游流式
+		// 用量限制也适用于 Token Plan 端点。
 		it.skip("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
 			await testTokensOnAbort(llm);
 		});
@@ -261,6 +278,8 @@ describe("Token Statistics on Abort", () => {
 
 		// FIXME(xiaomi): see the API-billing block above — same upstream streaming
 		// usage limitation applies to Token Plan endpoints.
+		// FIXME(xiaomi):参见上面 API 计费(API-billing)的代码块——同样的上游流式
+		// 用量限制也适用于 Token Plan 端点。
 		it.skip("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
 			await testTokensOnAbort(llm);
 		});
@@ -271,6 +290,8 @@ describe("Token Statistics on Abort", () => {
 
 		// FIXME(xiaomi): see the API-billing block above — same upstream streaming
 		// usage limitation applies to Token Plan endpoints.
+		// FIXME(xiaomi):参见上面 API 计费(API-billing)的代码块——同样的上游流式
+		// 用量限制也适用于 Token Plan 端点。
 		it.skip("should include token stats when aborted mid-stream", { retry: 3, timeout: 30000 }, async () => {
 			await testTokensOnAbort(llm);
 		});
@@ -294,6 +315,7 @@ describe("Token Statistics on Abort", () => {
 
 	// =========================================================================
 	// OAuth-based providers (credentials from ~/.pi/agent/oauth.json)
+	// 基于 OAuth 的 provider(凭据来自 ~/.pi/agent/oauth.json)
 	// =========================================================================
 
 	describe("Anthropic OAuth Provider", () => {

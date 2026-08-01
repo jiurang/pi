@@ -238,10 +238,12 @@ describe("Application inference profile support", () => {
 		}
 
 		// System prompt should have a cache point
+		// 系统提示词(system prompt)应当带有一个缓存点(cache point)
 		expect(capturedPayload.system).toHaveLength(2);
 		expect(capturedPayload.system[1]).toHaveProperty("cachePoint");
 
 		// Last user message should have a cache point
+		// 最后一条用户消息应当带有一个缓存点(cache point)
 		const lastMsg = capturedPayload.messages[capturedPayload.messages.length - 1];
 		const lastContent = lastMsg.content[lastMsg.content.length - 1];
 		expect(lastContent).toHaveProperty("cachePoint");

@@ -69,7 +69,9 @@ describe.skipIf(!process.env.OPENROUTER_API_KEY)("OpenRouter cache_write repro E
 			expect(second.stopReason, second.errorMessage).toBe("stop");
 
 			// Regression expectation: cache_write_tokens from provider usage must be preserved.
+			// 回归测试预期:provider 用量中的 cache_write_tokens 必须被保留。
 			// With the cache_control marker above, at least one of the two calls should create cache.
+			// 有了上面的 cache_control 标记后,两次调用中至少应有一次创建缓存。
 			const hasCacheWrite = first.usage.cacheWrite > 0 || second.usage.cacheWrite > 0;
 			expect(hasCacheWrite).toBe(true);
 		},

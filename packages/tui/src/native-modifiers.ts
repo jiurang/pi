@@ -42,6 +42,7 @@ function loadNativeModifiersHelper(): NativeModifiersHelper | undefined {
 			}
 		} catch {
 			// Try the next possible packaging location.
+			// 尝试下一个可能的打包路径。
 		}
 	}
 

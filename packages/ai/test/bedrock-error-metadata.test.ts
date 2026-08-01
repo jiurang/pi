@@ -5,6 +5,7 @@ type SendResult = { kind: "reject"; error: unknown } | { kind: "resolve"; respon
 const bedrockMock = vi.hoisted(() => ({
 	send: undefined as SendResult | undefined,
 	// Exposed so tests can build errors that are real instances of the mocked base class.
+	// 暴露出来,以便测试可以构造出真正属于被 mock 基类实例的错误对象。
 	ServiceException: undefined as unknown as new (message?: string) => Error,
 }));
 
@@ -65,7 +66,10 @@ function getModelFixture(): Model<"bedrock-converse-stream"> {
 	return getModel("amazon-bedrock", "us.anthropic.claude-opus-4-8");
 }
 
-/** What the SDK's `handleError` path throws for a non-2xx response; `name` is the modeled AWS error code. */
+/**
+ * What the SDK's `handleError` path throws for a non-2xx response; `name` is the modeled AWS error code.
+ * SDK 的 `handleError` 路径针对非 2xx 响应所抛出的错误;`name` 即为 AWS 建模的错误码(error code)。
+ */
 function makeServiceException(name: string, extra: Record<string, unknown> = {}): Error {
 	const error = new bedrockMock.ServiceException(VALIDATION_MESSAGE) as Error & Record<string, unknown>;
 	error.name = name;
@@ -73,7 +77,10 @@ function makeServiceException(name: string, extra: Record<string, unknown> = {})
 	return error;
 }
 
-/** Fails after `messageStart`, throwing from inside the iterator like `getMessageUnmarshaller` does. */
+/**
+ * Fails after `messageStart`, throwing from inside the iterator like `getMessageUnmarshaller` does.
+ * 在 `messageStart` 之后失败,像 `getMessageUnmarshaller` 那样从迭代器内部抛出错误。
+ */
 function respondWithFailingStream(thrown: unknown): SendResult {
 	return {
 		kind: "resolve",
@@ -131,6 +138,7 @@ describe("bedrock failure diagnostics", () => {
 
 	it("reports only the request id for a modeled mid-stream exception", async () => {
 		// The SDK throws a bare object literal here, so the code is genuinely unavailable.
+		// SDK 在这里抛出的是一个纯对象字面量,因此错误码确实无法获取。
 		bedrockMock.send = respondWithFailingStream({ message: "Too many requests, please wait." });
 
 		const message = await runBedrock();
@@ -141,6 +149,7 @@ describe("bedrock failure diagnostics", () => {
 
 	it("captures the error code for an unmodeled mid-stream error", async () => {
 		// This branch throws a real `Error` named after the frame's `:error-code`.
+		// 该分支抛出的是一个真实的 `Error`,其 name 取自帧(frame)的 `:error-code`。
 		const unmodeled = new Error("Model stream terminated unexpectedly.");
 		unmodeled.name = "ModelStreamErrorException";
 		bedrockMock.send = respondWithFailingStream(unmodeled);
@@ -153,6 +162,7 @@ describe("bedrock failure diagnostics", () => {
 
 	it("does not report a transport failure name as a provider error code", async () => {
 		// Real `Error`s with informative names, but not AWS codes; modeled ones end in "Exception".
+		// 这些是带有描述性 name 的真实 `Error`,但并非 AWS 错误码;AWS 建模的错误码以 "Exception" 结尾。
 		const timeout = new Error("Connection timed out after 1000 ms");
 		timeout.name = "TimeoutError";
 		bedrockMock.send = respondWithFailingStream(timeout);
@@ -199,6 +209,7 @@ describe("bedrock failure diagnostics", () => {
 
 	it("omits the SDK's Unknown placeholder instead of reporting it as a code", async () => {
 		// The SDK's fallback when the response carried no `x-amzn-errortype`.
+		// 当响应中不含 `x-amzn-errortype` 时,SDK 使用的兜底值。
 		bedrockMock.send = {
 			kind: "reject",
 			error: makeServiceException("Unknown", { $metadata: { httpStatusCode: 403, requestId: REQUEST_ID } }),

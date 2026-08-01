@@ -119,6 +119,7 @@ describe("buildSessionContext", () => {
 			];
 			const ctx = buildSessionContext(entries);
 			// Assistant message overwrites model change
+			// 助手（assistant）消息会覆盖模型变更记录
 			expect(ctx.model).toEqual({ provider: "anthropic", modelId: "claude-test" });
 		});
 	});
@@ -137,6 +138,7 @@ describe("buildSessionContext", () => {
 			const ctx = buildSessionContext(entries);
 
 			// Should have: summary + kept (3,4) + after (6,7) = 5 messages
+			// 预期应包含：摘要 + 保留的消息 (3,4) + 之后的消息 (6,7) = 共 5 条消息
 			expect(ctx.messages).toHaveLength(5);
 			expect((ctx.messages[0] as any).summary).toContain("Summary of first two turns");
 			expect((ctx.messages[1] as any).content).toBe("second");
@@ -155,6 +157,7 @@ describe("buildSessionContext", () => {
 			const ctx = buildSessionContext(entries);
 
 			// Summary + all messages (1,2,4)
+			// 摘要 + 全部消息 (1,2,4)
 			expect(ctx.messages).toHaveLength(4);
 			expect((ctx.messages[0] as any).summary).toContain("Empty summary");
 		});
@@ -172,6 +175,7 @@ describe("buildSessionContext", () => {
 			const ctx = buildSessionContext(entries);
 
 			// Should use second summary, keep from 4
+			// 应使用第二份摘要，并从第 4 条开始保留
 			expect(ctx.messages).toHaveLength(4);
 			expect((ctx.messages[0] as any).summary).toContain("Second summary");
 		});
@@ -211,8 +215,11 @@ describe("buildSessionContext", () => {
 	describe("with branches", () => {
 		it("follows path to specified leaf", () => {
 			// Tree:
+			// 树结构：
 			//   1 -> 2 -> 3 (branch A)
+			//   1 -> 2 -> 3（分支 A）
 			//         \-> 4 (branch B)
+			//         \-> 4（分支 B）
 			const entries: SessionEntry[] = [
 				msg("1", null, "user", "start"),
 				msg("2", "1", "assistant", "response"),
@@ -246,9 +253,13 @@ describe("buildSessionContext", () => {
 
 		it("complex tree with multiple branches and compaction", () => {
 			// Tree:
+			// 树结构：
 			//   1 -> 2 -> 3 -> 4 -> compaction(5) -> 6 -> 7 (main path)
+			//   1 -> 2 -> 3 -> 4 -> compaction(5) -> 6 -> 7（主路径）
 			//              \-> 8 -> 9 (abandoned branch)
+			//              \-> 8 -> 9（已废弃的分支）
 			//                    \-> branchSummary(10) -> 11 (resumed from 3)
+			//                    \-> branchSummary(10) -> 11（从第 3 条恢复）
 			const entries: SessionEntry[] = [
 				msg("1", null, "user", "start"),
 				msg("2", "1", "assistant", "r1"),
@@ -258,14 +269,17 @@ describe("buildSessionContext", () => {
 				msg("6", "5", "user", "q3"),
 				msg("7", "6", "assistant", "r3"),
 				// Abandoned branch from 3
+				// 从第 3 条分出的已废弃分支
 				msg("8", "3", "user", "wrong path"),
 				msg("9", "8", "assistant", "wrong response"),
 				// Branch summary resuming from 3
+				// 从第 3 条恢复的分支摘要
 				branchSummary("10", "3", "Tried wrong approach", "9"),
 				msg("11", "10", "user", "better approach"),
 			];
 
 			// Main path to 7: summary + kept(3,4) + after(6,7)
+			// 通往第 7 条的主路径：摘要 + 保留的消息(3,4) + 之后的消息(6,7)
 			const ctxMain = buildSessionContext(entries, "7");
 			expect(ctxMain.messages).toHaveLength(5);
 			expect((ctxMain.messages[0] as any).summary).toContain("Compacted history");
@@ -275,6 +289,7 @@ describe("buildSessionContext", () => {
 			expect((ctxMain.messages[4] as any).content[0].text).toBe("r3");
 
 			// Branch path to 11: 1,2,3 + branch_summary + 11
+			// 通往第 11 条的分支路径：1,2,3 + branch_summary + 11
 			const ctxBranch = buildSessionContext(entries, "11");
 			expect(ctxBranch.messages).toHaveLength(5);
 			expect((ctxBranch.messages[0] as any).content).toBe("start");
@@ -295,10 +310,11 @@ describe("buildSessionContext", () => {
 		it("handles orphaned entries gracefully", () => {
 			const entries: SessionEntry[] = [
 				msg("1", null, "user", "hello"),
-				msg("2", "missing", "assistant", "orphan"), // parent doesn't exist
+				msg("2", "missing", "assistant", "orphan"), // parent doesn't exist 父条目不存在
 			];
 			const ctx = buildSessionContext(entries, "2");
 			// Should only get the orphan since parent chain is broken
+			// 由于父级链路已断裂，应当只获取到这条孤立（orphan）条目
 			expect(ctx.messages).toHaveLength(1);
 		});
 	});

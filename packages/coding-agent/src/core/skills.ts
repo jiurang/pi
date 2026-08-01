@@ -8,9 +8,11 @@ import type { ResourceDiagnostic } from "./diagnostics.ts";
 import { createSyntheticSourceInfo, type SourceInfo } from "./source-info.ts";
 
 /** Max name length per spec */
+/** 规范（spec）规定的名称最大长度 */
 const MAX_NAME_LENGTH = 64;
 
 /** Max description length per spec */
+/** 规范（spec）规定的描述最大长度 */
 const MAX_DESCRIPTION_LENGTH = 1024;
 
 const IGNORE_FILE_NAMES = [".gitignore", ".ignore", ".fdignore"];
@@ -87,7 +89,9 @@ export interface LoadSkillsResult {
 
 /**
  * Validate skill name per Agent Skills spec.
+ * 按照 Agent Skills 规范校验技能（skill）名称。
  * Returns array of validation error messages (empty if valid).
+ * 返回校验错误信息数组（若合法则为空数组）。
  */
 function validateName(name: string): string[] {
 	const errors: string[] = [];
@@ -113,6 +117,7 @@ function validateName(name: string): string[] {
 
 /**
  * Validate description per Agent Skills spec.
+ * 按照 Agent Skills 规范校验描述（description）。
  */
 function validateDescription(description: string | undefined): string[] {
 	const errors: string[] = [];
@@ -128,8 +133,10 @@ function validateDescription(description: string | undefined): string[] {
 
 export interface LoadSkillsFromDirOptions {
 	/** Directory to scan for skills */
+	/** 用于扫描技能（skill）的目录 */
 	dir: string;
 	/** Source identifier for these skills */
+	/** 这些技能的来源（source）标识符 */
 	source: string;
 }
 
@@ -159,11 +166,16 @@ function createSkillSourceInfo(filePath: string, baseDir: string, source: string
 
 /**
  * Load skills from a directory.
+ * 从一个目录中加载技能（skill）。
  *
  * Discovery rules:
+ * 发现规则：
  * - if a directory contains SKILL.md, treat it as a skill root and do not recurse further
+ * - 若某个目录包含 SKILL.md，则将其视为技能根目录，不再继续向下递归
  * - otherwise, load direct .md children in the root
+ * - 否则，加载根目录下直接的 .md 子文件
  * - recurse into subdirectories to find SKILL.md
+ * - 递归进入子目录以查找 SKILL.md
  */
 export function loadSkillsFromDir(options: LoadSkillsFromDirOptions): LoadSkillsResult {
 	const { dir, source } = options;
@@ -226,6 +238,7 @@ function loadSkillsFromDirInternal(
 			}
 
 			// Skip node_modules to avoid scanning dependencies
+			// 跳过 node_modules，避免扫描依赖包
 			if (entry.name === "node_modules") {
 				continue;
 			}
@@ -233,6 +246,7 @@ function loadSkillsFromDirInternal(
 			const fullPath = join(dir, entry.name);
 
 			// For symlinks, check if they point to a directory and follow them
+			// 对于符号链接（symlink），检查其是否指向目录，若是则跟随进入
 			let isDirectory = entry.isDirectory();
 			let isFile = entry.isFile();
 			if (entry.isSymbolicLink()) {
@@ -242,6 +256,7 @@ function loadSkillsFromDirInternal(
 					isFile = stats.isFile();
 				} catch {
 					// Broken symlink, skip it
+					// 失效的符号链接（symlink），跳过
 					continue;
 				}
 			}
@@ -287,21 +302,25 @@ function loadSkillFromFile(
 		const parentDirName = basename(skillDir);
 
 		// Validate description
+		// 校验描述（description）
 		const descErrors = validateDescription(frontmatter.description);
 		for (const error of descErrors) {
 			diagnostics.push({ type: "warning", message: error, path: filePath });
 		}
 
 		// Use name from frontmatter, or fall back to parent directory name
+		// 使用 frontmatter 中的 name，若缺失则回退为父目录名
 		const name = frontmatter.name || parentDirName;
 
 		// Validate name
+		// 校验名称（name）
 		const nameErrors = validateName(name);
 		for (const error of nameErrors) {
 			diagnostics.push({ type: "warning", message: error, path: filePath });
 		}
 
 		// Still load the skill even with warnings (unless description is completely missing)
+		// 即使存在警告也仍然加载该技能（除非描述完全缺失）
 		if (!frontmatter.description || frontmatter.description.trim() === "") {
 			return { skill: null, diagnostics };
 		}
@@ -326,11 +345,16 @@ function loadSkillFromFile(
 
 /**
  * Format skills for inclusion in a system prompt.
+ * 将技能（skill）格式化，以便嵌入系统提示词（system prompt）。
  * Uses XML format per Agent Skills standard.
+ * 按照 Agent Skills 标准采用 XML 格式。
  * See: https://agentskills.io/integrate-skills
+ * 参见：https://agentskills.io/integrate-skills
  *
  * Skills with disableModelInvocation=true are excluded from the prompt
  * (they can only be invoked explicitly via /skill:name commands).
+ * disableModelInvocation=true 的技能会被排除在提示词之外
+ * （它们只能通过 /skill:name 命令显式调用）。
  */
 export function formatSkillsForPrompt(skills: Skill[]): string {
 	const visibleSkills = skills.filter((s) => !s.disableModelInvocation);
@@ -371,23 +395,30 @@ function escapeXml(str: string): string {
 
 export interface LoadSkillsOptions {
 	/** Working directory for project-local skills. */
+	/** 用于查找项目本地技能（skill）的工作目录。 */
 	cwd: string;
 	/** Agent config directory for global skills. */
+	/** 用于查找全局技能（skill）的 agent 配置目录。 */
 	agentDir: string;
 	/** Explicit skill paths (files or directories) */
+	/** 显式指定的技能路径（文件或目录） */
 	skillPaths: string[];
 	/** Include default skills directories. */
+	/** 是否包含默认的技能目录。 */
 	includeDefaults: boolean;
 }
 
 /**
  * Load skills from all configured locations.
+ * 从所有已配置的位置加载技能（skill）。
  * Returns skills and any validation diagnostics.
+ * 返回技能列表以及所有校验诊断信息（diagnostics）。
  */
 export function loadSkills(options: LoadSkillsOptions): LoadSkillsResult {
 	const { agentDir, skillPaths, includeDefaults } = options;
 
 	// Resolve agentDir - if not provided, use default from config
+	// 解析 agentDir —— 若未提供，则使用配置中的默认值
 	const resolvedCwd = resolvePath(options.cwd);
 	const resolvedAgentDir = resolvePath(agentDir ?? getAgentDir());
 
@@ -400,9 +431,11 @@ export function loadSkills(options: LoadSkillsOptions): LoadSkillsResult {
 		allDiagnostics.push(...result.diagnostics);
 		for (const skill of result.skills) {
 			// Resolve symlinks to detect duplicate files
+			// 解析符号链接（symlink）以检测重复文件
 			const realPath = canonicalizePath(skill.filePath);
 
 			// Skip silently if we've already loaded this exact file (via symlink)
+			// 如果该文件已被加载过（经由符号链接指向同一文件），则静默跳过
 			if (realPathSet.has(realPath)) {
 				continue;
 			}

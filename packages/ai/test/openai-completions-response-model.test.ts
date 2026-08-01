@@ -3,7 +3,9 @@ import { complete } from "../src/compat.ts";
 import type { Model } from "../src/types.ts";
 
 // Router/virtual ids (e.g. OpenRouter `auto`) keep `model` pinned to the
+// 路由型/虚拟模型 id(例如 OpenRouter 的 `auto`)会让 `model` 始终保持为
 // requested id and surface the routed concrete id on `responseModel`.
+// 请求时使用的 id,并把实际路由到的具体模型 id 暴露在 `responseModel` 上。
 
 const mockState = vi.hoisted(() => ({
 	chunks: [] as unknown[],

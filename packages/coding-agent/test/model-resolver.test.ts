@@ -10,6 +10,7 @@ import {
 } from "../src/core/model-resolver.ts";
 
 // Mock models for testing
+// 用于测试的模拟（mock）模型
 const mockModels: Model<"anthropic-messages">[] = [
 	{
 		id: "claude-sonnet-4-5",
@@ -27,6 +28,7 @@ const mockModels: Model<"anthropic-messages">[] = [
 		id: "gpt-4o",
 		name: "GPT-4o",
 		api: "anthropic-messages", // Using same type for simplicity
+		// 为简化起见，这里使用相同的类型
 		provider: "openai",
 		baseUrl: "https://api.openai.com",
 		reasoning: false,
@@ -38,6 +40,7 @@ const mockModels: Model<"anthropic-messages">[] = [
 ];
 
 // Mock OpenRouter models with colons in IDs
+// ID 中带冒号的 OpenRouter 模拟模型
 const mockOpenRouterModels: Model<"anthropic-messages">[] = [
 	{
 		id: "qwen/qwen3-coder:exacto",
@@ -193,6 +196,7 @@ describe("parseModelPattern", () => {
 	describe("edge cases", () => {
 		test("empty pattern matches via partial matching", () => {
 			// Empty string is included in all model IDs, so partial matching finds a match
+			// 空字符串被包含在所有模型 ID 中，因此部分匹配总能找到结果
 			const result = parseModelPattern("", allModels);
 			expect(result.model).not.toBeNull();
 			expect(result.thinkingLevel).toBeUndefined();
@@ -201,7 +205,9 @@ describe("parseModelPattern", () => {
 		test("pattern ending with colon treats empty suffix as invalid", () => {
 			const result = parseModelPattern("sonnet:", allModels);
 			// Empty string after colon is not a valid thinking level
+			// 冒号后的空字符串不是合法的思考等级（thinking level）
 			// So it tries to match "sonnet:" which won't match, then tries "sonnet"
+			// 因此会先尝试匹配 "sonnet:"（匹配不到），再尝试匹配 "sonnet"
 			expect(result.model?.id).toBe("claude-sonnet-4-5");
 			expect(result.warning).toContain("Invalid thinking level");
 		});
@@ -418,6 +424,8 @@ describe("resolveCliModel", () => {
 	test("prefers provider/model split over gateway model with matching id", () => {
 		// When a user writes "zai/glm-5", and both a zai provider model (id: "glm-5")
 		// and a gateway model (id: "zai/glm-5") exist, prefer the zai provider model.
+		// 当用户输入 "zai/glm-5" 时，若同时存在 zai 提供方的模型（id: "glm-5"）
+		// 和网关（gateway）模型（id: "zai/glm-5"），应优先选择 zai 提供方的模型。
 		const zaiModel: Model<"anthropic-messages"> = {
 			id: "glm-5",
 			name: "GLM-5",
@@ -515,6 +523,8 @@ describe("resolveCliModel", () => {
 	describe("custom model fallback with :thinking suffix (#5552)", () => {
 		// Models for a provider that has registered models but the specific model ID
 		// is not in the registry (triggers buildFallbackModel path).
+		// 用于模拟这样一个提供方：它已注册了模型，但目标模型 ID 并不在注册表中
+		// （会触发 buildFallbackModel 代码路径）。
 		const neuralwattModel: Model<"anthropic-messages"> = {
 			id: "some-base-model",
 			name: "Some Base Model",
@@ -543,6 +553,7 @@ describe("resolveCliModel", () => {
 			expect(result.error).toBeUndefined();
 			expect(result.model?.provider).toBe("neuralwatt");
 			// The :high suffix must NOT leak into the model id sent to the API
+			// :high 后缀绝不能混入发送给 API 的模型 id 中
 			expect(result.model?.id).toBe("zai-org/GLM-5.1-FP8");
 			expect(result.model?.reasoning).toBe(true);
 			expect(result.thinkingLevel).toBe("high");
@@ -594,6 +605,7 @@ describe("resolveCliModel", () => {
 			expect(result.error).toBeUndefined();
 			expect(result.model?.provider).toBe("neuralwatt");
 			// Invalid suffix stays in the id (it's not a thinking level)
+			// 非法后缀会保留在 id 中（因为它并不是思考等级）
 			expect(result.model?.id).toBe("zai-org/GLM-5.1-FP8:banana");
 			expect(result.thinkingLevel).toBeUndefined();
 		});
@@ -629,6 +641,7 @@ describe("resolveCliModel", () => {
 			expect(result.error).toBeUndefined();
 			expect(result.model?.provider).toBe("neuralwatt");
 			// :high is kept as part of the model id since --thinking was explicit
+			// 由于已显式指定 --thinking，:high 会作为模型 id 的一部分保留
 			expect(result.model?.id).toBe("zai-org/GLM-5.1-FP8:high");
 			expect(result.thinkingLevel).toBeUndefined();
 		});

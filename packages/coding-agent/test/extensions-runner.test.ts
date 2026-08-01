@@ -1,6 +1,7 @@
 import { createModelRegistry } from "./model-runtime-test-utils.ts";
 /**
  * Tests for ExtensionRunner - conflict detection, error handling, tool wrapping.
+ * ExtensionRunner 的测试 —— 冲突检测、错误处理、工具包装。
  */
 
 import * as fs from "node:fs";
@@ -109,10 +110,13 @@ describe("ExtensionRunner", () => {
 			const runner = new ExtensionRunner(result.extensions, result.runtime, tempDir, sessionManager, modelRegistry);
 
 			// Before bindCore the default is an empty list (never undefined).
+			// 在 bindCore 之前,默认值是一个空列表(绝不会是 undefined)。
 			expect(runner.createContext().scopedModels).toEqual([]);
 
 			// After bindCore wires a getScopedModels action, ctx.scopedModels
 			// returns it live (same reference, lazy getter).
+			// 当 bindCore 接入 getScopedModels 动作后,ctx.scopedModels 会实时返回该值
+			// (同一引用,惰性 getter)。
 			const scoped = [{ model: { id: "scoped-test" }, thinkingLevel: "high" }] as unknown as ScopedModel[];
 			runner.bindCore(extensionActions, { ...extensionContextActions, getScopedModels: () => scoped });
 			expect(runner.createContext().scopedModels).toBe(scoped);
@@ -333,6 +337,7 @@ describe("ExtensionRunner", () => {
 
 		it("warns when two extensions register same shortcut", async () => {
 			// Use a non-reserved shortcut
+			// 使用一个非保留(non-reserved)的快捷键
 			const extCode1 = `
 				export default function(pi) {
 					pi.registerShortcut("ctrl+shift+x", {
@@ -360,6 +365,7 @@ describe("ExtensionRunner", () => {
 
 			expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("shortcut conflict"));
 			// Last one wins
+			// 后注册者生效
 			expect(shortcuts.has("ctrl+shift+x")).toBe(true);
 
 			warnSpy.mockRestore();
@@ -585,6 +591,7 @@ describe("ExtensionRunner", () => {
 			});
 
 			// Emit context event which will trigger the throwing handler
+			// 触发 context 事件,该事件会调用抛出异常的处理器
 			await runner.emitContext([]);
 
 			expect(errors.length).toBe(1);
@@ -707,9 +714,11 @@ describe("ExtensionRunner", () => {
 			const runner = new ExtensionRunner(result.extensions, result.runtime, tempDir, sessionManager, modelRegistry);
 
 			// Setting a flag value should not throw
+			// 设置 flag 值不应抛出异常
 			runner.setFlagValue("--test-flag", true);
 
 			// The flag values are stored in the shared runtime
+			// flag 值存储在共享的 runtime 中
 			expect(result.runtime.flagValues.get("--test-flag")).toBe(true);
 		});
 	});

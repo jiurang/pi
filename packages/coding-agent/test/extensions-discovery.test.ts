@@ -226,6 +226,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions).toHaveLength(1);
 		expect(result.extensions[0].path).toContain("custom.ts");
 		// Verify the right tool was registered
+		// 验证注册的是正确的工具
 		expect(result.extensions[0].tools.has("from-custom")).toBe(true);
 		expect(result.extensions[0].tools.has("from-index")).toBe(false);
 	});
@@ -268,6 +269,7 @@ describe("extensions discovery", () => {
 		fs.mkdirSync(nested);
 		fs.writeFileSync(path.join(nested, "index.ts"), extensionCode);
 		// No index.ts or package.json in container/
+		// container/ 目录下没有 index.ts 或 package.json
 
 		const result = await discoverAndLoadExtensions([], tempDir, tempDir);
 
@@ -277,14 +279,17 @@ describe("extensions discovery", () => {
 
 	it("handles mixed direct files and subdirectories", async () => {
 		// Direct file
+		// 直接放置的文件
 		fs.writeFileSync(path.join(extensionsDir, "direct.ts"), extensionCode);
 
 		// Subdirectory with index
+		// 带 index 入口的子目录
 		const subdir1 = path.join(extensionsDir, "with-index");
 		fs.mkdirSync(subdir1);
 		fs.writeFileSync(path.join(subdir1, "index.ts"), extensionCode);
 
 		// Subdirectory with package.json
+		// 带 package.json 的子目录
 		const subdir2 = path.join(extensionsDir, "with-manifest");
 		fs.mkdirSync(subdir2);
 		fs.writeFileSync(path.join(subdir2, "entry.ts"), extensionCode);
@@ -360,6 +365,7 @@ describe("extensions discovery", () => {
 
 	it("resolves dependencies from extension's own node_modules", async () => {
 		// Load extension that has its own package.json and node_modules with 'ms' package
+		// 加载一个自带 package.json、且 node_modules 中包含 'ms' 依赖包的扩展
 		const extPath = path.resolve(__dirname, "../examples/extensions/with-deps");
 
 		const result = await discoverAndLoadExtensions([extPath], tempDir, tempDir);
@@ -368,6 +374,7 @@ describe("extensions discovery", () => {
 		expect(result.extensions).toHaveLength(1);
 		expect(result.extensions[0].path).toContain("with-deps");
 		// The extension registers a 'parse_duration' tool
+		// 该扩展会注册一个 'parse_duration' 工具
 		expect(result.extensions[0].tools.has("parse_duration")).toBe(true);
 	});
 
@@ -502,13 +509,16 @@ describe("extensions discovery", () => {
 
 	it("loadExtensions only loads explicit paths without discovery", async () => {
 		// Create discoverable extensions (would be found by discoverAndLoadExtensions)
+		// 创建可被自动发现的扩展（会被 discoverAndLoadExtensions 找到）
 		fs.writeFileSync(path.join(extensionsDir, "discovered.ts"), extensionCodeWithTool("discovered"));
 
 		// Create explicit extension outside discovery path
+		// 在自动发现路径之外创建一个需显式指定的扩展
 		const explicitPath = path.join(tempDir, "explicit.ts");
 		fs.writeFileSync(explicitPath, extensionCodeWithTool("explicit"));
 
 		// Use loadExtensions directly to skip discovery
+		// 直接使用 loadExtensions 以跳过自动发现
 		const { loadExtensions } = await import("../src/core/extensions/loader.ts");
 		const result = await loadExtensions([explicitPath], tempDir);
 
@@ -520,9 +530,11 @@ describe("extensions discovery", () => {
 
 	it("loadExtensions with no paths loads nothing", async () => {
 		// Create discoverable extensions (would be found by discoverAndLoadExtensions)
+		// 创建可被自动发现的扩展（会被 discoverAndLoadExtensions 找到）
 		fs.writeFileSync(path.join(extensionsDir, "discovered.ts"), extensionCode);
 
 		// Use loadExtensions directly with empty paths
+		// 直接调用 loadExtensions 并传入空路径列表
 		const { loadExtensions } = await import("../src/core/extensions/loader.ts");
 		const result = await loadExtensions([], tempDir);
 

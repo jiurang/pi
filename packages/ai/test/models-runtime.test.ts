@@ -46,7 +46,10 @@ interface ProviderCall {
 	options: StreamOptions | undefined;
 }
 
-/** Ambient auth for keyless test providers; reports "configured" with no auth values. */
+/**
+ * Ambient auth for keyless test providers; reports "configured" with no auth values.
+ * 用于无密钥测试提供商的环境认证（ambient auth）；在没有任何认证值的情况下报告为"已配置"。
+ */
 const ambientAuth: ApiKeyAuth = {
 	name: "Ambient",
 	resolve: async () => ({ auth: {} }),
@@ -189,6 +192,7 @@ describe("Models runtime", () => {
 		expect(models.getModel("p2", "missing")).toBeUndefined();
 
 		// hasApi() narrows dynamically looked-up models with a runtime check
+		// hasApi() 通过运行时检查，对动态查找到的模型进行类型收窄
 		const found = models.getModel("p2", "m3");
 		expect(found && hasApi(found, "openai-completions")).toBe(false);
 		expect(found && hasApi(found, "test-api")).toBe(true);
@@ -213,6 +217,7 @@ describe("Models runtime", () => {
 		expect(models.getModels().map((m) => m.id)).toEqual(["m1"]);
 		expect(models.getModels("broken")).toEqual([]);
 		// precise failures come from the provider directly
+		// 精确的失败信息直接来自提供商（provider）
 		expect(() => models.getProvider("broken")?.getModels()).toThrow("boom");
 	});
 
@@ -373,11 +378,13 @@ describe("Models runtime", () => {
 		const model = testModel("p1", "model-a");
 
 		// model and provider-id overloads resolve the same provider-scoped auth
+		// 传入 model 与传入 provider-id 的两种重载，解析出的是同一份提供商作用域内的认证信息
 		expect((await models.getAuth(model))?.auth.apiKey).toBe("env-key");
 		expect((await models.getAuth(model.provider))?.auth.apiKey).toBe("env-key");
 		expect((await models.getAuth(model, { apiKey: "explicit-key" }))?.auth.apiKey).toBe("explicit-key");
 
 		// stored oauth credential (persisted via the single write path): beats ambient env
+		// 已存储的 oauth 凭据（通过单一写入路径持久化）：优先级高于环境变量提供的凭据
 		await credentials.modify("p1", async () => ({
 			type: "oauth",
 			access: "oauth-token",
@@ -389,6 +396,7 @@ describe("Models runtime", () => {
 		expect(resolution?.source).toBe("OAuth");
 
 		// stored api-key credential resolves through apiKey auth, beats env
+		// 已存储的 api-key 凭据通过 apiKey 认证方式解析，优先级高于环境变量
 		await credentials.modify("p1", async () => ({ type: "api_key", key: "stored-key" }));
 		const apiKeyResolution = await models.getAuth(model.provider);
 		expect(apiKeyResolution?.auth.apiKey).toBe("stored-key");
@@ -451,6 +459,7 @@ describe("Models runtime", () => {
 		const credentials = new InMemoryCredentialStore();
 		const models = createModels({ credentials });
 		// provider has only apiKey auth, but an oauth credential is stored (stale config)
+		// 提供商仅支持 apiKey 认证，但存储的却是 oauth 凭据（陈旧的配置）
 		models.setProvider(testProvider({ id: "p1", auth: { apiKey: envKeyAuth("env-key") } }));
 		await credentials.modify("p1", async () => ({ type: "oauth", access: "a", refresh: "r", expires: 0 }));
 
@@ -529,6 +538,7 @@ describe("Models runtime", () => {
 
 		await expect(models.getAuth("p1")).rejects.toMatchObject({ code: "oauth" });
 		// credential preserved for retry / re-login
+		// 保留凭据以便重试 / 重新登录
 		expect(((await credentials.read("p1")) as { access: string }).access).toBe("old");
 	});
 
@@ -581,6 +591,7 @@ describe("Models runtime", () => {
 
 	it("wraps credential store failures in ModelsError", async () => {
 		// read failure
+		// 读取失败
 		const readFailing: CredentialStore = {
 			read: async () => {
 				throw new Error("disk on fire");
@@ -594,6 +605,7 @@ describe("Models runtime", () => {
 		await expect(models.getAuth("p1")).rejects.toMatchObject({ code: "auth" });
 
 		// modify failure during refresh
+		// 刷新过程中的 modify（修改）失败
 		const modifyFailing: CredentialStore = {
 			read: async () => ({ type: "oauth", access: "old", refresh: "r", expires: 0 }),
 			list: async () => [{ providerId: "p1", type: "oauth" }],
@@ -692,6 +704,7 @@ describe("Models runtime", () => {
 		expect(calls[0].model.baseUrl).toBe("https://auth.test/v1");
 
 		// without explicit options, resolved auth applies
+		// 在没有显式传入选项时，采用解析得到的认证信息
 		const result2 = await models.completeSimple(model, context);
 		expect(result2.stopReason).toBe("stop");
 		expect(calls[1].options?.apiKey).toBe("resolved-key");

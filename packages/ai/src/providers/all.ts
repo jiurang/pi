@@ -47,7 +47,9 @@ export { radiusProvider };
 
 /** Providers present in the generated catalog. `KnownProvider` additionally
  * includes purely dynamic providers (e.g. "radius") that have no static
- * catalog entry. */
+ * catalog entry.
+ * 生成的模型目录中存在的提供方（provider）。`KnownProvider` 还额外包含
+ * 纯动态的提供方（例如 "radius"），这类提供方没有静态目录条目。 */
 export type BuiltinProvider = keyof typeof MODELS;
 
 type BuiltinModelApi<
@@ -55,7 +57,8 @@ type BuiltinModelApi<
 	TModelId extends keyof (typeof MODELS)[TProvider],
 > = (typeof MODELS)[TProvider][TModelId] extends { api: infer TApi } ? (TApi extends Api ? TApi : never) : never;
 
-/** Typed read of the generated built-in catalog. */
+/** Typed read of the generated built-in catalog.
+ * 以带类型的方式读取生成的内置模型目录。 */
 export function getBuiltinModel<TProvider extends BuiltinProvider, TModelId extends keyof (typeof MODELS)[TProvider]>(
 	provider: TProvider,
 	modelId: TModelId,
@@ -68,7 +71,8 @@ export function getBuiltinProviders(): BuiltinProvider[] {
 	return Object.keys(MODELS) as BuiltinProvider[];
 }
 
-/** Generation timestamp shared by all built-in provider catalogs. */
+/** Generation timestamp shared by all built-in provider catalogs.
+ * 所有内置提供方（provider）目录共享的生成时间戳。 */
 export function getBuiltinModelDataGeneratedAt(): number | undefined {
 	const generatedAt = Date.parse(modelDataManifest.generatedAt);
 	return Number.isNaN(generatedAt) ? undefined : generatedAt;
@@ -83,7 +87,8 @@ export function getBuiltinModels<TProvider extends BuiltinProvider>(
 		: [];
 }
 
-/** All built-in providers, freshly constructed. */
+/** All built-in providers, freshly constructed.
+ * 全部内置提供方（provider），每次调用均全新构造。 */
 export function builtinProviders(): Provider[] {
 	return [
 		amazonBedrockProvider(),
@@ -127,7 +132,8 @@ export function builtinProviders(): Provider[] {
 	];
 }
 
-/** A `Models` collection with every built-in provider registered. */
+/** A `Models` collection with every built-in provider registered.
+ * 一个已注册全部内置提供方（provider）的 `Models` 集合。 */
 export function builtinModels(options?: CreateModelsOptions): MutableModels {
 	const models = createModels(options);
 	for (const provider of builtinProviders()) {
@@ -136,12 +142,14 @@ export function builtinModels(options?: CreateModelsOptions): MutableModels {
 	return models;
 }
 
-/** All built-in image-generation providers, freshly constructed. */
+/** All built-in image-generation providers, freshly constructed.
+ * 全部内置的图像生成提供方（provider），每次调用均全新构造。 */
 export function builtinImagesProviders(): ImagesProvider[] {
 	return [openrouterImagesProvider()];
 }
 
-/** An `ImagesModels` collection with every built-in image-generation provider registered. */
+/** An `ImagesModels` collection with every built-in image-generation provider registered.
+ * 一个已注册全部内置图像生成提供方（provider）的 `ImagesModels` 集合。 */
 export function builtinImagesModels(options?: CreateModelsOptions): MutableImagesModels {
 	const models = createImagesModels(options);
 	for (const provider of builtinImagesProviders()) {

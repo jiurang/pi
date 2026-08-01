@@ -25,9 +25,11 @@ describe("migrateSessionEntries", () => {
 		migrateSessionEntries(entries);
 
 		// Header should have version set (v3 is current after hookMessage->custom migration)
+		// 头部（header）应当已设置版本号（在 hookMessage->custom 迁移之后，当前版本为 v3）
 		expect((entries[0] as any).version).toBe(3);
 
 		// Entries should have id/parentId
+		// 各条目应当具备 id/parentId 字段
 		const msg1 = entries[1] as any;
 		const msg2 = entries[2] as any;
 
@@ -71,6 +73,7 @@ describe("migrateSessionEntries", () => {
 		migrateSessionEntries(entries);
 
 		// IDs should be unchanged
+		// 各 ID 应保持不变
 		expect((entries[1] as any).id).toBe("abc12345");
 		expect((entries[2] as any).id).toBe("def67890");
 		expect((entries[2] as any).parentId).toBe("abc12345");

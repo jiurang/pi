@@ -10,7 +10,10 @@ export interface ShellCaptureProgress {
 
 export interface ShellCaptureOptions extends Omit<ShellExecOptions, "onStdout" | "onStderr"> {
 	onChunk?: (chunk: string, getProgress: () => ShellCaptureProgress) => void;
-	/** Return shell execution failures with captured output instead of as a failed Result. */
+	/**
+	 * Return shell execution failures with captured output instead of as a failed Result.
+	 * 将 shell 执行失败连同已捕获的输出一起返回，而不是返回失败的 Result。
+	 */
 	returnExecutionErrors?: boolean;
 }
 

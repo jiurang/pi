@@ -1,9 +1,13 @@
 /**
  * Print mode (single-shot): Send prompts, output result, exit.
+ * 打印模式（单次执行）：发送提示词，输出结果，然后退出。
  *
  * Used for:
+ * 适用于：
  * - `pi -p "prompt"` - text output
+ *   `pi -p "prompt"` —— 文本输出
  * - `pi --mode json "prompt"` - JSON event stream
+ *   `pi --mode json "prompt"` —— JSON 事件流
  */
 
 import type { AssistantMessage, ImageContent } from "@earendil-works/pi-ai";
@@ -13,21 +17,24 @@ import { killTrackedDetachedChildren } from "../utils/shell.ts";
 
 /**
  * Options for print mode.
+ * 打印模式的配置项。
  */
 export interface PrintModeOptions {
-	/** Output mode: "text" for final response only, "json" for all events */
+	/** Output mode: "text" for final response only, "json" for all events 输出模式："text" 表示只输出最终回复，"json" 表示输出全部事件 */
 	mode: "text" | "json";
-	/** Array of additional prompts to send after initialMessage */
+	/** Array of additional prompts to send after initialMessage 在 initialMessage 之后要发送的额外提示词数组 */
 	messages?: string[];
-	/** First message to send (may contain @file content) */
+	/** First message to send (may contain @file content) 要发送的第一条消息（可能包含 @file 引用的文件内容） */
 	initialMessage?: string;
-	/** Images to attach to the initial message */
+	/** Images to attach to the initial message 要附加到首条消息上的图片 */
 	initialImages?: ImageContent[];
 }
 
 /**
  * Run in print (single-shot) mode.
+ * 以打印（单次执行）模式运行。
  * Sends prompts to the agent and outputs the result.
+ * 向 agent 发送提示词并输出结果。
  */
 export async function runPrintMode(runtimeHost: AgentSessionRuntime, options: PrintModeOptions): Promise<number> {
 	const { mode, messages = [], initialMessage, initialImages } = options;

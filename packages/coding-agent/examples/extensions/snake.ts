@@ -1,5 +1,6 @@
 /**
  * Snake game extension - play snake with /snake command
+ * 贪吃蛇游戏扩展 —— 使用 /snake 命令来玩贪吃蛇
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -72,10 +73,12 @@ class SnakeComponent {
 		this.tui = tui;
 		if (savedState && !savedState.gameOver) {
 			// Resume from saved state, start paused
+			// 从已保存的状态恢复,并以暂停状态开始
 			this.state = savedState;
 			this.paused = true;
 		} else {
 			// New game or saved game was over
+			// 全新的一局游戏,或此前保存的对局已经结束
 			this.state = createInitialState();
 			if (savedState) {
 				this.state.highScore = savedState.highScore;
@@ -99,9 +102,11 @@ class SnakeComponent {
 
 	private tick(): void {
 		// Apply queued direction change
+		// 应用排队等待的方向变更
 		this.state.direction = this.state.nextDirection;
 
 		// Calculate new head position
+		// 计算蛇头的新位置
 		const head = this.state.snake[0];
 		let newHead: Point;
 
@@ -121,21 +126,25 @@ class SnakeComponent {
 		}
 
 		// Check wall collision
+		// 检测是否撞墙
 		if (newHead.x < 0 || newHead.x >= GAME_WIDTH || newHead.y < 0 || newHead.y >= GAME_HEIGHT) {
 			this.state.gameOver = true;
 			return;
 		}
 
 		// Check self collision
+		// 检测是否撞到自身
 		if (this.state.snake.some((s) => s.x === newHead.x && s.y === newHead.y)) {
 			this.state.gameOver = true;
 			return;
 		}
 
 		// Move snake
+		// 移动蛇身
 		this.state.snake.unshift(newHead);
 
 		// Check food collision
+		// 检测是否吃到食物
 		if (newHead.x === this.state.food.x && newHead.y === this.state.food.y) {
 			this.state.score += 10;
 			if (this.state.score > this.state.highScore) {
@@ -149,20 +158,24 @@ class SnakeComponent {
 
 	handleInput(data: string): void {
 		// If paused (resuming), wait for any key
+		// 如果处于暂停状态(即恢复对局时),等待用户按下任意键
 		if (this.paused) {
 			if (matchesKey(data, "escape") || data === "q" || data === "Q") {
 				// Quit without clearing save
+				// 退出但不清除存档
 				this.dispose();
 				this.onClose();
 				return;
 			}
 			// Any other key resumes
+			// 按下其他任意键则继续游戏
 			this.paused = false;
 			this.startGame();
 			return;
 		}
 
 		// ESC to pause and save
+		// 按 ESC 暂停并保存进度
 		if (matchesKey(data, "escape")) {
 			this.dispose();
 			this.onSave(this.state);
@@ -171,14 +184,18 @@ class SnakeComponent {
 		}
 
 		// Q to quit without saving (clears saved state)
+		// 按 Q 直接退出且不保存(会清除已保存的状态)
 		if (data === "q" || data === "Q") {
 			this.dispose();
-			this.onSave(null); // Clear saved state
+			// Clear saved state
+			// 清除已保存的状态
+			this.onSave(null);
 			this.onClose();
 			return;
 		}
 
 		// Arrow keys or WASD
+		// 方向键或 WASD 键
 		if (matchesKey(data, "up") || data === "w" || data === "W") {
 			if (this.state.direction !== "down") this.state.nextDirection = "up";
 		} else if (matchesKey(data, "down") || data === "s" || data === "S") {
@@ -190,11 +207,14 @@ class SnakeComponent {
 		}
 
 		// Restart on game over
+		// 游戏结束后重新开始
 		if (this.state.gameOver && (data === "r" || data === "R" || data === " ")) {
 			const highScore = this.state.highScore;
 			this.state = createInitialState();
 			this.state.highScore = highScore;
-			this.onSave(null); // Clear saved state on restart
+			// Clear saved state on restart
+			// 重新开始时清除已保存的状态
+			this.onSave(null);
 			this.version++;
 			this.tui.requestRender();
 		}
@@ -212,11 +232,13 @@ class SnakeComponent {
 		const lines: string[] = [];
 
 		// Each game cell is 2 chars wide to appear square (terminal cells are ~2:1 aspect)
+		// 每个游戏格子宽 2 个字符,以便看起来接近正方形(终端字符单元的宽高比约为 1:2)
 		const cellWidth = 2;
 		const effectiveWidth = Math.min(GAME_WIDTH, Math.floor((width - 4) / cellWidth));
 		const effectiveHeight = GAME_HEIGHT;
 
 		// Colors
+		// 颜色
 		const dim = (s: string) => `\x1b[2m${s}\x1b[22m`;
 		const green = (s: string) => `\x1b[32m${s}\x1b[0m`;
 		const red = (s: string) => `\x1b[31m${s}\x1b[0m`;
@@ -226,6 +248,7 @@ class SnakeComponent {
 		const boxWidth = effectiveWidth * cellWidth;
 
 		// Helper to pad content inside box
+		// 用于在边框内填充内容的辅助函数
 		const boxLine = (content: string) => {
 			const contentLen = visibleWidth(content);
 			const padding = Math.max(0, boxWidth - contentLen);
@@ -233,18 +256,22 @@ class SnakeComponent {
 		};
 
 		// Top border
+		// 顶部边框
 		lines.push(this.padLine(dim(` ╭${"─".repeat(boxWidth)}╮`), width));
 
 		// Header with score
+		// 带分数显示的标题栏
 		const scoreText = `Score: ${bold(yellow(String(this.state.score)))}`;
 		const highText = `High: ${bold(yellow(String(this.state.highScore)))}`;
 		const title = `${bold(green("SNAKE"))} │ ${scoreText} │ ${highText}`;
 		lines.push(this.padLine(boxLine(title), width));
 
 		// Separator
+		// 分隔线
 		lines.push(this.padLine(dim(` ├${"─".repeat(boxWidth)}┤`), width));
 
 		// Game grid
+		// 游戏网格
 		for (let y = 0; y < effectiveHeight; y++) {
 			let row = "";
 			for (let x = 0; x < effectiveWidth; x++) {
@@ -253,22 +280,32 @@ class SnakeComponent {
 				const isFood = this.state.food.x === x && this.state.food.y === y;
 
 				if (isHead) {
-					row += green("██"); // Snake head (2 chars)
+					// Snake head (2 chars)
+					// 蛇头(占 2 个字符)
+					row += green("██");
 				} else if (isBody) {
-					row += green("▓▓"); // Snake body (2 chars)
+					// Snake body (2 chars)
+					// 蛇身(占 2 个字符)
+					row += green("▓▓");
 				} else if (isFood) {
-					row += red("◆ "); // Food (2 chars)
+					// Food (2 chars)
+					// 食物(占 2 个字符)
+					row += red("◆ ");
 				} else {
-					row += "  "; // Empty cell (2 spaces)
+					// Empty cell (2 spaces)
+					// 空白格子(2 个空格)
+					row += "  ";
 				}
 			}
 			lines.push(this.padLine(dim(" │") + row + dim("│"), width));
 		}
 
 		// Separator
+		// 分隔线
 		lines.push(this.padLine(dim(` ├${"─".repeat(boxWidth)}┤`), width));
 
 		// Footer
+		// 底部信息栏
 		let footer: string;
 		if (this.paused) {
 			footer = `${yellow(bold("PAUSED"))} Press any key to continue, ${bold("Q")} to quit`;
@@ -280,6 +317,7 @@ class SnakeComponent {
 		lines.push(this.padLine(boxLine(footer), width));
 
 		// Bottom border
+		// 底部边框
 		lines.push(this.padLine(dim(` ╰${"─".repeat(boxWidth)}╯`), width));
 
 		this.cachedLines = lines;
@@ -291,6 +329,7 @@ class SnakeComponent {
 
 	private padLine(line: string, width: number): string {
 		// Calculate visible length (strip ANSI codes)
+		// 计算可见长度(需剔除 ANSI 控制码)
 		const visibleLen = line.replace(/\x1b\[[0-9;]*m/g, "").length;
 		const padding = Math.max(0, width - visibleLen);
 		return line + " ".repeat(padding);
@@ -317,6 +356,7 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			// Load saved state from session
+			// 从会话中加载已保存的状态
 			const entries = ctx.sessionManager.getEntries();
 			let savedState: GameState | undefined;
 			for (let i = entries.length - 1; i >= 0; i--) {
@@ -333,6 +373,7 @@ export default function (pi: ExtensionAPI) {
 					() => done(undefined),
 					(state) => {
 						// Save or clear state
+						// 保存或清除状态
 						pi.appendEntry(SNAKE_SAVE_TYPE, state);
 					},
 					savedState,

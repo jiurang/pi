@@ -1,9 +1,12 @@
 /**
  * Bash Spawn Hook Example
+ * Bash 进程创建钩子(spawn hook)示例
  *
  * Adjusts command, cwd, and env before execution.
+ * 在执行前调整命令、工作目录(cwd)和环境变量(env)。
  *
  * Usage:
+ * 用法:
  *   pi -e ./bash-spawn-hook.ts
  */
 

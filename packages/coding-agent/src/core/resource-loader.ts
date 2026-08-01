@@ -90,12 +90,17 @@ function loadContextFileFromDir(dir: string): { path: string; content: string } 
 
 /**
  * The main repo's context file that a nested linked worktree's own copy shadows: both
- * are the same tracked AGENTS.md/CLAUDE.md, so loading both loads it twice. Returns
- * undefined when nothing is shadowed, leaving normal ancestor inheritance alone.
+ * are the same tracked AGENTS.md/CLAUDE.md, so loading both loads it twice.
+ * 主仓库中被嵌套的链接工作树（linked worktree）自有副本所遮蔽的上下文文件：两者是同一个
+ * 受版本管理的 AGENTS.md/CLAUDE.md，因此同时加载会导致重复加载两次。
+ * Returns undefined when nothing is shadowed, leaving normal ancestor inheritance alone.
+ * 当不存在遮蔽情况时返回 undefined，从而保持正常的祖先目录继承逻辑不变。
  *
  * Returned canonicalized (realpath), because `git worktree add` writes the `.git`
  * file's `gitdir:` target in realpath form while cwd may still be symlinked
  * (macOS `/tmp` -> `/private/tmp`).
+ * 返回值是规范化后的路径（realpath），因为 `git worktree add` 会以 realpath 形式写入 `.git`
+ * 文件中的 `gitdir:` 目标，而当前工作目录可能仍是符号链接（如 macOS 的 `/tmp` -> `/private/tmp`）。
  */
 function findShadowedContextFile(cwd: string): string | undefined {
 	const gitPaths = findGitPaths(cwd);
@@ -105,11 +110,16 @@ function findShadowedContextFile(cwd: string): string | undefined {
 	const mainRepoRoot = dirname(commonGitDir);
 	// False for an ordinary repo, where the two are the same dir, and for a sibling
 	// worktree (`git worktree add ../feat`), whose main repo is not an ancestor.
+	// 对于普通仓库（两者是同一目录）以及同级工作树（`git worktree add ../feat`，其主仓库不是祖先目录）
+	// 该条件为 false。
 	if (!worktreeRoot.startsWith(`${mainRepoRoot}${sep}`)) return undefined;
 	// dirname of the common git dir is the main worktree root only when that dir is
 	// itself checked out from the same repo. In a bare layout (`proj/.bare` +
 	// `proj/main`) it is just the directory holding `.bare`, which tracks nothing; a
 	// submodule's gitdir has no `commondir`, so it lands under `.git/modules`.
+	// 只有当公共 git 目录（common git dir）的上级目录本身也是从同一仓库检出的，它才是主工作树根目录。
+	// 在裸仓库布局（`proj/.bare` + `proj/main`）中，它只是存放 `.bare` 的目录，本身不跟踪任何内容；
+	// 而子模块（submodule）的 gitdir 没有 `commondir`，因此会落在 `.git/modules` 之下。
 	if (canonicalizePath(join(mainRepoRoot, ".git")) !== commonGitDir) return undefined;
 	const worktreeContextFile = loadContextFileFromDir(worktreeRoot);
 	return worktreeContextFile ? join(mainRepoRoot, basename(worktreeContextFile.path)) : undefined;
@@ -379,6 +389,8 @@ export class DefaultResourceLoader implements ResourceLoader {
 	async loadProjectTrustExtensions(): Promise<LoadExtensionsResult> {
 		// Force untrusted project settings for the bootstrap pass. This keeps project-local
 		// extensions/packages out while still loading user/global and temporary CLI extensions.
+		// 在引导（bootstrap）阶段强制将项目设置视为不受信任。这样可以排除项目本地的扩展/包，
+		// 同时仍然加载用户级/全局扩展以及临时的 CLI 扩展。
 		this.settingsManager.setProjectTrusted(false);
 		await this.settingsManager.reload();
 		return this.loadCurrentExtensionSet({ includeInlineFactories: true });
@@ -399,12 +411,14 @@ export class DefaultResourceLoader implements ResourceLoader {
 		}
 
 		// reload() preserves SettingsManager.projectTrusted and reloads settings for that trust state.
+		// reload() 会保留 SettingsManager.projectTrusted 的值，并按该信任状态重新加载设置。
 		await this.settingsManager.reload();
 		const resolvedPaths = await this.packageManager.resolve();
 		const cliExtensionPaths = await this.packageManager.resolveExtensionSources(this.additionalExtensionPaths, {
 			temporary: true,
 		});
 		// Kept on the instance so post-reload passes (extendResources) can still resolve package metadata.
+		// 保存在实例上，以便重新加载之后的处理流程（extendResources）仍能解析包（package）元数据。
 		this.resourceMetadataByPath = new Map();
 		const metadataByPath = this.resourceMetadataByPath;
 
@@ -413,6 +427,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 		this.extensionThemeSourceInfos = new Map();
 
 		// Helper to extract enabled paths and store metadata
+		// 用于提取已启用路径并保存元数据的辅助函数
 		const getEnabledResources = (resources: ResolvedResource[]): ResolvedResource[] => {
 			for (const r of resources) {
 				if (!metadataByPath.has(r.path)) {
@@ -432,6 +447,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 		const enabledSkills = enabledSkillResources.map((resource) => this.mapSkillPath(resource, metadataByPath));
 
 		// Add CLI paths metadata
+		// 添加 CLI 路径的元数据
 		for (const r of cliExtensionPaths.extensions) {
 			if (!metadataByPath.has(r.path)) {
 				metadataByPath.set(r.path, { source: "cli", scope: "temporary", origin: "top-level" });
@@ -625,7 +641,9 @@ export class DefaultResourceLoader implements ResourceLoader {
 
 	private addExtensionConflictDiagnostics(extensionsResult: LoadExtensionsResult): void {
 		// Detect extension conflicts (tools, commands, flags with same names from different extensions)
+		// 检测扩展冲突（来自不同扩展的同名工具、命令、命令行标志）
 		// Keep all extensions loaded. Conflicts are reported as diagnostics, and precedence is handled by load order.
+		// 保持所有扩展均处于加载状态。冲突以诊断信息（diagnostics）形式上报，优先级由加载顺序决定。
 		const conflicts = this.detectExtensionConflicts(extensionsResult.extensions);
 		for (const conflict of conflicts) {
 			extensionsResult.errors.push({ path: conflict.path, error: conflict.message });
@@ -1060,11 +1078,13 @@ export class DefaultResourceLoader implements ResourceLoader {
 		const conflicts: Array<{ path: string; message: string }> = [];
 
 		// Track which extension registered each tool and flag
+		// 记录每个工具和命令行标志分别由哪个扩展注册
 		const toolOwners = new Map<string, string>();
 		const flagOwners = new Map<string, string>();
 
 		for (const ext of extensions) {
 			// Check tools
+			// 检查工具
 			for (const toolName of ext.tools.keys()) {
 				const existingOwner = toolOwners.get(toolName);
 				if (existingOwner && existingOwner !== ext.path) {
@@ -1078,6 +1098,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 			}
 
 			// Check flags
+			// 检查命令行标志
 			for (const flagName of ext.flags.keys()) {
 				const existingOwner = flagOwners.get(flagName);
 				if (existingOwner && existingOwner !== ext.path) {

@@ -1,5 +1,6 @@
 /**
  * Core modules shared between all run modes.
+ * 在所有运行模式之间共享的核心模块。
  */
 
 export {
@@ -30,6 +31,7 @@ export type { CompactionResult } from "./compaction/index.ts";
 export { createEventBus, type EventBus, type EventBusController } from "./event-bus.ts";
 export { areExperimentalFeaturesEnabled } from "./experimental.ts";
 // Extensions system
+// 扩展系统
 export {
 	type AgentEndEvent,
 	type AgentSettledEvent,

@@ -98,11 +98,13 @@ describe("session selector path/delete interactions", () => {
 
 	beforeEach(() => {
 		// Ensure test isolation: keybindings are a global singleton
+		// 确保测试隔离：快捷键绑定（keybindings）是全局单例
 		setKeybindings(new KeybindingsManager());
 	});
 
 	beforeAll(() => {
 		// session selector uses the global theme instance
+		// 会话选择器使用的是全局的 theme 实例
 		initTheme("dark");
 	});
 	it("does not treat Ctrl+Backspace as delete when search query is non-empty", async () => {
@@ -204,8 +206,8 @@ describe("session selector path/delete interactions", () => {
 		await flushPromises();
 
 		const list = selector.getSessionList();
-		list.handleInput("\t"); // current -> all (starts async load)
-		list.handleInput("\t"); // all -> current
+		list.handleInput("\t"); // current -> all (starts async load) / 当前范围 -> 全部（启动异步加载）
+		list.handleInput("\t"); // all -> current / 全部 -> 当前范围
 
 		allDeferred.resolve([makeSession({ id: "all" })]);
 		await flushPromises();
@@ -236,9 +238,9 @@ describe("session selector path/delete interactions", () => {
 		await flushPromises();
 
 		const list = selector.getSessionList();
-		list.handleInput("\t"); // current -> all (starts async load)
-		list.handleInput("\t"); // all -> current
-		list.handleInput("\t"); // current -> all again while load pending
+		list.handleInput("\t"); // current -> all (starts async load) / 当前范围 -> 全部（启动异步加载）
+		list.handleInput("\t"); // all -> current / 全部 -> 当前范围
+		list.handleInput("\t"); // current -> all again while load pending / 加载仍在进行时再次从当前范围切到全部
 
 		expect(allLoadCalls).toBe(1);
 

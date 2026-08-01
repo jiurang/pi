@@ -8,13 +8,21 @@ import type { SessionManager } from "../../../src/core/session-manager.ts";
 import { InteractiveMode } from "../../../src/modes/interactive/interactive-mode.ts";
 
 // Regression for https://github.com/earendil-works/pi/issues/5080
+// 针对 https://github.com/earendil-works/pi/issues/5080 的回归测试
 //
 // On SIGTERM/SIGHUP the graceful shutdown must emit `session_shutdown`
-// (runtimeHost.dispose) BEFORE touching the terminal. Extension teardown such
+// (runtimeHost.dispose) BEFORE touching the terminal.
+// 在收到 SIGTERM/SIGHUP 时，优雅关闭必须在操作终端之前先发出 `session_shutdown`
+// （即 runtimeHost.dispose）。
+// Extension teardown such
 // as removing a socket does not write to the tty, so it must not be skipped if
-// a later terminal-restore write fails on a dead or stalled terminal. The
+// a later terminal-restore write fails on a dead or stalled terminal.
+// 诸如移除 socket 之类的扩展(extension)清理工作并不会向 tty 写入内容，
+// 因此当后续的终端恢复写入在已失效或卡死的终端上失败时，这些清理绝不能被跳过。
+// The
 // interactive quit path (Ctrl+D, /quit) keeps the opposite order to preserve
 // the final TUI frame.
+// 而交互式退出路径（Ctrl+D、/quit）则保持相反的顺序，以便保留最后一帧 TUI 画面。
 
 type ShutdownThis = {
 	isShuttingDown: boolean;

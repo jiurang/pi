@@ -27,6 +27,9 @@ function createTempDir(): string {
 	// realpath: on macOS tmpdir() is a symlink (/var -> /private/var), but the
 	// spawned CLI sees the physical path via process.cwd(). Session cwd
 	// filtering compares paths textually, so the fixture must use physical paths.
+	// realpath：在 macOS 上 tmpdir() 是一个符号链接（/var -> /private/var），但被派生（spawn）
+	// 的 CLI 通过 process.cwd() 看到的是物理路径。会话的 cwd 过滤按文本比较路径，
+	// 因此测试夹具（fixture）必须使用物理路径。
 	const dir = realpathSync(mkdtempSync(join(tmpdir(), "pi-session-id-readonly-")));
 	tempDirs.push(dir);
 	return dir;
@@ -45,6 +48,7 @@ function hasSessionWithId(root: string, sessionId: string): boolean {
 			if (header.type === "session" && header.id === sessionId) return true;
 		} catch {
 			// Ignore malformed session files.
+			// 忽略格式损坏的会话文件。
 		}
 	}
 	return false;

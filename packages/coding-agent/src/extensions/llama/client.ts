@@ -237,6 +237,7 @@ export class LlamaClient {
 						if (event && typeof event.model === "string" && typeof event.event === "string") onEvent(event);
 					} catch {
 						// Ignore malformed events; catalog polling remains authoritative.
+						// 忽略格式错误的事件；以轮询模型目录（catalog）的结果为准。
 					}
 				}
 				boundary = buffer.indexOf("\n\n");

@@ -40,7 +40,10 @@ function remoteModels(
 	return entry.models;
 }
 
-/** Add a persisted pi.dev catalog overlay to a static built-in provider. */
+/**
+ * Add a persisted pi.dev catalog overlay to a static built-in provider.
+ * 为静态的内置 provider 叠加一层持久化的 pi.dev 目录(catalog)覆盖层(overlay)。
+ */
 export function withRemoteCatalog(
 	provider: Provider,
 	catalogBaseUrl: string = DEFAULT_CATALOG_BASE_URL,
@@ -69,6 +72,8 @@ export function withRemoteCatalog(
 
 					// Only revalidate when a cached body backs the validator, so a 304 can never
 					// leave the overlay empty.
+					// 仅当校验器(validator)背后确实有缓存的响应体时才做重新校验，这样 304 响应
+					// 就绝不会导致覆盖层(overlay)为空。
 					const validator = stored?.models.length ? stored.etag : undefined;
 					const url = new URL(`/api/models/providers/${encodeURIComponent(provider.id)}`, catalogBaseUrl);
 					const response = await fetch(url, {
@@ -83,6 +88,8 @@ export function withRemoteCatalog(
 					const checkedAt = Date.now();
 					// Unchanged: dynamicModels already holds the stored overlay, so only the
 					// freshness window moves.
+					// 内容未变更：dynamicModels 中已持有已存储的覆盖层，因此只需推移新鲜度
+					// (freshness)时间窗口即可。
 					if (response.status === 304 && stored) {
 						await context.store.write({ ...stored, checkedAt });
 						return;
@@ -99,6 +106,8 @@ export function withRemoteCatalog(
 					if (!response.ok) {
 						// Transient failure: the cached body and its validator stay valid, so keep the
 						// etag and let the next refresh revalidate instead of downloading the catalog.
+						// 瞬时性失败：缓存的响应体及其校验器仍然有效，因此保留 etag，让下一次刷新
+						// 走重新校验流程，而不是重新下载整个目录(catalog)。
 						await context.store.write({ ...(stored ?? { models: [] }), checkedAt });
 						throw new Error(`Model catalog request failed for ${provider.id}: ${response.status}`);
 					}

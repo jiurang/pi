@@ -1,7 +1,9 @@
 /**
  * Custom System Prompt
+ * 自定义系统提示词(System Prompt)
  *
  * Shows how to replace or modify the default system prompt.
+ * 展示如何替换或修改默认的系统提示词。
  */
 
 import {
@@ -15,12 +17,14 @@ const cwd = process.cwd();
 const agentDir = getAgentDir();
 
 // Option 1: Replace prompt entirely
+// 方式 1：完全替换提示词
 const loader1 = new DefaultResourceLoader({
 	cwd,
 	agentDir,
 	systemPromptOverride: () => `You are a helpful assistant that speaks like a pirate.
 Always end responses with "Arrr!"`,
 	// Needed to avoid DefaultResourceLoader appending APPEND_SYSTEM.md from ~/.pi/agent or <cwd>/.pi.
+	// 必须设置，以避免 DefaultResourceLoader 追加来自 ~/.pi/agent 或 <cwd>/.pi 的 APPEND_SYSTEM.md。
 	appendSystemPromptOverride: () => [],
 });
 await loader1.reload();
@@ -45,6 +49,7 @@ try {
 }
 
 // Option 2: Append instructions to the default prompt
+// 方式 2：在默认提示词后追加指令
 const loader2 = new DefaultResourceLoader({
 	cwd,
 	agentDir,

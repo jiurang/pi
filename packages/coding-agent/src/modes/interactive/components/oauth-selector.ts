@@ -25,11 +25,13 @@ export function formatAuthSelectorProviderType(authType: AuthSelectorProvider["a
 
 /**
  * Component that renders an auth provider selector
+ * 用于渲染认证（auth）提供方选择器的组件
  */
 export class OAuthSelectorComponent extends Container implements Focusable {
 	private searchInput: Input;
 
 	// Focusable implementation - propagate to search input for IME cursor positioning
+	// Focusable 接口的实现 —— 将焦点状态传递给搜索输入框，以便正确定位输入法（IME）光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
@@ -65,10 +67,12 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 		this.onCancelCallback = onCancel;
 
 		// Add top border
+		// 添加顶部边框
 		this.addChild(new DynamicBorder());
 		this.addChild(new Spacer(1));
 
 		// Add title
+		// 添加标题
 		const title = mode === "login" ? "Select provider to configure:" : "Select provider to logout:";
 		this.addChild(new TruncatedText(theme.fg("accent", theme.bold(title)), 1, 0));
 		this.addChild(new Spacer(1));
@@ -87,15 +91,18 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 		this.addChild(new Spacer(1));
 
 		// Create list container
+		// 创建列表容器
 		this.listContainer = new Container();
 		this.addChild(this.listContainer);
 
 		this.addChild(new Spacer(1));
 
 		// Add bottom border
+		// 添加底部边框
 		this.addChild(new DynamicBorder());
 
 		// Initial render
+		// 首次渲染
 		this.filterProviders(initialSearchInput ?? "");
 	}
 
@@ -150,6 +157,7 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 		}
 
 		// Show "no providers" if empty
+		// 若列表为空，则显示 "no providers"（无可用提供方）
 		if (this.filteredProviders.length === 0) {
 			const message =
 				this.allProviders.length === 0
@@ -183,18 +191,21 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 	handleInput(keyData: string): void {
 		const kb = getKeybindings();
 		// Up arrow
+		// 向上方向键
 		if (kb.matches(keyData, "tui.select.up")) {
 			if (this.filteredProviders.length === 0) return;
 			this.selectedIndex = Math.max(0, this.selectedIndex - 1);
 			this.updateList();
 		}
 		// Down arrow
+		// 向下方向键
 		else if (kb.matches(keyData, "tui.select.down")) {
 			if (this.filteredProviders.length === 0) return;
 			this.selectedIndex = Math.min(this.filteredProviders.length - 1, this.selectedIndex + 1);
 			this.updateList();
 		}
 		// Enter
+		// 回车键
 		else if (kb.matches(keyData, "tui.select.confirm")) {
 			const selectedProvider = this.filteredProviders[this.selectedIndex];
 			if (selectedProvider) {
@@ -202,10 +213,12 @@ export class OAuthSelectorComponent extends Container implements Focusable {
 			}
 		}
 		// Escape or Ctrl+C
+		// Escape 键或 Ctrl+C
 		else if (kb.matches(keyData, "tui.select.cancel")) {
 			this.onCancelCallback();
 		}
 		// Pass everything else to search input
+		// 其余按键一律传递给搜索输入框
 		else {
 			this.searchInput.handleInput(keyData);
 			this.filterProviders(this.searchInput.getValue());

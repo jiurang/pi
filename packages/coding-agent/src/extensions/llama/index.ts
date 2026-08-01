@@ -107,6 +107,7 @@ export default function llamaExtension(pi: ExtensionAPI): void {
 					await restoreLoaded();
 				} catch {
 					// Preserve the original load error.
+					// 保留最初的加载错误。
 				}
 			}
 			throw error;

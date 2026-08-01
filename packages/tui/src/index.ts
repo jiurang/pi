@@ -1,7 +1,9 @@
 // Core TUI interfaces and classes
+// TUI 核心接口与类
 
 export { Marked, type Token, type Tokens } from "marked";
 // Autocomplete support
+// 自动补全（autocomplete）支持
 export {
 	type AutocompleteItem,
 	type AutocompleteProvider,
@@ -10,6 +12,7 @@ export {
 	type SlashCommand,
 } from "./autocomplete.ts";
 // Components
+// 组件
 export { Box } from "./components/box.ts";
 export { CancellableLoader } from "./components/cancellable-loader.ts";
 export { Editor, type EditorOptions, type EditorTheme } from "./components/editor.ts";
@@ -38,10 +41,13 @@ export {
 	VStack,
 } from "./components/v-stack.ts";
 // Editor component interface (for custom editors)
+// 编辑器组件接口（用于自定义编辑器）
 export type { EditorComponent } from "./editor-component.ts";
 // Fuzzy matching
+// 模糊匹配
 export { type FuzzyMatch, fuzzyFilter, fuzzyMatch } from "./fuzzy.ts";
 // Keybindings
+// 快捷键绑定
 export {
 	getKeybindings,
 	type Keybinding,
@@ -55,6 +61,7 @@ export {
 	TUI_KEYBINDINGS,
 } from "./keybindings.ts";
 // Keyboard input handling
+// 键盘输入处理
 export {
 	decodeKittyPrintable,
 	isKeyRelease,
@@ -68,12 +75,15 @@ export {
 	setKittyProtocolActive,
 } from "./keys.ts";
 // Input buffering for batch splitting
+// 用于批量拆分的输入缓冲
 export { StdinBuffer, type StdinBufferEventMap, type StdinBufferOptions } from "./stdin-buffer.ts";
 export { TuiAltScreen, type TuiAltScreenOptions } from "./TuiAltScreen.ts";
 export { TuiMainScreen } from "./TuiMainScreen.ts";
 // Terminal interface and implementations
+// 终端接口及其实现
 export { ProcessTerminal, type Terminal } from "./terminal.ts";
 // Terminal colors
+// 终端颜色
 export {
 	parseOsc11BackgroundColor,
 	parseTerminalColorSchemeReport,
@@ -81,6 +91,7 @@ export {
 	type TerminalColorScheme,
 } from "./terminal-colors.ts";
 // Terminal image support
+// 终端图片支持
 export {
 	allocateImageId,
 	type CellDimensions,
@@ -128,6 +139,7 @@ export {
 	type ViewportTUI,
 } from "./tui.ts";
 // Utilities
+// 工具函数
 export {
 	getOsc8LinkAtColumn,
 	sliceByColumn,

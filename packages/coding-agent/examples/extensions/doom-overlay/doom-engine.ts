@@ -1,5 +1,6 @@
 /**
  * DOOM Engine - WebAssembly wrapper for doomgeneric
+ * DOOM 引擎 —— doomgeneric 的 WebAssembly 封装
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -46,6 +47,7 @@ export class DoomEngine {
 
 	async init(): Promise<void> {
 		// Locate WASM build
+		// 定位 WASM 构建产物
 		const __dirname = dirname(fileURLToPath(import.meta.url));
 		const buildDir = join(__dirname, "doom", "build");
 		const doomJsPath = join(buildDir, "doom.js");
@@ -55,10 +57,12 @@ export class DoomEngine {
 		}
 
 		// Read WAD file
+		// 读取 WAD 文件
 		const wadData = readFileSync(this.wadPath);
 		const wadArray = Array.from(new Uint8Array(wadData));
 
 		// Load WASM module - eval to bypass jiti completely
+		// 加载 WASM 模块 —— 通过 eval 完全绕开 jiti
 		const doomJsCode = readFileSync(doomJsPath, "utf-8");
 		const moduleExports: { exports: unknown } = { exports: {} };
 		const nativeRequire = createRequire(doomJsPath);
@@ -78,6 +82,7 @@ export class DoomEngine {
 			preRun: [
 				(module: DoomModule) => {
 					// Create /doom directory and add WAD
+					// 创建 /doom 目录并添加 WAD 文件
 					module.FS_createPath("/", "doom", true, true);
 					module.FS_createDataFile("/doom", "doom1.wad", wadArray, true, false);
 				},
@@ -90,9 +95,11 @@ export class DoomEngine {
 		}
 
 		// Initialize DOOM
+		// 初始化 DOOM
 		this.initDoom();
 
 		// Get framebuffer info
+		// 获取帧缓冲(framebuffer)信息
 		this.frameBufferPtr = this.module._DG_GetFrameBuffer();
 		this._width = this.module._DG_GetScreenWidth();
 		this._height = this.module._DG_GetScreenHeight();
@@ -129,6 +136,7 @@ export class DoomEngine {
 
 	/**
 	 * Run one game tick
+	 * 执行一个游戏 tick(帧步进)
 	 */
 	tick(): void {
 		if (!this.module || !this.initialized) return;
@@ -137,7 +145,9 @@ export class DoomEngine {
 
 	/**
 	 * Get current frame as RGBA pixel data
+	 * 以 RGBA 像素数据的形式获取当前帧
 	 * DOOM outputs ARGB, we convert to RGBA
+	 * DOOM 输出的是 ARGB，我们将其转换为 RGBA
 	 */
 	getFrameRGBA(): Uint8Array {
 		if (!this.module || !this.initialized) {
@@ -150,10 +160,10 @@ export class DoomEngine {
 		for (let i = 0; i < pixels; i++) {
 			const argb = this.module.getValue(this.frameBufferPtr + i * 4, "i32");
 			const offset = i * 4;
-			buffer[offset + 0] = (argb >> 16) & 0xff; // R
-			buffer[offset + 1] = (argb >> 8) & 0xff; // G
-			buffer[offset + 2] = argb & 0xff; // B
-			buffer[offset + 3] = 255; // A
+			buffer[offset + 0] = (argb >> 16) & 0xff; // R 红色通道
+			buffer[offset + 1] = (argb >> 8) & 0xff; // G 绿色通道
+			buffer[offset + 2] = argb & 0xff; // B 蓝色通道
+			buffer[offset + 3] = 255; // A 透明度通道
 		}
 
 		return buffer;
@@ -161,6 +171,7 @@ export class DoomEngine {
 
 	/**
 	 * Push a key event
+	 * 推送一个按键事件
 	 */
 	pushKey(pressed: boolean, key: number): void {
 		if (!this.module || !this.initialized) return;

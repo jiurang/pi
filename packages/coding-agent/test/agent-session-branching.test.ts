@@ -1,10 +1,15 @@
 /**
  * Tests for AgentSession forking behavior.
+ * 针对 AgentSession 分叉(forking)行为的测试。
  *
  * These tests verify:
+ * 这些测试用于验证：
  * - Forking from a single message works
+ * - 从单条消息进行分叉可以正常工作
  * - Forking in --no-session mode (in-memory only)
+ * - 在 --no-session 模式下的分叉（仅内存中）
  * - getUserMessagesForForking returns correct entries
+ * - getUserMessagesForForking 返回正确的条目
  */
 
 import { existsSync, mkdirSync, rmSync } from "node:fs";

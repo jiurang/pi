@@ -66,7 +66,9 @@ function isSupportedImageMimeType(mimeType: string): boolean {
 
 /**
  * Convert unsupported image formats to PNG using Photon.
+ * 使用 Photon 将不受支持的图片格式转换为 PNG。
  * Returns null if conversion is unavailable or fails.
+ * 若转换不可用或失败,则返回 null。
  */
 async function convertToPng(bytes: Uint8Array): Promise<Uint8Array | null> {
 	const photon = await loadPhoton();
@@ -155,8 +157,10 @@ function isWSL(env: NodeJS.ProcessEnv = process.env): boolean {
 
 /**
  * On WSL, the Linux clipboard (Wayland/X11) does not receive image data from
- * Windows screenshots (Win+Shift+S). PowerShell can access the Windows clipboard
- * directly, so we use it as a fallback.
+ * Windows screenshots (Win+Shift+S).
+ * 在 WSL 中,Linux 剪贴板(Wayland/X11)无法接收来自 Windows 截图(Win+Shift+S)的图片数据。
+ * PowerShell can access the Windows clipboard directly, so we use it as a fallback.
+ * PowerShell 可以直接访问 Windows 剪贴板,因此我们将其作为回退(fallback)方案。
  */
 function readClipboardImageViaPowerShell(): ClipboardImage | null {
 	const tmpFile = join(tmpdir(), `pi-wsl-clip-${randomUUID()}.png`);
@@ -206,6 +210,7 @@ function readClipboardImageViaPowerShell(): ClipboardImage | null {
 			unlinkSync(tmpFile);
 		} catch {
 			// Ignore cleanup errors.
+			// 忽略清理过程中的错误。
 		}
 	}
 }
@@ -288,6 +293,7 @@ export async function readClipboardImage(options?: {
 	}
 
 	// Convert unsupported formats (e.g., BMP from WSLg) to PNG
+	// 将不受支持的格式(例如来自 WSLg 的 BMP)转换为 PNG
 	if (!isSupportedImageMimeType(image.mimeType)) {
 		const pngBytes = await convertToPng(image.bytes);
 		if (!pngBytes) {

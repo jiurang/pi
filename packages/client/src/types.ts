@@ -15,7 +15,10 @@ export interface PiClientOptions {
 	token: string;
 	transportFactory: ByteTransportFactory;
 	maxFrameLength?: number;
-	/** Reports subscriber failures without allowing them to corrupt client state. */
+	/**
+	 * Reports subscriber failures without allowing them to corrupt client state.
+	 * 报告订阅者的失败,同时不允许这些失败破坏客户端状态。
+	 */
 	onListenerError?: ListenerErrorHandler;
 }
 

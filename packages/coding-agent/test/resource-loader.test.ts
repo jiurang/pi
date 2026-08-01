@@ -185,6 +185,8 @@ Project skill`,
 
 			// mergePaths processes project paths before user paths, so the project
 			// alias is the canonical survivor.
+			// mergePaths 会先处理项目级路径再处理用户级路径，因此最终保留下来的规范路径
+			// 是项目级的那个别名。
 			expect(extensionsResult.extensions[0].path).toBe(join(cwd, ".pi", "extensions", "shared.ts"));
 		});
 
@@ -638,6 +640,8 @@ Extra content`,
 
 		// Regression: extension discovery used to drop package scope/source, collapsing every
 		// autocomplete source tag to [t]. See issue #6968.
+		// 回归测试：扩展发现流程此前会丢失包（package）的 scope/source 信息，导致自动补全中所有
+		// 来源标签都退化为 [t]。参见 issue #6968。
 		it("should keep package metadata for skills, prompts, and themes", async () => {
 			const packageRoot = join(agentDir, "npm", "node_modules", "metadata-pkg");
 			const packageSkillDir = join(packageRoot, "skills", "package-skill");
@@ -823,6 +827,7 @@ Content`,
 	describe("extension conflict detection", () => {
 		it("should detect tool conflicts between extensions", async () => {
 			// Create two extensions that register the same tool
+			// 创建两个注册了同名工具的扩展
 			const ext1Dir = join(agentDir, "extensions", "ext1");
 			const ext2Dir = join(agentDir, "extensions", "ext2");
 			mkdirSync(ext1Dir, { recursive: true });
@@ -940,19 +945,26 @@ export default function(pi: ExtensionAPI) {
 		// `.git/worktrees/<name>/` holds `HEAD` plus a `commondir` pointing back at the
 		// main `.git`, and the worktree's working tree carries a `.git` *file* whose
 		// `gitdir:` resolves to it.
+		// 构建一个链接工作树（linked worktree）的目录骨架（无需依赖 git 可执行文件）：主仓库的
+		// `.git/worktrees/<name>/` 中存放 `HEAD` 以及一个指回主 `.git` 的 `commondir`，
+		// 而该工作树的工作目录中则包含一个 `.git` *文件*，其 `gitdir:` 指向前述目录。
 		const linkWorktree = (mainDir: string, worktreeDir: string, name: string) => {
 			const gitDir = join(mainDir, ".git", "worktrees", name);
 			mkdirSync(gitDir, { recursive: true });
 			// The main repo's own `.git` is a real git dir with a HEAD, as git writes it.
+			// 主仓库自身的 `.git` 是一个包含 HEAD 的真实 git 目录，与 git 实际写入的结构一致。
 			writeFileSync(join(mainDir, ".git", "HEAD"), "ref: refs/heads/main\n");
 			writeFileSync(join(gitDir, "HEAD"), "ref: refs/heads/feat\n");
 			// commondir is relative to the worktree gitdir and points at the main .git.
+			// commondir 是相对于该工作树 gitdir 的路径，指向主仓库的 .git。
 			writeFileSync(join(gitDir, "commondir"), "../..");
 			writeFileSync(join(worktreeDir, ".git"), `gitdir: ${gitDir}\n`);
 		};
 
 		// Main repo at <tempDir>/outer/main with a linked worktree at main/worktrees/feat.
+		// 主仓库位于 <tempDir>/outer/main，其链接工作树位于 main/worktrees/feat。
 		// Each case writes only the AGENTS.md files it needs.
+		// 每个测试用例只写入自身所需的 AGENTS.md 文件。
 		const setupNestedWorktree = () => {
 			const outer = join(tempDir, "outer");
 			const main = join(outer, "main");
@@ -986,6 +998,9 @@ export default function(pi: ExtensionAPI) {
 			// The repo tracks CLAUDE.md; the worktree adds an AGENTS.md, which
 			// loadContextFileFromDir prefers. The main repo's CLAUDE.md is nobody's
 			// duplicate, so dropping it would lose its content entirely.
+			// 该仓库跟踪的是 CLAUDE.md；工作树新增了一个 AGENTS.md，而 loadContextFileFromDir
+			// 会优先选择后者。主仓库的 CLAUDE.md 并不是任何文件的重复项，因此若将其丢弃，
+			// 其内容就会完全丢失。
 			const { main, worktree, worktreeSrc } = setupNestedWorktree();
 			writeFileSync(join(main, "CLAUDE.md"), "main repo instructions");
 			writeFileSync(join(worktree, "AGENTS.md"), "worktree instructions");
@@ -1000,6 +1015,10 @@ export default function(pi: ExtensionAPI) {
 			// `../..`, so dirname(commonGitDir) is `proj` - a plain directory that tracks
 			// nothing. Its AGENTS.md is not a duplicate of the worktree's. Layout below
 			// matches what real git writes for this setup.
+			// `git clone --bare proj/.bare` 加上 `git worktree add ../main` 会使 commondir 为
+			// `../..`，于是 dirname(commonGitDir) 就是 `proj` —— 一个不跟踪任何内容的普通目录。
+			// 它的 AGENTS.md 并不是工作树中那份的重复项。下面的目录布局与真实 git 在此场景下
+			// 写入的结构一致。
 			const proj = join(tempDir, "proj");
 			const bare = join(proj, ".bare");
 			const worktree = join(proj, "main");
@@ -1027,12 +1046,15 @@ export default function(pi: ExtensionAPI) {
 			const files = loadProjectContextFiles({ cwd: worktreeSrc, agentDir });
 
 			// Only the main repo root's duplicate is dropped; the unrelated dir above it stays.
+			// 仅丢弃主仓库根目录下的那份重复项；其上层无关目录中的文件依然保留。
 			expect(files.map((f) => f.content)).toEqual(["outer instructions", "worktree instructions"]);
 		});
 
 		it("should NOT skip anything for a sibling worktree (main repo is not an ancestor)", () => {
 			// git worktree add ../feat puts the worktree beside the main repo, so no
 			// duplicate is ever encountered and ancestors above it are unrelated.
+			// git worktree add ../feat 会把工作树放在主仓库的同级位置，因此根本不会遇到重复项，
+			// 且其上层的祖先目录与主仓库无关。
 			const outer = join(tempDir, "outer");
 			const main = join(outer, "main");
 			const sib = join(outer, "sib-feat");
@@ -1051,6 +1073,8 @@ export default function(pi: ExtensionAPI) {
 		it("should NOT skip the superproject's context from inside a submodule", () => {
 			// A submodule's `.git` file is also `gitdir:`-style, but its gitdir has no
 			// commondir, so it resolves under `.git/modules` - never an ancestor of cwd.
+			// 子模块（submodule）的 `.git` 文件同样是 `gitdir:` 形式，但其 gitdir 中没有 commondir，
+			// 因此会解析到 `.git/modules` 之下 —— 绝不会成为当前工作目录的祖先目录。
 			const sup = join(tempDir, "super");
 			const sub = join(sup, "vendor", "lib");
 			const subSrc = join(sub, "src");

@@ -132,6 +132,7 @@ describe.sequential("Anthropic OAuth", () => {
 		expect(events.some((e) => e.type === "auth_url")).toBe(true);
 		expect(prompts.some((p) => p.type === "manual_code")).toBe(true);
 		// the prompt's signal is aborted once login settles, so UIs can dismiss it
+		// 登录流程结束后,该提示(prompt)的 signal 会被中止,以便 UI 可以关闭它
 		expect(manualSignal?.aborted).toBe(true);
 	});
 });

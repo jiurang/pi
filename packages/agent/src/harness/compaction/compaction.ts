@@ -31,11 +31,20 @@ import {
 	serializeConversation,
 } from "./utils.ts";
 
-/** File-operation details stored on generated compaction entries. */
+/**
+ * File-operation details stored on generated compaction entries.
+ * 存储在生成的上下文压缩（compaction）条目上的文件操作详情。
+ */
 export interface CompactionDetails {
-	/** Files read in the compacted history. */
+	/**
+	 * Files read in the compacted history.
+	 * 在被压缩的历史记录中读取过的文件。
+	 */
 	readFiles: string[];
-	/** Files modified in the compacted history. */
+	/**
+	 * Files modified in the compacted history.
+	 * 在被压缩的历史记录中修改过的文件。
+	 */
 	modifiedFiles: string[];
 }
 function safeJsonStringify(value: unknown): string {
@@ -99,19 +108,40 @@ function getMessageFromEntryForCompaction(entry: SessionTreeEntry): AgentMessage
 	return getMessageFromEntry(entry);
 }
 
-/** Generated compaction data ready to be persisted as a compaction entry. */
+/**
+ * Generated compaction data ready to be persisted as a compaction entry.
+ * 生成的上下文压缩数据，可直接作为压缩（compaction）条目持久化保存。
+ */
 export interface CompactionResult<T = unknown> {
-	/** Summary text that replaces compacted history in future context. */
+	/**
+	 * Summary text that replaces compacted history in future context.
+	 * 在后续上下文中用于替换被压缩历史记录的摘要文本。
+	 */
 	summary: string;
-	/** Entry id where retained history starts. Optional during Pi 2.0 transition. */
+	/**
+	 * Entry id where retained history starts. Optional during Pi 2.0 transition.
+	 * 保留历史记录起始处的条目 id。在 Pi 2.0 过渡期间为可选项。
+	 */
 	firstKeptEntryId?: string;
-	/** Estimated context tokens before compaction. */
+	/**
+	 * Estimated context tokens before compaction.
+	 * 压缩前预估的上下文 token 数。
+	 */
 	tokensBefore: number;
-	/** Usage from the LLM call(s) that generated this summary, if available. */
+	/**
+	 * Usage from the LLM call(s) that generated this summary, if available.
+	 * 生成该摘要的 LLM 调用所产生的用量（usage）信息（如果可用）。
+	 */
 	usage?: Usage;
-	/** Retained recent messages stored directly on the compaction entry. Optional during Pi 2.0 transition. */
+	/**
+	 * Retained recent messages stored directly on the compaction entry. Optional during Pi 2.0 transition.
+	 * 直接存储在压缩条目上的、被保留的近期消息。在 Pi 2.0 过渡期间为可选项。
+	 */
 	retainedTail?: AgentMessage[];
-	/** Optional implementation-specific details stored with the compaction entry. */
+	/**
+	 * Optional implementation-specific details stored with the compaction entry.
+	 * 随压缩条目一起存储的、可选的实现相关详情。
+	 */
 	details?: T;
 }
 
@@ -124,6 +154,7 @@ export async function completeSimpleWithRetries(
 	callbacks?: RetryCallbacks,
 ): Promise<AssistantMessage> {
 	// Summaries are standalone requests, so isolate routing and avoid cache writes that cannot be reused.
+	// 摘要属于独立请求，因此需要隔离路由，并避免产生无法复用的缓存写入。
 	const requestOptions: SimpleStreamOptions = {
 		...options,
 		cacheRetention: "none",
@@ -160,24 +191,42 @@ function combineUsage(first: Usage, second: Usage): Usage {
 	};
 }
 
-/** Compaction thresholds and retention settings. */
+/**
+ * Compaction thresholds and retention settings.
+ * 上下文压缩（compaction）的阈值与保留设置。
+ */
 export interface CompactionSettings {
-	/** Enable automatic compaction decisions. */
+	/**
+	 * Enable automatic compaction decisions.
+	 * 是否启用自动压缩决策。
+	 */
 	enabled: boolean;
-	/** Tokens reserved for summary prompt and output. */
+	/**
+	 * Tokens reserved for summary prompt and output.
+	 * 为摘要提示词和输出预留的 token 数。
+	 */
 	reserveTokens: number;
-	/** Approximate recent-context tokens to keep after compaction. */
+	/**
+	 * Approximate recent-context tokens to keep after compaction.
+	 * 压缩后大致要保留的近期上下文 token 数。
+	 */
 	keepRecentTokens: number;
 }
 
-/** Default compaction settings used by the harness. */
+/**
+ * Default compaction settings used by the harness.
+ * 框架（harness）使用的默认上下文压缩设置。
+ */
 export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
 	enabled: true,
 	reserveTokens: 16384,
 	keepRecentTokens: 20000,
 };
 
-/** Calculate total context tokens from provider usage. */
+/**
+ * Calculate total context tokens from provider usage.
+ * 根据提供方（provider）返回的用量信息计算上下文 token 总数。
+ */
 export function calculateContextTokens(usage: Usage): number {
 	return usage.totalTokens || usage.input + usage.output + usage.cacheRead + usage.cacheWrite;
 }
@@ -196,7 +245,10 @@ function getAssistantUsage(msg: AgentMessage): Usage | undefined {
 	return undefined;
 }
 
-/** Return usage from the last valid assistant message in session entries. */
+/**
+ * Return usage from the last valid assistant message in session entries.
+ * 返回会话条目中最后一条有效助手（assistant）消息的用量信息。
+ */
 export function getLastAssistantUsage(entries: SessionTreeEntry[]): Usage | undefined {
 	for (let i = entries.length - 1; i >= 0; i--) {
 		const entry = entries[i];
@@ -208,15 +260,30 @@ export function getLastAssistantUsage(entries: SessionTreeEntry[]): Usage | unde
 	return undefined;
 }
 
-/** Estimated context-token usage for a message list. */
+/**
+ * Estimated context-token usage for a message list.
+ * 针对一组消息列表的上下文 token 用量估算。
+ */
 export interface ContextUsageEstimate {
-	/** Estimated total context tokens. */
+	/**
+	 * Estimated total context tokens.
+	 * 预估的上下文 token 总数。
+	 */
 	tokens: number;
-	/** Tokens reported by the most recent assistant usage block. */
+	/**
+	 * Tokens reported by the most recent assistant usage block.
+	 * 最近一次助手（assistant）用量数据块上报的 token 数。
+	 */
 	usageTokens: number;
-	/** Estimated tokens after the most recent assistant usage block. */
+	/**
+	 * Estimated tokens after the most recent assistant usage block.
+	 * 最近一次助手用量数据块之后的预估 token 数。
+	 */
 	trailingTokens: number;
-	/** Index of the message that provided usage, or null when none exists. */
+	/**
+	 * Index of the message that provided usage, or null when none exists.
+	 * 提供了用量信息的消息索引；若不存在则为 null。
+	 */
 	lastUsageIndex: number | null;
 }
 
@@ -228,7 +295,10 @@ function getLastAssistantUsageInfo(messages: AgentMessage[]): { usage: Usage; in
 	return undefined;
 }
 
-/** Estimate context tokens for messages using provider usage when available. */
+/**
+ * Estimate context tokens for messages using provider usage when available.
+ * 估算消息的上下文 token 数，在可用时优先使用提供方（provider）的用量数据。
+ */
 export function estimateContextTokens(messages: AgentMessage[]): ContextUsageEstimate {
 	const usageInfo = getLastAssistantUsageInfo(messages);
 
@@ -259,7 +329,10 @@ export function estimateContextTokens(messages: AgentMessage[]): ContextUsageEst
 	};
 }
 
-/** Return whether context usage exceeds the configured compaction threshold. */
+/**
+ * Return whether context usage exceeds the configured compaction threshold.
+ * 返回上下文用量是否已超过配置的压缩（compaction）阈值。
+ */
 export function shouldCompact(contextTokens: number, contextWindow: number, settings: CompactionSettings): boolean {
 	if (!settings.enabled) return false;
 	return contextTokens > contextWindow - settings.reserveTokens;
@@ -283,7 +356,10 @@ function estimateTextAndImageContentChars(content: string | Array<{ type: string
 	return chars;
 }
 
-/** Estimate token count for one message using a conservative character heuristic. */
+/**
+ * Estimate token count for one message using a conservative character heuristic.
+ * 使用保守的字符启发式规则估算单条消息的 token 数量。
+ */
 export function estimateTokens(message: AgentMessage): number {
 	let chars = 0;
 
@@ -365,7 +441,10 @@ function findValidCutPoints(entries: SessionTreeEntry[], startIndex: number, end
 	return cutPoints;
 }
 
-/** Find the user-visible message that starts the turn containing an entry. */
+/**
+ * Find the user-visible message that starts the turn containing an entry.
+ * 查找开启某个条目所在轮次（turn）的、对用户可见的那条消息。
+ */
 export function findTurnStartIndex(entries: SessionTreeEntry[], entryIndex: number, startIndex: number): number {
 	for (let i = entryIndex; i >= startIndex; i--) {
 		const entry = entries[i];
@@ -382,17 +461,32 @@ export function findTurnStartIndex(entries: SessionTreeEntry[], entryIndex: numb
 	return -1;
 }
 
-/** Cut point selected for compaction. */
+/**
+ * Cut point selected for compaction.
+ * 为上下文压缩（compaction）选定的切分点。
+ */
 export interface CutPointResult {
-	/** Index of the first entry retained after compaction. */
+	/**
+	 * Index of the first entry retained after compaction.
+	 * 压缩后所保留的第一个条目的索引。
+	 */
 	firstKeptEntryIndex: number;
-	/** Index of the turn-start entry when the cut splits a turn, otherwise -1. */
+	/**
+	 * Index of the turn-start entry when the cut splits a turn, otherwise -1.
+	 * 当切分点将某个轮次（turn）截断时，为该轮次起始条目的索引；否则为 -1。
+	 */
 	turnStartIndex: number;
-	/** Whether the selected cut point splits an in-progress turn. */
+	/**
+	 * Whether the selected cut point splits an in-progress turn.
+	 * 选定的切分点是否会截断一个进行中的轮次。
+	 */
 	isSplitTurn: boolean;
 }
 
-/** Find the compaction cut point that keeps approximately the requested recent-token budget. */
+/**
+ * Find the compaction cut point that keeps approximately the requested recent-token budget.
+ * 查找压缩切分点，使其大致保留所要求的近期 token 预算。
+ */
 export function findCutPoint(
 	entries: SessionTreeEntry[],
 	startIndex: number,
@@ -519,7 +613,10 @@ Use this EXACT format:
 
 Keep each section concise. Preserve exact file paths, function names, and error messages.`;
 
-/** Generate or update a conversation summary for compaction. */
+/**
+ * Generate or update a conversation summary for compaction.
+ * 为上下文压缩生成或更新对话摘要。
+ */
 export async function generateSummary(
 	currentMessages: AgentMessage[],
 	models: Models,
@@ -547,7 +644,10 @@ export async function generateSummary(
 	return result.ok ? ok(result.value.text) : err(result.error);
 }
 
-/** Generate or update a conversation summary and return its provider usage. */
+/**
+ * Generate or update a conversation summary and return its provider usage.
+ * 生成或更新对话摘要，并返回其提供方（provider）用量信息。
+ */
 export async function generateSummaryWithUsage(
 	currentMessages: AgentMessage[],
 	models: Models,
@@ -614,29 +714,62 @@ export async function generateSummaryWithUsage(
 	return ok({ text: textContent, usage: response.usage });
 }
 
-/** Prepared inputs for a compaction run. */
+/**
+ * Prepared inputs for a compaction run.
+ * 一次上下文压缩执行所需的、已准备好的输入数据。
+ */
 export interface CompactionPreparation {
-	/** Entry id where retained history starts. */
+	/**
+	 * Entry id where retained history starts.
+	 * 保留历史记录起始处的条目 id。
+	 */
 	firstKeptEntryId: string;
-	/** Messages summarized into the history summary. */
+	/**
+	 * Messages summarized into the history summary.
+	 * 被汇总进历史摘要中的消息。
+	 */
 	messagesToSummarize: AgentMessage[];
-	/** Prefix messages summarized separately when compaction splits a turn. */
+	/**
+	 * Prefix messages summarized separately when compaction splits a turn.
+	 * 当压缩截断某个轮次（turn）时，被单独摘要的前缀消息。
+	 */
 	turnPrefixMessages: AgentMessage[];
-	/** Recent messages retained after compaction and stored on the compaction entry. */
+	/**
+	 * Recent messages retained after compaction and stored on the compaction entry.
+	 * 压缩后保留、并存储在压缩条目上的近期消息。
+	 */
 	retainedTail: AgentMessage[];
-	/** Whether compaction splits a turn. */
+	/**
+	 * Whether compaction splits a turn.
+	 * 本次压缩是否会截断某个轮次。
+	 */
 	isSplitTurn: boolean;
-	/** Estimated context tokens before compaction. */
+	/**
+	 * Estimated context tokens before compaction.
+	 * 压缩前预估的上下文 token 数。
+	 */
 	tokensBefore: number;
-	/** Previous compaction summary used for iterative updates. */
+	/**
+	 * Previous compaction summary used for iterative updates.
+	 * 用于迭代更新的上一次压缩摘要。
+	 */
 	previousSummary?: string;
-	/** File operations extracted from summarized history. */
+	/**
+	 * File operations extracted from summarized history.
+	 * 从被摘要的历史记录中提取出的文件操作。
+	 */
 	fileOps: FileOperations;
-	/** Settings used to prepare compaction. */
+	/**
+	 * Settings used to prepare compaction.
+	 * 用于准备本次压缩的设置。
+	 */
 	settings: CompactionSettings;
 }
 
-/** Prepare session entries for compaction, or return undefined when compaction is not applicable. */
+/**
+ * Prepare session entries for compaction, or return undefined when compaction is not applicable.
+ * 为上下文压缩准备会话条目；当不适用压缩时返回 undefined。
+ */
 export function prepareCompaction(
 	pathEntries: SessionTreeEntry[],
 	settings: CompactionSettings,
@@ -729,7 +862,10 @@ Be concise. Focus on what's needed to understand the kept suffix.`;
 
 export { serializeConversation } from "./utils.ts";
 
-/** Generate compaction summary data from prepared session history. */
+/**
+ * Generate compaction summary data from prepared session history.
+ * 根据准备好的会话历史生成上下文压缩摘要数据。
+ */
 export async function compact(
 	preparation: CompactionPreparation,
 	models: Models,

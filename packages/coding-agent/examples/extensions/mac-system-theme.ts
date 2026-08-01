@@ -1,7 +1,9 @@
 /**
  * Syncs pi theme with macOS system appearance (dark/light mode).
+ * 使 pi 的主题(theme)与 macOS 系统外观（深色/浅色模式）保持同步。
  *
  * Usage:
+ * 用法：
  *   pi -e examples/extensions/mac-system-theme.ts
  */
 

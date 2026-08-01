@@ -1,5 +1,7 @@
 // Requires GitHub CLI (`gh`) and a GitHub repository checkout.
+// 需要 GitHub CLI（`gh`）以及一个已检出（checkout）的 GitHub 仓库。
 // Preloads the latest open issues once per session, then filters them locally for fast `#...` completion.
+// 每个会话预加载一次最新的开放 issue，然后在本地过滤，以实现快速的 `#...` 补全。
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {

@@ -23,6 +23,7 @@ export function loadClipboardNative(
 			return requireClipboard("@mariozechner/clipboard") as ClipboardModule;
 		} catch {
 			// Try the next resolution root.
+			// 尝试下一个模块解析根目录。
 		}
 	}
 	return null;

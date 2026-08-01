@@ -3,15 +3,30 @@ import { type ExecutionEnv, type FileInfo, type PromptTemplate, type Result, toE
 
 export type PromptTemplateDiagnosticCode = "file_info_failed" | "list_failed" | "read_failed" | "parse_failed";
 
-/** Warning produced while loading prompt templates. */
+/**
+ * Warning produced while loading prompt templates.
+ * 加载提示词模板（prompt template）过程中产生的警告。
+ */
 export interface PromptTemplateDiagnostic {
-	/** Diagnostic severity. Currently only warnings are emitted. */
+	/**
+	 * Diagnostic severity. Currently only warnings are emitted.
+	 * 诊断信息的严重级别。目前仅会产生警告（warning）。
+	 */
 	type: "warning";
-	/** Stable diagnostic code. */
+	/**
+	 * Stable diagnostic code.
+	 * 稳定的诊断码。
+	 */
 	code: PromptTemplateDiagnosticCode;
-	/** Human-readable diagnostic message. */
+	/**
+	 * Human-readable diagnostic message.
+	 * 可供人阅读的诊断消息。
+	 */
 	message: string;
-	/** Path associated with the diagnostic. */
+	/**
+	 * Path associated with the diagnostic.
+	 * 与该诊断信息关联的路径。
+	 */
 	path: string;
 }
 
@@ -23,9 +38,12 @@ interface PromptTemplateFrontmatter {
 
 /**
  * Load prompt templates from one or more paths.
+ * 从一个或多个路径加载提示词模板（prompt template）。
  *
  * Directory inputs load direct `.md` children non-recursively. File inputs load explicit `.md` files. Missing paths and
  * non-markdown files are skipped. Read and parse failures are returned as diagnostics.
+ * 若输入为目录，则以非递归方式加载其直接子级的 `.md` 文件；若输入为文件，则加载指定的 `.md` 文件。不存在的路径和
+ * 非 markdown 文件将被跳过。读取和解析失败会以诊断信息（diagnostics）的形式返回。
  */
 export async function loadPromptTemplates(
 	env: ExecutionEnv,
@@ -63,9 +81,12 @@ export async function loadPromptTemplates(
 
 /**
  * Load prompt templates from source-tagged paths.
+ * 从带有来源（source）标记的路径加载提示词模板。
  *
  * Source values are preserved exactly and attached to every loaded prompt template and diagnostic. The agent package does
  * not interpret source values; applications define their own provenance shape.
+ * 来源值会被原样保留，并附加到每个加载出的提示词模板和诊断信息上。agent 包不会解释来源值；由应用自行定义其来源
+ * 溯源（provenance）结构。
  */
 export async function loadSourcedPromptTemplates<TSource, TPromptTemplate extends PromptTemplate = PromptTemplate>(
 	env: ExecutionEnv,
@@ -219,7 +240,10 @@ function basenameEnvPath(path: string): string {
 	return slashIndex === -1 ? normalized : normalized.slice(slashIndex + 1);
 }
 
-/** Parse an argument string using simple shell-style single and double quotes. */
+/**
+ * Parse an argument string using simple shell-style single and double quotes.
+ * 按照简单的 shell 风格单引号和双引号规则解析参数字符串。
+ */
 export function parseCommandArgs(argsString: string): string[] {
 	const args: string[] = [];
 	let current = "";
@@ -245,7 +269,10 @@ export function parseCommandArgs(argsString: string): string[] {
 	return args;
 }
 
-/** Substitute prompt template placeholders (`$1`, `$@`, `$ARGUMENTS`, `${@:N}`, `${@:N:L}`) with command arguments. */
+/**
+ * Substitute prompt template placeholders (`$1`, `$@`, `$ARGUMENTS`, `${@:N}`, `${@:N:L}`) with command arguments.
+ * 使用命令参数替换提示词模板中的占位符（`$1`、`$@`、`$ARGUMENTS`、`${@:N}`、`${@:N:L}`）。
+ */
 export function substituteArgs(content: string, args: string[]): string {
 	let result = content;
 	result = result.replace(/\$(\d+)/g, (_, num: string) => args[parseInt(num, 10) - 1] ?? "");
@@ -261,7 +288,10 @@ export function substituteArgs(content: string, args: string[]): string {
 	return result;
 }
 
-/** Format a prompt template invocation with positional arguments. */
+/**
+ * Format a prompt template invocation with positional arguments.
+ * 使用位置参数格式化一次提示词模板调用。
+ */
 export function formatPromptTemplateInvocation(template: PromptTemplate, args: string[] = []): string {
 	return substituteArgs(template.content, args);
 }

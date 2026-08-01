@@ -56,8 +56,10 @@ describe("canonicalizePath", () => {
 		const target = join(dir, "target.txt");
 		const link = join(dir, "link.txt");
 		// Create a symlink whose target does not exist.
+		// 创建一个目标不存在的符号链接。
 		symlinkSync(target, link);
 		// realpathSync would throw, so canonicalizePath returns the link path.
+		// realpathSync 会抛出异常，因此 canonicalizePath 返回链接自身的路径。
 		expect(canonicalizePath(link)).toBe(link);
 	});
 });

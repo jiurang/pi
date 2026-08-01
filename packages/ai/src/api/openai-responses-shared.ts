@@ -43,6 +43,7 @@ import { transformMessages } from "./transform-messages.ts";
 
 // =============================================================================
 // Utilities
+// 工具函数
 // =============================================================================
 
 function encodeTextSignatureV1(id: string, phase?: TextSignatureV1["phase"]): string {
@@ -66,6 +67,7 @@ function parseTextSignature(
 			}
 		} catch {
 			// Fall through to legacy plain-string handling.
+			// 继续走旧版纯字符串的处理逻辑。
 		}
 	}
 	return { id: signature };
@@ -131,6 +133,7 @@ export interface ConvertResponsesToolsOptions {
 
 // =============================================================================
 // Message conversion
+// 消息(message)转换
 // =============================================================================
 
 export function convertResponsesMessages<TApi extends Api>(
@@ -161,6 +164,7 @@ export function convertResponsesMessages<TApi extends Api>(
 		const isForeignToolCall = source.provider !== model.provider || source.api !== model.api;
 		let normalizedItemId = isForeignToolCall ? buildForeignResponsesItemId(itemId) : normalizeIdPart(itemId);
 		// OpenAI Responses API requires item id to start with "fc"
+		// OpenAI Responses API 要求 item id 必须以 "fc" 开头
 		if (!normalizedItemId.startsWith("fc_")) {
 			normalizedItemId = normalizeIdPart(`fc_${normalizedItemId}`);
 		}
@@ -229,6 +233,7 @@ export function convertResponsesMessages<TApi extends Api>(
 						textBlockIndex === 0 ? `msg_pi_${msgIndex}` : `msg_pi_${msgIndex}_${textBlockIndex}`;
 					textBlockIndex++;
 					// OpenAI requires id to be max 64 characters
+					// OpenAI 要求 id 最长为 64 个字符
 					let msgId = parsedSignature?.id;
 					if (!msgId) {
 						msgId = fallbackMessageId;
@@ -250,10 +255,15 @@ export function convertResponsesMessages<TApi extends Api>(
 					let itemId: string | undefined = itemIdRaw;
 
 					// For different-model messages, set id to undefined to avoid pairing validation.
+					// 对于来自不同模型的消息,将 id 置为 undefined 以避免配对校验。
 					// OpenAI tracks which fc_xxx IDs were paired with rs_xxx reasoning items.
+					// OpenAI 会追踪哪些 fc_xxx ID 与 rs_xxx 推理(reasoning)条目相配对。
 					// By omitting the id, we avoid triggering that validation (like cross-provider does).
+					// 省略该 id 即可避免触发这项校验(与跨供应商场景的处理方式一致)。
 					// When replaying custom-tool calls as a function_call, also drop non-fc_* ids such as
 					// ctc_* custom-tool ids because function_call item ids must be fc_*.
+					// 当把自定义工具调用(custom-tool call)作为 function_call 回放时,还需丢弃诸如
+					// ctc_* 这类非 fc_* 的自定义工具 id,因为 function_call 条目的 id 必须是 fc_*。
 					if (
 						(isDifferentModel && itemId?.startsWith("fc_")) ||
 						(customInputProperty === undefined && !itemId?.startsWith("fc_"))
@@ -339,6 +349,7 @@ export function convertResponsesMessages<TApi extends Api>(
 
 // =============================================================================
 // Tool conversion
+// 工具(tool)转换
 // =============================================================================
 
 export function convertResponsesTools(tools: readonly Tool[], options?: ConvertResponsesToolsOptions): OpenAITool[] {
@@ -370,6 +381,7 @@ export function convertResponsesTools(tools: readonly Tool[], options?: ConvertR
 			name: tool.name,
 			description: tool.description,
 			parameters: tool.parameters as Record<string, unknown>, // TypeBox already generates JSON Schema
+			// TypeBox 已经生成了 JSON Schema
 			...(options?.deferLoading ? { defer_loading: true } : {}),
 		};
 		if (supportsStrictMode) {
@@ -381,6 +393,7 @@ export function convertResponsesTools(tools: readonly Tool[], options?: ConvertR
 
 // =============================================================================
 // Stream processing
+// 流式(stream)处理
 // =============================================================================
 
 type StreamingToolCall = ToolCall & {
@@ -516,6 +529,10 @@ export async function processResponsesStream<TApi extends Api>(
 	// and provide it only in response.completed.response.output. Backfill the
 	// persisted reasoning signature from the terminal response to keep store:false
 	// multi-turn replay stateless. See https://github.com/earendil-works/pi/issues/6409.
+	// Azure OpenAI 可能在 response.output_item.done 中省略 reasoning.encrypted_content,
+	// 而仅在 response.completed.response.output 中提供它。此处根据终结响应回填已持久化的
+	// 推理(reasoning)签名,以保证 store:false 下的多轮回放(replay)是无状态的。
+	// 参见 https://github.com/earendil-works/pi/issues/6409。
 	const backfillReasoningSignatures = (responseOutput: ResponseOutputItem[]): void => {
 		for (const item of responseOutput) {
 			if (item.type !== "reasoning" || !item.encrypted_content) continue;
@@ -546,6 +563,7 @@ export async function processResponsesStream<TApi extends Api>(
 			const cacheWriteTokens = inputDetails?.cache_write_tokens || 0;
 			output.usage = {
 				// OpenAI includes cached and cache-write tokens in input_tokens, so subtract both.
+				// OpenAI 会把缓存读取和缓存写入的 token 都计入 input_tokens,因此需要减去这两部分。
 				input: Math.max(0, (response.usage.input_tokens || 0) - cachedTokens - cacheWriteTokens),
 				output: response.usage.output_tokens || 0,
 				cacheRead: cachedTokens,
@@ -563,6 +581,7 @@ export async function processResponsesStream<TApi extends Api>(
 			options.applyServiceTierPricing(output.usage, serviceTier);
 		}
 		// Map status to stop reason
+		// 将 status 映射为停止原因(stop reason)
 		const status = response?.status;
 		output.rawStopReason = status;
 		output.stopReason = mapStopReason(status);
@@ -690,6 +709,7 @@ export async function processResponsesStream<TApi extends Api>(
 				slot.block.arguments = parseStreamingJson(item.arguments || slot.block.partialJson || "{}");
 				// Finalize in-place and strip the scratch buffer so replay only
 				// carries parsed arguments.
+				// 就地完成定稿并清除临时缓冲区,使得回放(replay)时只携带已解析的参数。
 				delete slot.block.partialJson;
 				stream.push({
 					type: "toolcall_end",
@@ -745,6 +765,7 @@ function mapStopReason(status: OpenAI.Responses.ResponseStatus | undefined): Sto
 		case "cancelled":
 			return "error";
 		// These two are wonky ...
+		// 这两种状态比较古怪……
 		case "in_progress":
 		case "queued":
 			return "stop";

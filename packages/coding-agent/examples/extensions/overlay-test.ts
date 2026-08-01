@@ -1,11 +1,16 @@
 /**
  * Overlay Test - validates overlay compositing with inline text inputs
+ * 浮层（overlay）测试 —— 验证含内联文本输入框的浮层合成渲染。
  *
  * Usage: pi --extension ./examples/extensions/overlay-test.ts
+ * 用法：pi --extension ./examples/extensions/overlay-test.ts
  *
  * Run /overlay-test to show a floating overlay with:
+ * 运行 /overlay-test 会展示一个浮动浮层，其中包含：
  * - Inline text inputs within menu items
+ * - 菜单项内的内联文本输入框
  * - Edge case tests (wide chars, styled text, emoji)
+ * - 边界情况测试（宽字符、带样式文本、emoji）
  */
 
 import type { ExtensionAPI, ExtensionCommandContext, Theme } from "@earendil-works/pi-coding-agent";
@@ -31,7 +36,8 @@ export default function (pi: ExtensionAPI) {
 class OverlayTestComponent implements Focusable {
 	readonly width = 70;
 
-	/** Focusable interface - set by TUI when focus changes */
+	/** Focusable interface - set by TUI when focus changes
+	 *  Focusable 接口成员 —— 焦点变化时由 TUI 设置 */
 	focused = false;
 
 	private selected = 0;
@@ -102,6 +108,7 @@ class OverlayTestComponent implements Focusable {
 		lines.push(row(""));
 
 		// Edge cases - full width lines to test compositing at boundaries
+		// 边界情况 —— 使用满宽行来测试边界处的合成渲染
 		lines.push(row(` ${th.fg("dim", "─── Edge Cases (borders should align) ───")}`));
 		lines.push(row(` Wide: ${th.fg("warning", "中文日本語한글テスト漢字繁體简体ひらがなカタカナ가나다라마바")}`));
 		lines.push(
@@ -113,6 +120,7 @@ class OverlayTestComponent implements Focusable {
 		lines.push(row(""));
 
 		// Menu with inline inputs
+		// 带内联输入框的菜单
 		lines.push(row(` ${th.fg("dim", "─── Actions ───")}`));
 
 		for (let i = 0; i < this.items.length; i++) {
@@ -130,6 +138,7 @@ class OverlayTestComponent implements Focusable {
 					const cursorChar = item.cursor < inputDisplay.length ? inputDisplay[item.cursor] : " ";
 					const after = inputDisplay.slice(item.cursor + 1);
 					// Emit hardware cursor marker for IME support when focused
+					// 获得焦点时输出硬件光标标记，以支持输入法（IME）
 					const marker = this.focused ? CURSOR_MARKER : "";
 					inputDisplay = `${before}${marker}\x1b[7m${cursorChar}\x1b[27m${after}`;
 				}

@@ -1,5 +1,6 @@
 /**
  * Reusable countdown timer for dialog components.
+ * 供对话框组件复用的倒计时计时器。
  */
 
 import type { TUI } from "@earendil-works/pi-tui";

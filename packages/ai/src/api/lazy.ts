@@ -40,7 +40,9 @@ async function forwardStream(
 
 /**
  * Returns a stream synchronously while running async setup (auth resolution,
+ * 同步返回一个流（stream），同时在其后台执行异步初始化（认证解析、
  * lazy module loading) behind it. Setup failures terminate the stream with an
+ * 惰性模块加载）。初始化失败会以一个 error 事件终止该流。
  * error event.
  */
 export function lazyStream(
@@ -62,8 +64,11 @@ export function lazyStream(
 
 /**
  * Wraps a dynamically imported API implementation module as `ProviderStreams`.
+ * 将动态导入的 API 实现模块包装为 `ProviderStreams`。
  * The module loads on first stream call; the host's import cache deduplicates
+ * 该模块在首次调用 stream 时加载；宿主环境的导入缓存会对重复加载去重。
  * loads. Load failures terminate the returned stream with an error event.
+ * 加载失败会以一个 error 事件终止返回的流。
  */
 export function lazyApi(load: () => Promise<ProviderStreams>): ProviderStreams {
 	return {

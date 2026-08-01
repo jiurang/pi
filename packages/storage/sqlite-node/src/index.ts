@@ -71,6 +71,7 @@ class NodeSqliteDatabase implements SqliteDatabase {
 				this.db.exec("ROLLBACK");
 			} catch {
 				// Ignore rollback errors to rethrow original error.
+				// 忽略回滚（rollback）过程中的错误，以便重新抛出原始错误。
 			}
 			throw error;
 		}
@@ -94,4 +95,5 @@ export function createNodeSqliteFactory(): SqliteDatabaseFactory {
 }
 
 // Re-export the SQLite session storage backend and types so this package is a complete node-sqlite backend.
+// 重新导出 SQLite 会话存储层后端及其类型，使本包成为一个完整的 node-sqlite 后端。
 export * from "./sqlite/index.ts";

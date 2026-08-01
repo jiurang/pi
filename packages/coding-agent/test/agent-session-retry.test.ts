@@ -234,9 +234,13 @@ describe("AgentSession retry", () => {
 
 	it("prompt waits for full agent loop when retry produces tool calls", async () => {
 		// Regression: when auto-retry fires and the retry response includes tool_use,
+		// 回归测试:当自动重试触发且重试响应中包含 tool_use 时,
 		// session.prompt() must wait for the entire tool loop to finish before returning.
+		// session.prompt() 必须等待整个工具循环结束后才能返回。
 		// Previously, _resolveRetry() on the first successful message_end would unblock
 		// waitForRetry() while the agent was still executing tools.
+		// 此前,首个成功的 message_end 上的 _resolveRetry() 会在 agent 仍在执行工具时,
+		// 就提前解除 waitForRetry() 的阻塞。
 		let callCount = 0;
 		const toolExecuted = { value: false };
 
@@ -261,6 +265,7 @@ describe("AgentSession retry", () => {
 				queueMicrotask(() => {
 					if (callCount === 1) {
 						// First call: overloaded error
+						// 第一次调用:过载(overloaded)错误
 						const msg = createAssistantMessage("", {
 							stopReason: "error",
 							errorMessage: "overloaded_error",
@@ -269,6 +274,7 @@ describe("AgentSession retry", () => {
 						stream.push({ type: "error", reason: "error", error: msg });
 					} else if (callCount === 2) {
 						// Second call (retry): text + tool_use
+						// 第二次调用(重试):文本 + tool_use
 						const msg: AssistantMessage = {
 							...createAssistantMessage("Looking that up now."),
 							stopReason: "toolUse",
@@ -281,6 +287,7 @@ describe("AgentSession retry", () => {
 						stream.push({ type: "done", reason: "toolUse", message: msg });
 					} else {
 						// Third call (after tool result): final response
+						// 第三次调用(工具结果返回后):最终响应
 						const msg = createAssistantMessage("Final answer.");
 						stream.push({ type: "start", partial: msg });
 						stream.push({ type: "done", reason: "stop", message: msg });
@@ -310,12 +317,16 @@ describe("AgentSession retry", () => {
 		await session.prompt("Test");
 
 		// All three LLM calls must have completed
+		// 三次 LLM 调用都必须已完成
 		expect(callCount).toBe(3);
 		// Tool must have been executed
+		// 工具必须已被执行
 		expect(toolExecuted.value).toBe(true);
 		// Agent must not be streaming after prompt returns
+		// prompt 返回后,agent 不应仍处于流式输出状态
 		expect(session.isStreaming).toBe(false);
 		// A follow-up prompt must work (no "Agent is already processing" error)
+		// 后续的 prompt 必须能正常工作(不出现 "Agent is already processing" 错误)
 		await session.prompt("Follow-up");
 		expect(callCount).toBe(4);
 	});

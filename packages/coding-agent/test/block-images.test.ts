@@ -7,6 +7,7 @@ import { SettingsManager } from "../src/core/settings-manager.ts";
 import { createReadTool } from "../src/core/tools/read.ts";
 
 // 1x1 red PNG image as base64 (smallest valid PNG)
+// 以 base64 表示的 1x1 红色 PNG 图片（体积最小的合法 PNG）
 const TINY_PNG_BASE64 =
 	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
 
@@ -72,6 +73,7 @@ describe("blockImages setting", () => {
 
 		it("should always read images (filtering happens at convertToLlm layer)", async () => {
 			// Create test image
+			// 创建测试用图片
 			const imagePath = join(testDir, "test.png");
 			writeFileSync(imagePath, Buffer.from(TINY_PNG_BASE64, "base64"));
 
@@ -79,6 +81,7 @@ describe("blockImages setting", () => {
 			const result = await tool.execute("test-1", { path: imagePath });
 
 			// Should have text note + image content
+			// 结果中应同时包含文本说明与图片内容
 			expect(result.content.length).toBeGreaterThanOrEqual(1);
 			const hasImage = result.content.some((c) => c.type === "image");
 			expect(hasImage).toBe(true);
@@ -86,6 +89,7 @@ describe("blockImages setting", () => {
 
 		it("should read text files normally", async () => {
 			// Create test text file
+			// 创建测试用文本文件
 			const textPath = join(testDir, "test.txt");
 			writeFileSync(textPath, "Hello, world!");
 
@@ -113,6 +117,7 @@ describe("blockImages setting", () => {
 
 		it("should always process images (filtering happens at convertToLlm layer)", async () => {
 			// Create test image
+			// 创建测试用图片
 			const imagePath = join(testDir, "test.png");
 			writeFileSync(imagePath, Buffer.from(TINY_PNG_BASE64, "base64"));
 
@@ -136,6 +141,7 @@ describe("blockImages setting", () => {
 
 		it("should process text files normally", async () => {
 			// Create test text file
+			// 创建测试用文本文件
 			const textPath = join(testDir, "test.txt");
 			writeFileSync(textPath, "Hello, world!");
 

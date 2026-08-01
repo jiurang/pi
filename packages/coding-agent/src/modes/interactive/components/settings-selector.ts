@@ -116,6 +116,7 @@ export interface SettingsCallbacks {
 
 /**
  * A submenu component for selecting from a list of options.
+ * 用于从选项列表中进行选择的子菜单组件。
  */
 class WarningSettingsSubmenu extends Container {
 	private settingsList: SettingsList;
@@ -174,18 +175,22 @@ class SelectSubmenu extends Container {
 		super();
 
 		// Title
+		// 标题
 		this.addChild(new Text(theme.bold(theme.fg("accent", title)), 0, 0));
 
 		// Description
+		// 描述
 		if (description) {
 			this.addChild(new Spacer(1));
 			this.addChild(new Text(theme.fg("muted", description), 0, 0));
 		}
 
 		// Spacer
+		// 间隔
 		this.addChild(new Spacer(1));
 
 		// Select list
+		// 选择列表
 		this.selectList = new SelectList(
 			options,
 			Math.min(options.length, 10),
@@ -194,6 +199,7 @@ class SelectSubmenu extends Container {
 		);
 
 		// Pre-select current value
+		// 预先选中当前值
 		const currentIndex = options.findIndex((o) => o.value === currentValue);
 		if (currentIndex !== -1) {
 			this.selectList.setSelectedIndex(currentIndex);
@@ -214,6 +220,7 @@ class SelectSubmenu extends Container {
 		this.addChild(this.selectList);
 
 		// Hint
+		// 提示
 		this.addChild(new Spacer(1));
 		this.addChild(new Text(theme.fg("dim", "  Enter to select · Esc to go back"), 0, 0));
 	}
@@ -468,6 +475,7 @@ class ThemeSubmenu extends Container {
 
 /**
  * Main settings selector component.
+ * 主设置选择器组件。
  */
 export class SettingsSelectorComponent extends Container {
 	private settingsList: SettingsList;
@@ -621,8 +629,10 @@ export class SettingsSelectorComponent extends Container {
 		];
 
 		// Only show image toggle if terminal supports it
+		// 仅在终端支持图片时才显示图片开关
 		if (supportsImages) {
 			// Insert after autocompact
+			// 插入到 autocompact 之后
 			items.splice(1, 0, {
 				id: "show-images",
 				label: "Show images",
@@ -640,6 +650,7 @@ export class SettingsSelectorComponent extends Container {
 		}
 
 		// Image auto-resize toggle (always available, affects both attached and read images)
+		// 图片自动缩放开关（始终可用，同时影响附件图片和读取的图片）
 		items.splice(supportsImages ? 3 : 1, 0, {
 			id: "auto-resize-images",
 			label: "Auto-resize images",
@@ -649,6 +660,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Block images toggle (always available, insert after auto-resize-images)
+		// 屏蔽图片开关（始终可用，插入到 auto-resize-images 之后）
 		const autoResizeIndex = items.findIndex((item) => item.id === "auto-resize-images");
 		items.splice(autoResizeIndex + 1, 0, {
 			id: "block-images",
@@ -659,6 +671,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Skill commands toggle (insert after block-images)
+		// 技能（skill）命令开关（插入到 block-images 之后）
 		const blockImagesIndex = items.findIndex((item) => item.id === "block-images");
 		items.splice(blockImagesIndex + 1, 0, {
 			id: "skill-commands",
@@ -669,6 +682,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Hardware cursor toggle (insert after skill-commands)
+		// 硬件光标开关（插入到 skill-commands 之后）
 		const skillCommandsIndex = items.findIndex((item) => item.id === "skill-commands");
 		items.splice(skillCommandsIndex + 1, 0, {
 			id: "show-hardware-cursor",
@@ -679,6 +693,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Editor padding toggle (insert after show-hardware-cursor)
+		// 编辑器内边距开关（插入到 show-hardware-cursor 之后）
 		const hardwareCursorIndex = items.findIndex((item) => item.id === "show-hardware-cursor");
 		items.splice(hardwareCursorIndex + 1, 0, {
 			id: "editor-padding",
@@ -689,6 +704,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Output padding toggle (insert after editor-padding)
+		// 输出内边距开关（插入到 editor-padding 之后）
 		const editorPaddingIndex = items.findIndex((item) => item.id === "editor-padding");
 		items.splice(editorPaddingIndex + 1, 0, {
 			id: "output-padding",
@@ -699,6 +715,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Autocomplete max visible toggle (insert after output-padding)
+		// 自动补全最大可见条目数开关（插入到 output-padding 之后）
 		const outputPaddingIndex = items.findIndex((item) => item.id === "output-padding");
 		items.splice(outputPaddingIndex + 1, 0, {
 			id: "autocomplete-max-visible",
@@ -709,6 +726,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Clear on shrink toggle (insert after autocomplete-max-visible)
+		// 内容收缩时清屏开关（插入到 autocomplete-max-visible 之后）
 		const autocompleteIndex = items.findIndex((item) => item.id === "autocomplete-max-visible");
 		items.splice(autocompleteIndex + 1, 0, {
 			id: "clear-on-shrink",
@@ -719,6 +737,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Terminal progress toggle (insert after clear-on-shrink)
+		// 终端进度指示开关（插入到 clear-on-shrink 之后）
 		const clearOnShrinkIndex = items.findIndex((item) => item.id === "clear-on-shrink");
 		items.splice(clearOnShrinkIndex + 1, 0, {
 			id: "terminal-progress",
@@ -729,6 +748,7 @@ export class SettingsSelectorComponent extends Container {
 		});
 
 		// Add borders
+		// 添加边框
 		this.addChild(new DynamicBorder());
 
 		this.settingsList = new SettingsList(

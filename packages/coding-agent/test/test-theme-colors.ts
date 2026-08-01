@@ -2,6 +2,7 @@ import fs from "fs";
 import { initTheme, theme } from "../src/modes/interactive/theme/theme.ts";
 
 // --- Color utilities ---
+// --- 颜色工具函数 ---
 
 function hexToRgb(hex: string): [number, number, number] {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -119,6 +120,7 @@ function fgAnsi(hex: string): string {
 const reset = "\x1b[0m";
 
 // --- Commands ---
+// --- 命令 ---
 
 function cmdContrast(targetContrast: number): void {
 	const baseColors = {
@@ -229,6 +231,7 @@ function cmdTheme(themeName: string): void {
 }
 
 // --- Main ---
+// --- 主入口 ---
 
 const [cmd, arg] = process.argv.slice(2);
 

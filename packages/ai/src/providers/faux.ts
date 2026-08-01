@@ -512,6 +512,7 @@ export function createFauxCore(options: RegisterFauxProviderOptions) {
 
 /**
  * Faux provider for tests built on explicit `Models` collections:
+ * 用于测试的伪造（faux）提供方（provider），基于显式创建的 `Models` 集合构建：
  *
  * ```ts
  * const faux = fauxProvider();

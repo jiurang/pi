@@ -7,6 +7,7 @@ import { keyHint } from "./keybinding-hints.ts";
 
 /**
  * Login dialog component - replaces editor during OAuth login flow
+ * 登录对话框组件 —— 在 OAuth 登录流程期间取代编辑器
  */
 export class LoginDialogComponent extends Container implements Focusable {
 	private contentContainer: Container;
@@ -18,6 +19,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 	private onComplete: (success: boolean, message?: string) => void;
 
 	// Focusable implementation - propagate to input for IME cursor positioning
+	// Focusable 接口的实现 —— 将焦点状态传递给输入框,以便正确定位输入法(IME)光标
 	private _focused = false;
 	get focused(): boolean {
 		return this._focused;
@@ -42,16 +44,20 @@ export class LoginDialogComponent extends Container implements Focusable {
 		const title = titleOverride ?? `Login to ${providerName}`;
 
 		// Top border
+		// 顶部边框
 		this.addChild(new DynamicBorder());
 
 		// Title
+		// 标题
 		this.addChild(new Text(theme.fg("accent", theme.bold(title)), 1, 0));
 
 		// Dynamic content area
+		// 动态内容区域
 		this.contentContainer = new Container();
 		this.addChild(this.contentContainer);
 
 		// Input (always present, used when needed)
+		// 输入框(始终存在,按需使用)
 		this.input = new Input();
 		this.input.onSubmit = () => {
 			if (this.inputResolver) {
@@ -67,6 +73,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 		};
 
 		// Bottom border
+		// 底部边框
 		this.addChild(new DynamicBorder());
 	}
 
@@ -92,6 +99,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 
 	/**
 	 * Called by onAuth callback - show URL and optional instructions
+	 * 由 onAuth 回调调用 —— 显示 URL 以及可选的操作说明
 	 */
 	showAuth(url: string, instructions?: string): void {
 		this.contentContainer.clear();
@@ -114,6 +122,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 
 	/**
 	 * Called by onDeviceCode callback - show URL and user code.
+	 * 由 onDeviceCode 回调调用 —— 显示 URL 和用户码(user code)。
 	 */
 	showDeviceCode(info: OAuthDeviceCodeInfo): void {
 		this.contentContainer.clear();
@@ -132,6 +141,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 
 	/**
 	 * Show input for manual code/URL entry (for callback server providers)
+	 * 显示输入框以便手动输入验证码/URL(适用于使用回调服务器的提供方)
 	 */
 	showManualInput(prompt: string): Promise<string> {
 		this.input.setValue("");
@@ -149,7 +159,9 @@ export class LoginDialogComponent extends Container implements Focusable {
 
 	/**
 	 * Called by onPrompt callback - show prompt and wait for input
+	 * 由 onPrompt 回调调用 —— 显示提示信息并等待用户输入
 	 * Note: Does NOT clear content, appends to existing (preserves URL from showAuth)
+	 * 注意:不会清空已有内容,而是追加到现有内容之后(以保留 showAuth 显示的 URL)
 	 */
 	showPrompt(message: string, placeholder?: string): Promise<string> {
 		this.contentContainer.addChild(new Spacer(1));
@@ -175,7 +187,10 @@ export class LoginDialogComponent extends Container implements Focusable {
 		});
 	}
 
-	/** Show informational text before another login step. */
+	/**
+	 * Show informational text before another login step.
+	 * 在进入下一个登录步骤之前显示说明性文本。
+	 */
 	showDetails(lines: string[]): void {
 		this.contentContainer.clear();
 		this.contentContainer.addChild(new Spacer(1));
@@ -185,7 +200,10 @@ export class LoginDialogComponent extends Container implements Focusable {
 		this.tui.requestRender();
 	}
 
-	/** Show provider-owned information and links without starting an auth callback flow. */
+	/**
+	 * Show provider-owned information and links without starting an auth callback flow.
+	 * 显示由提供方(provider)自有的信息与链接,且不启动认证回调流程。
+	 */
 	showInfo(message: string, links: readonly AuthInfoLink[] = [], showCloseHint = false): void {
 		this.contentContainer.addChild(new Spacer(1));
 		this.contentContainer.addChild(new Text(theme.fg("text", message), 1, 0));
@@ -203,6 +221,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 
 	/**
 	 * Show waiting message (for polling flows like GitHub Copilot)
+	 * 显示等待提示信息(适用于 GitHub Copilot 这类采用轮询的流程)
 	 */
 	showWaiting(message: string): void {
 		this.contentContainer.addChild(new Spacer(1));
@@ -213,6 +232,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 
 	/**
 	 * Called by onProgress callback
+	 * 由 onProgress 回调调用
 	 */
 	showProgress(message: string): void {
 		this.contentContainer.addChild(new Text(theme.fg("dim", message), 1, 0));
@@ -228,6 +248,7 @@ export class LoginDialogComponent extends Container implements Focusable {
 		}
 
 		// Pass to input
+		// 将按键事件传递给输入框
 		this.input.handleInput(data);
 	}
 }

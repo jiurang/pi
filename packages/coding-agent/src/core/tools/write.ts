@@ -20,12 +20,16 @@ export type WriteToolInput = Static<typeof writeSchema>;
 
 /**
  * Pluggable operations for the write tool.
+ * write 工具的可插拔（pluggable）操作集合。
  * Override these to delegate file writing to remote systems (for example SSH).
+ * 覆盖这些操作即可把文件写入委托给远程系统（例如通过 SSH）。
  */
 export interface WriteOperations {
-	/** Write content to a file */
+	/** Write content to a file
+	 *  将内容写入文件 */
 	writeFile: (absolutePath: string, content: string) => Promise<void>;
-	/** Create directory recursively */
+	/** Create directory recursively
+	 *  递归创建目录 */
 	mkdir: (dir: string) => Promise<void>;
 }
 
@@ -35,7 +39,8 @@ const defaultWriteOperations: WriteOperations = {
 };
 
 export interface WriteToolOptions {
-	/** Custom operations for file writing. Default: local filesystem */
+	/** Custom operations for file writing. Default: local filesystem
+	 *  自定义的文件写入操作。默认值：本地文件系统 */
 	operations?: WriteOperations;
 }
 
@@ -203,18 +208,24 @@ export function createWriteToolDefinition(
 			return withFileMutationQueue(absolutePath, async () => {
 				// Do not reject from an abort event listener here: that would release the
 				// mutation queue while an in-flight filesystem operation may still finish.
+				// 这里不要在 abort 事件监听器中直接 reject：那会在仍有文件系统操作在执行时
+				// 就释放变更队列（mutation queue）。
 				// Checking signal.aborted after each await observes the same aborts while
 				// keeping the queue locked until the current operation has settled.
+				// 在每个 await 之后检查 signal.aborted 同样能感知这些中止信号，同时能让队列
+				// 保持锁定，直到当前操作真正结束。
 				const throwIfAborted = (): void => {
 					if (signal?.aborted) throw new Error("Operation aborted");
 				};
 
 				throwIfAborted();
 				// Create parent directories if needed.
+				// 如有需要则创建父级目录。
 				await ops.mkdir(dir);
 				throwIfAborted();
 
 				// Write the file contents.
+				// 写入文件内容。
 				await ops.writeFile(absolutePath, content);
 				throwIfAborted();
 

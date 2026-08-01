@@ -23,7 +23,9 @@ function makeContext(): Context {
 function makeCustomModel(compat?: Model<"anthropic-messages">["compat"]): Model<"anthropic-messages"> {
 	return {
 		// Id intentionally does not match any built-in adaptive substring. This
+		// 此 id 有意不匹配任何内置的 adaptive 子串。这
 		// mirrors corporate proxy schemes such as `anthropic--claude-opus-latest`.
+		// 模拟了诸如 `anthropic--claude-opus-latest` 之类的企业代理命名方案。
 		id: "vendor--claude-opus-latest",
 		name: "Vendor Proxy Opus Latest",
 		api: "anthropic-messages",

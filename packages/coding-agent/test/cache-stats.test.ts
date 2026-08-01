@@ -12,6 +12,7 @@ const zeroCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
 
 const models: ModelPriceSource = {
 	// $/million tokens; used as cache-read price fallback on full-miss turns
+	// 单位为「美元/百万 token」；在完全未命中缓存的轮次中作为缓存读取价格的回退值
 	getModel: () => ({ cost: { cacheRead: 0.3 } }),
 };
 
@@ -47,8 +48,10 @@ function entry(message: AssistantMessage): SessionEntry {
 }
 
 // Turn 1: fresh 100k cache write at $3.75/M
+// 第 1 轮：全新写入 10 万 token 缓存，单价 $3.75/M
 const turn1 = assistant({ cacheWrite: 100_000, cost: { cacheWrite: 0.375 }, timestamp: 0 });
 // Turn 2: healthy, everything read back at $0.30/M
+// 第 2 轮：缓存状况良好，全部内容以 $0.30/M 的单价读回
 const turn2 = assistant({
 	cacheRead: 100_000,
 	cacheWrite: 5_000,
@@ -59,10 +62,12 @@ const turn2 = assistant({
 describe("computeCacheWaste", () => {
 	it("accumulates missed tokens and cost across turns", () => {
 		// Turn 3: full miss, previous 105k prompt re-billed at $3.75/M write
+		// 第 3 轮：缓存完全未命中，此前 10.5 万 token 的提示词按 $3.75/M 的写入价重新计费
 		const turn3 = assistant({ cacheWrite: 110_000, cost: { cacheWrite: 0.4125 }, timestamp: 120_000 });
 		const totals = computeCacheWaste([entry(turn1), entry(turn2), entry(turn3)], models);
 		expect(totals.missedTokens).toBe(105_000);
 		// 105k at ($3.75 - $0.30)/M
+		// 10.5 万 token 按 ($3.75 - $0.30)/M 的差价计算
 		expect(totals.missedCost).toBeCloseTo(0.36225, 5);
 	});
 
@@ -111,6 +116,7 @@ describe("detectCacheMiss", () => {
 		expect(miss?.missedTokens).toBe(105_000);
 		expect(miss?.missedCost).toBeCloseTo(0.36225, 5);
 		// 600s - 60s since the previous request
+		// 距上一次请求的间隔为 600 秒 - 60 秒
 		expect(miss?.idleMs).toBe(540_000);
 		expect(miss?.modelChanged).toBe(false);
 	});

@@ -65,6 +65,9 @@ export class ToolExecutionComponent extends Container {
 		// Always create all shell variants. contentBox is used for default renderer-based composition.
 		// selfRenderContainer is used when the tool renders its own framing.
 		// contentText is reserved for generic fallback rendering when no tool definition exists.
+		// 始终创建全部外壳（shell）变体。contentBox 用于基于默认渲染器的内容组合；
+		// selfRenderContainer 用于工具自行渲染外框的场景；
+		// contentText 则保留用于不存在工具定义时的通用兜底渲染。
 		this.contentBox = new Box(1, 1, (text: string) => theme.bg("toolPendingBg", text));
 		this.contentText = new Text("", 1, 1, (text: string) => theme.bg("toolPendingBg", text));
 		this.selfRenderContainer = new Container();

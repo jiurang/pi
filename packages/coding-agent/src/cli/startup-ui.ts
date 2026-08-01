@@ -56,6 +56,8 @@ function loadThemes(resources: ResolvedResource[]): Theme[] {
 		} catch {
 			// Startup prompts should not fail because a theme is broken. The normal
 			// resource loader reports theme diagnostics later in startup.
+			// 启动提示不应因为某个主题损坏而失败。常规的资源加载器会在启动的
+			// 后续阶段报告主题相关的诊断信息。
 		}
 	}
 	return themes;
@@ -107,10 +109,15 @@ async function clearStartupTui(ui: TUI): Promise<void> {
 
 /**
  * First-time setup runs when all of these hold:
+ * 仅当以下条件全部满足时,才会执行首次安装引导:
  * - this is the official Pi distribution (not a fork/rebrand)
+ *   当前是官方 Pi 发行版(而非 fork 或改名版本)
  * - experimental features are enabled (PI_EXPERIMENTAL=1)
+ *   已启用实验特性(PI_EXPERIMENTAL=1)
  * - the default agent directory is used (no custom agent dir override)
+ *   使用的是默认的 agent 目录(未通过自定义 agent 目录覆盖)
  * - setup was not completed before (settings.json does not exist)
+ *   此前尚未完成过安装引导(settings.json 不存在)
  */
 export function shouldRunFirstTimeSetup(settingsPath: string = getSettingsPath()): boolean {
 	if (
@@ -162,7 +169,10 @@ export async function showStartupSelector<T>(
 	});
 }
 
-/** Show the first-time setup dialog and persist the result */
+/**
+ * Show the first-time setup dialog and persist the result
+ * 显示首次安装引导对话框,并持久化其结果
+ */
 export async function showFirstTimeSetup(settingsManager: SettingsManager): Promise<void> {
 	const ui = await createStartupTui(settingsManager);
 	return new Promise((resolve) => {

@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
  * Manual SDK probe for OpenAI Codex prompt caching through the tool loop.
+ * 通过工具循环(tool loop)手动探测 OpenAI Codex 提示词缓存(prompt caching)的 SDK 脚本。
  *
  * Runs append-only multi-turn prompting through createAgentSession(), forcing one
- * deterministic custom tool call per top-level user turn. Logs per-subrequest
+ * deterministic custom tool call per top-level user turn.
+ * 借助 createAgentSession() 执行仅追加(append-only)的多轮提示，并强制每个顶层用户轮次
+ * 恰好触发一次确定性的自定义工具调用。
+ * Logs per-subrequest
  * assistant usage so cache-read monotonicity can be inspected inside a tool loop.
+ * 同时按子请求(subrequest)记录助手的用量数据，以便在工具循环内部检查缓存读取量的单调性。
  */
 
 import { mkdirSync } from "node:fs";

@@ -19,55 +19,115 @@ import {
 	serializeConversation,
 } from "./utils.ts";
 
-/** File-operation details stored on generated branch summary entries. */
+/**
+ * File-operation details stored on generated branch summary entries.
+ * 存储在生成的分支摘要条目上的文件操作详情。
+ */
 export interface BranchSummaryDetails {
-	/** Files read while exploring the summarized branch. */
+	/**
+	 * Files read while exploring the summarized branch.
+	 * 在探索被摘要分支的过程中读取过的文件。
+	 */
 	readFiles: string[];
-	/** Files modified while exploring the summarized branch. */
+	/**
+	 * Files modified while exploring the summarized branch.
+	 * 在探索被摘要分支的过程中修改过的文件。
+	 */
 	modifiedFiles: string[];
 }
 
 export type { FileOperations } from "./utils.ts";
 
-/** Prepared branch content for summarization. */
+/**
+ * Prepared branch content for summarization.
+ * 为摘要生成而准备好的分支内容。
+ */
 export interface BranchPreparation {
-	/** Messages selected for the branch summary. */
+	/**
+	 * Messages selected for the branch summary.
+	 * 为分支摘要选定的消息。
+	 */
 	messages: AgentMessage[];
-	/** File operations extracted from the branch. */
+	/**
+	 * File operations extracted from the branch.
+	 * 从该分支中提取出的文件操作。
+	 */
 	fileOps: FileOperations;
-	/** Estimated token count for selected messages. */
+	/**
+	 * Estimated token count for selected messages.
+	 * 选定消息的预估 token 数量。
+	 */
 	totalTokens: number;
 }
 
-/** Entries selected for branch summarization. */
+/**
+ * Entries selected for branch summarization.
+ * 为分支摘要选定的条目。
+ */
 export interface CollectEntriesResult {
-	/** Entries to summarize in chronological order. */
+	/**
+	 * Entries to summarize in chronological order.
+	 * 按时间顺序排列的待摘要条目。
+	 */
 	entries: SessionTreeEntry[];
-	/** Deepest common ancestor between the previous leaf and target entry. */
+	/**
+	 * Deepest common ancestor between the previous leaf and target entry.
+	 * 前一个叶子节点与目标条目之间最深的公共祖先。
+	 */
 	commonAncestorId: string | null;
 }
 
-/** Options for generating a branch summary. */
+/**
+ * Options for generating a branch summary.
+ * 生成分支摘要的选项。
+ */
 export interface GenerateBranchSummaryOptions {
-	/** Provider collection the summarization request goes through; owns auth resolution. */
+	/**
+	 * Provider collection the summarization request goes through; owns auth resolution.
+	 * 摘要请求所经过的提供方（provider）集合；负责鉴权解析。
+	 */
 	models: Models;
-	/** Model used for summarization. */
+	/**
+	 * Model used for summarization.
+	 * 用于生成摘要的模型。
+	 */
 	model: Model<any>;
-	/** Abort signal for the summarization request. */
+	/**
+	 * Abort signal for the summarization request.
+	 * 摘要请求的中止信号（abort signal）。
+	 */
 	signal: AbortSignal;
-	/** Optional instructions appended to or replacing the default prompt. */
+	/**
+	 * Optional instructions appended to or replacing the default prompt.
+	 * 可选的指令，用于追加到默认提示词之后或替换默认提示词。
+	 */
 	customInstructions?: string;
-	/** Replace the default prompt with custom instructions instead of appending them. */
+	/**
+	 * Replace the default prompt with custom instructions instead of appending them.
+	 * 用自定义指令替换默认提示词，而不是追加到其后。
+	 */
 	replaceInstructions?: boolean;
-	/** Tokens reserved for prompt and model output. Defaults to 16384. */
+	/**
+	 * Tokens reserved for prompt and model output. Defaults to 16384.
+	 * 为提示词和模型输出预留的 token 数，默认为 16384。
+	 */
 	reserveTokens?: number;
-	/** Optional retry policy for transient summarization errors. */
+	/**
+	 * Optional retry policy for transient summarization errors.
+	 * 针对摘要过程中瞬时错误的可选重试策略。
+	 */
 	retry?: RetryPolicy;
-	/** Optional callbacks for retry reporting. */
+	/**
+	 * Optional callbacks for retry reporting.
+	 * 用于重试情况上报的可选回调。
+	 */
 	callbacks?: RetryCallbacks;
 }
 
-/** Collect entries that should be summarized before navigating to a different session tree entry. */
+/**
+ * Collect entries that should be summarized before navigating to a different session tree entry.
+ * 在跳转到会话树中的其他条目之前，收集应当被摘要的条目。
+ */
 export async function collectEntriesForBranchSummary(
 	session: Session,
 	oldLeafId: string | null,
@@ -123,7 +183,10 @@ function getMessageFromEntry(entry: SessionTreeEntry): AgentMessage | undefined 
 	}
 }
 
-/** Prepare branch entries for summarization within an optional token budget. */
+/**
+ * Prepare branch entries for summarization within an optional token budget.
+ * 在可选的 token 预算范围内，准备用于生成摘要的分支条目。
+ */
 export function prepareBranchEntries(entries: SessionTreeEntry[], tokenBudget: number = 0): BranchPreparation {
 	const messages: AgentMessage[] = [];
 	const fileOps = createFileOps();
@@ -199,7 +262,10 @@ Use this EXACT format:
 
 Keep each section concise. Preserve exact file paths, function names, and error messages.`;
 
-/** Generate a summary for abandoned branch entries. */
+/**
+ * Generate a summary for abandoned branch entries.
+ * 为被放弃的分支条目生成摘要。
+ */
 export async function generateBranchSummary(
 	entries: SessionTreeEntry[],
 	options: GenerateBranchSummaryOptions,

@@ -44,6 +44,8 @@ function generateEntryId(byId: { has(id: string): boolean }): string {
 	for (let i = 0; i < 100; i++) {
 		// The uuidv7 prefix is timestamp-derived and nearly constant between calls,
 		// so short ids must come from the random tail.
+		// uuidv7 的前缀来自时间戳，在多次调用之间几乎不变，
+		// 因此短 id 必须取自其随机的尾部。
 		const id = uuidv7().slice(-8);
 		if (!byId.has(id)) return id;
 	}

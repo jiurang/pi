@@ -550,11 +550,13 @@ describe("openai-codex streaming", () => {
 			if (url === "https://chatgpt.com/backend-api/codex/responses") {
 				const headers = init?.headers instanceof Headers ? init.headers : undefined;
 				// Verify sessionId is set in headers
+				// 验证请求头中已设置 sessionId
 				expect(headers?.get("session-id")).toBe(sessionId);
 				expect(headers?.has("session_id")).toBe(false);
 				expect(headers?.get("x-client-request-id")).toBe(sessionId);
 
 				// Verify sessionId is set in request body as prompt_cache_key
+				// 验证请求体中已把 sessionId 设置为 prompt_cache_key
 				const body = decodeCodexRequestBody(init?.body);
 				expect(body?.prompt_cache_key).toBe(sessionId);
 
@@ -1183,6 +1185,7 @@ describe("openai-codex streaming", () => {
 			if (url === "https://chatgpt.com/backend-api/codex/responses") {
 				const headers = init?.headers instanceof Headers ? init.headers : undefined;
 				// Verify headers are not set when sessionId is not provided
+				// 验证在未提供 sessionId 时不会设置这些请求头
 				expect(headers?.has("session-id")).toBe(false);
 				expect(headers?.has("session_id")).toBe(false);
 				expect(headers?.has("x-client-request-id")).toBe(false);
@@ -1216,6 +1219,7 @@ describe("openai-codex streaming", () => {
 		};
 
 		// No sessionId provided
+		// 未提供 sessionId
 		const streamResult = streamOpenAICodexResponses(model, context, { apiKey: token, transport: "sse" });
 		await streamResult.result();
 	});

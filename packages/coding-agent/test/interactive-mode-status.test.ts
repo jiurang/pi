@@ -74,6 +74,7 @@ type ExtensionFixture = {
 describe("InteractiveMode.showStatus", () => {
 	beforeAll(() => {
 		// showStatus uses the global theme instance
+		// showStatus 使用的是全局的 theme 实例
 		initTheme("dark");
 	});
 
@@ -91,6 +92,7 @@ describe("InteractiveMode.showStatus", () => {
 
 		(InteractiveMode as any).prototype.showStatus.call(fakeThis, "STATUS_TWO");
 		// second status updates the previous line instead of appending
+		// 第二条状态消息会更新上一行，而不是追加新行
 		expect(fakeThis.chatContainer.children).toHaveLength(2);
 		expect(renderLastLine(fakeThis.chatContainer)).toContain("STATUS_TWO");
 		expect(renderLastLine(fakeThis.chatContainer)).not.toContain("STATUS_ONE");
@@ -108,11 +110,13 @@ describe("InteractiveMode.showStatus", () => {
 		expect(fakeThis.chatContainer.children).toHaveLength(2);
 
 		// Something else gets added to the chat in between status updates
+		// 在两次状态更新之间，聊天区域插入了其他内容
 		fakeThis.chatContainer.addChild({ render: () => ["OTHER"], invalidate: () => {} });
 		expect(fakeThis.chatContainer.children).toHaveLength(3);
 
 		(InteractiveMode as any).prototype.showStatus.call(fakeThis, "STATUS_TWO");
 		// adds spacer + text
+		// 追加一个间隔（spacer）和一段文本
 		expect(fakeThis.chatContainer.children).toHaveLength(5);
 		expect(renderLastLine(fakeThis.chatContainer)).toContain("STATUS_TWO");
 	});

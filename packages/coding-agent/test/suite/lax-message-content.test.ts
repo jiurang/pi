@@ -1,10 +1,15 @@
 /**
  * The Message types require `content` to always be present, but untyped JS
  * extension tools, hand-built histories, and old or hand-edited session files
- * can violate that contract. We are intentionally lax at the ingestion
- * boundaries and normalize null/missing content to an empty array so it never
- * reaches rendering, compaction, or provider request conversion
- * (issues #6259, #6276).
+ * can violate that contract.
+ * Message 类型要求 `content` 始终存在,但无类型的 JS 扩展工具、手工构造的历史记录,
+ * 以及旧的或手工编辑过的会话文件都可能违反这一约定。
+ * We are intentionally lax at the ingestion boundaries and normalize
+ * null/missing content to an empty array so it never reaches rendering,
+ * compaction, or provider request conversion (issues #6259, #6276).
+ * 我们在数据接入边界处刻意保持宽松,将 null/缺失的 content 归一化为空数组,
+ * 使其永远不会流入渲染、压缩(compaction)或 provider 请求转换环节
+ * (对应 issue #6259、#6276)。
  */
 
 import type { AgentMessage, AgentToolResult } from "@earendil-works/pi-agent-core";
@@ -35,6 +40,7 @@ describe("lax message content handling", () => {
 					description: "Custom tool that returns a result without content",
 					parameters: Type.Object({}),
 					// Simulate an untyped JS extension tool that omits content.
+					// 模拟一个省略了 content 的无类型 JS 扩展工具。
 					execute: async () => ({ details: {} }) as unknown as AgentToolResult<unknown>,
 				});
 			},
@@ -53,6 +59,7 @@ describe("lax message content handling", () => {
 			expect(toolResults).toHaveLength(1);
 			expect(toolResults[0].content).toEqual([]);
 			// The follow-up turn consumed the normalized tool result without crashing.
+			// 后续轮次消费了归一化后的工具结果,且未发生崩溃。
 			expect(harness.getPendingResponseCount()).toBe(0);
 		} finally {
 			harness.cleanup();
@@ -65,6 +72,7 @@ describe("lax message content handling", () => {
 				pi.on("message_end", async (event) => {
 					if (event.message.role !== "assistant") return undefined;
 					// Simulate an untyped JS extension replacing a message without content.
+					// 模拟一个无类型 JS 扩展替换消息但未提供 content 的情况。
 					return { message: { ...event.message, content: null } as unknown as AgentMessage };
 				});
 			},

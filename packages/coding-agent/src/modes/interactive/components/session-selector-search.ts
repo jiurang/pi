@@ -9,13 +9,19 @@ export interface ParsedSearchQuery {
 	mode: "tokens" | "regex";
 	tokens: { kind: "fuzzy" | "phrase"; value: string }[];
 	regex: RegExp | null;
-	/** If set, parsing failed and we should treat query as non-matching. */
+	/**
+	 * If set, parsing failed and we should treat query as non-matching.
+	 * 若该字段有值，说明解析失败，此时应将该查询视为不匹配任何结果。
+	 */
 	error?: string;
 }
 
 export interface MatchResult {
 	matches: boolean;
-	/** Lower is better; only meaningful when matches === true */
+	/**
+	 * Lower is better; only meaningful when matches === true
+	 * 分值越低越好；仅当 matches === true 时才有意义
+	 */
 	score: number;
 }
 
@@ -43,6 +49,7 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
 	}
 
 	// Regex mode: re:<pattern>
+	// 正则(regex)模式：re:<pattern>
 	if (trimmed.startsWith("re:")) {
 		const pattern = trimmed.slice(3).trim();
 		if (!pattern) {
@@ -57,7 +64,9 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
 	}
 
 	// Token mode with quote support.
+	// 支持引号的分词(token)模式。
 	// Example: foo "node cve" bar
+	// 示例：foo "node cve" bar
 	const tokens: { kind: "fuzzy" | "phrase"; value: string }[] = [];
 	let buf = "";
 	let inQuote = false;
@@ -96,6 +105,7 @@ export function parseSearchQuery(query: string): ParsedSearchQuery {
 	}
 
 	// If quotes were unbalanced, fall back to plain whitespace tokenization.
+	// 如果引号不配对，则回退为按空白字符进行的普通分词。
 	if (hadUnclosedQuote) {
 		return {
 			mode: "tokens",
@@ -168,6 +178,7 @@ export function filterAndSortSessions(
 	if (parsed.error) return [];
 
 	// Recent mode: filter only, keep incoming order.
+	// recent 模式：只做过滤，保持传入的原有顺序。
 	if (sortMode === "recent") {
 		const filtered: SessionInfo[] = [];
 		for (const s of nameFiltered) {
@@ -178,6 +189,7 @@ export function filterAndSortSessions(
 	}
 
 	// Relevance mode: sort by score, tie-break by modified desc.
+	// relevance 模式：按分值排序，分值相同时按修改时间(modified)倒序决胜。
 	const scored: { session: SessionInfo; score: number }[] = [];
 	for (const s of nameFiltered) {
 		const res = matchSession(s, parsed);

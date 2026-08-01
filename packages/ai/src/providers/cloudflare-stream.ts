@@ -17,6 +17,8 @@ export function resolveCloudflareModel<TApi extends Api>(
 /**
  * Wrap an API implementation so Cloudflare account/gateway endpoint
  * placeholders materialize from the resolved provider env before dispatch.
+ * 包装某个 API 实现，使得 Cloudflare 的 account（账户）/ gateway（网关）
+ * 端点占位符在请求派发前，能够根据已解析的提供方（provider）环境变量完成替换。
  */
 export function cloudflareStreams(streams: ProviderStreams): ProviderStreams {
 	return {

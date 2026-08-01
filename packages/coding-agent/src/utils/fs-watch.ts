@@ -11,6 +11,7 @@ export function closeWatcher(watcher: FSWatcher | null | undefined): void {
 		watcher.close();
 	} catch {
 		// Ignore watcher close errors
+		// 忽略关闭监听器（watcher）时产生的错误
 	}
 }
 

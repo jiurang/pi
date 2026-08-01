@@ -36,6 +36,7 @@ function cleanupDetachedChild(pidFile: string): void {
 			execFileSync("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore" });
 		} catch {
 			// Process may have already exited.
+			// 该进程可能已经退出。
 		}
 	}
 }

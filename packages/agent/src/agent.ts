@@ -94,6 +94,7 @@ function createMutableAgentState(
 }
 
 /** Options for constructing an {@link Agent}. */
+/** 构造 {@link Agent} 时使用的选项。 */
 export interface AgentOptions {
 	initialState?: Partial<Omit<AgentState, "pendingToolCalls" | "isStreaming" | "streamingMessage" | "errorMessage">>;
 	convertToLlm?: (messages: AgentMessage[]) => Message[] | Promise<Message[]>;
@@ -164,9 +165,12 @@ type ActiveRun = {
 
 /**
  * Stateful wrapper around the low-level agent loop.
+ * 对底层智能体（agent）循环的有状态封装。
  *
  * `Agent` owns the current transcript, emits lifecycle events, executes tools,
  * and exposes queueing APIs for steering and follow-up messages.
+ * `Agent` 持有当前对话记录（transcript），发出生命周期事件，执行工具（tool），
+ * 并提供用于转向（steering）消息和后续（follow-up）消息的排队 API。
  */
 export class Agent {
 	private _state: MutableAgentState;
@@ -197,18 +201,24 @@ export class Agent {
 	) => Promise<AgentLoopTurnUpdate | undefined> | AgentLoopTurnUpdate | undefined;
 	private activeRun?: ActiveRun;
 	/** Session identifier forwarded to providers for cache-aware backends. */
+	/** 转发给提供方（provider）的会话（session）标识，供支持缓存的后端使用。 */
 	public sessionId?: string;
 	/** Optional per-level thinking token budgets forwarded to the stream function. */
+	/** 可选的按思考等级划分的 thinking token 预算，转发给流式函数。 */
 	public thinkingBudgets?: ThinkingBudgets;
 	/** Preferred transport forwarded to the stream function. */
+	/** 转发给流式函数的首选传输方式（transport）。 */
 	public transport: Transport;
 	/** Optional cap for provider-requested retry delays. */
+	/** 对提供方（provider）请求的重试延迟的可选上限。 */
 	public maxRetryDelayMs?: number;
 	/** Tool execution strategy for assistant messages that contain multiple tool calls. */
+	/** 针对包含多个工具调用（tool call）的助手消息所采用的工具执行策略。 */
 	public toolExecution: ToolExecutionMode;
 
 	constructor(options: AgentOptions) {
 		// Older compiled consumers may omit options or streamFn even though the current API requires them.
+		// 较旧的已编译调用方可能省略 options 或 streamFn，尽管当前 API 要求提供它们。
 		const runtimeOptions: Partial<AgentOptions> = options ?? {};
 		this._state = createMutableAgentState(runtimeOptions.initialState);
 		this.convertToLlm = runtimeOptions.convertToLlm ?? defaultConvertToLlm;
@@ -232,13 +242,18 @@ export class Agent {
 
 	/**
 	 * Subscribe to agent lifecycle events.
+	 * 订阅智能体（agent）生命周期事件。
 	 *
 	 * Listener promises are awaited in subscription order and are included in
 	 * the current run's settlement. Listeners also receive the active abort
 	 * signal for the current run.
+	 * 监听器返回的 promise 会按订阅顺序被等待，并计入当前运行（run）的结束判定。
+	 * 监听器还会收到当前运行的有效中止信号（abort signal）。
 	 *
 	 * `agent_end` is the final emitted event for a run, but the agent does not
 	 * become idle until all awaited listeners for that event have settled.
+	 * `agent_end` 是一次运行中最后发出的事件，但只有该事件的所有被等待的监听器
+	 * 都完成后，智能体（agent）才会进入空闲状态。
 	 */
 	subscribe(listener: (event: AgentEvent, signal: AbortSignal) => Promise<void> | void): () => void {
 		this.listeners.add(listener);
@@ -247,14 +262,17 @@ export class Agent {
 
 	/**
 	 * Current agent state.
+	 * 当前智能体（agent）状态。
 	 *
 	 * Assigning `state.tools` or `state.messages` copies the provided top-level array.
+	 * 为 `state.tools` 或 `state.messages` 赋值时，会复制所传入的顶层数组。
 	 */
 	get state(): AgentState {
 		return this._state;
 	}
 
 	/** Controls how queued steering messages are drained. */
+	/** 控制排队的转向（steering）消息以何种方式取出。 */
 	set steeringMode(mode: QueueMode) {
 		this.steeringQueue.mode = mode;
 	}
@@ -264,6 +282,7 @@ export class Agent {
 	}
 
 	/** Controls how queued follow-up messages are drained. */
+	/** 控制排队的后续（follow-up）消息以何种方式取出。 */
 	set followUpMode(mode: QueueMode) {
 		this.followUpQueue.mode = mode;
 	}
@@ -273,56 +292,67 @@ export class Agent {
 	}
 
 	/** Queue a message to be injected after the current assistant turn finishes. */
+	/** 将一条消息排入队列，在当前助手轮次（turn）结束后注入。 */
 	steer(message: AgentMessage): void {
 		this.steeringQueue.enqueue(message);
 	}
 
 	/** Queue a message to run only after the agent would otherwise stop. */
+	/** 将一条消息排入队列，仅在智能体（agent）本应停止时才执行。 */
 	followUp(message: AgentMessage): void {
 		this.followUpQueue.enqueue(message);
 	}
 
 	/** Remove all queued steering messages. */
+	/** 移除所有排队的转向（steering）消息。 */
 	clearSteeringQueue(): void {
 		this.steeringQueue.clear();
 	}
 
 	/** Remove all queued follow-up messages. */
+	/** 移除所有排队的后续（follow-up）消息。 */
 	clearFollowUpQueue(): void {
 		this.followUpQueue.clear();
 	}
 
 	/** Remove all queued steering and follow-up messages. */
+	/** 移除所有排队的转向（steering）与后续（follow-up）消息。 */
 	clearAllQueues(): void {
 		this.clearSteeringQueue();
 		this.clearFollowUpQueue();
 	}
 
 	/** Returns true when either queue still contains pending messages. */
+	/** 当任一队列中仍有待处理消息时返回 true。 */
 	hasQueuedMessages(): boolean {
 		return this.steeringQueue.hasItems() || this.followUpQueue.hasItems();
 	}
 
 	/** Active abort signal for the current run, if any. */
+	/** 当前运行（run）的有效中止信号（abort signal），若存在的话。 */
 	get signal(): AbortSignal | undefined {
 		return this.activeRun?.abortController.signal;
 	}
 
 	/** Abort the current run, if one is active. */
+	/** 若当前有正在进行的运行（run），则将其中止。 */
 	abort(): void {
 		this.activeRun?.abortController.abort();
 	}
 
 	/**
 	 * Resolve when the current run and all awaited event listeners have finished.
+	 * 在当前运行（run）及所有被等待的事件监听器都完成后 resolve。
 	 *
 	 * This resolves after `agent_end` listeners settle.
+	 * 该 promise 会在 `agent_end` 的监听器全部结束后 resolve。
 	 */
 	waitForIdle(): Promise<void> {
 		return this.activeRun?.promise ?? Promise.resolve();
 	}
 
 	/** Clear transcript state, runtime state, and queued messages. */
+	/** 清空对话记录（transcript）状态、运行时状态以及排队中的消息。 */
 	reset(): void {
 		this._state.messages = [];
 		this._state.isStreaming = false;
@@ -334,6 +364,7 @@ export class Agent {
 	}
 
 	/** Start a new prompt from text, a single message, or a batch of messages. */
+	/** 以文本、单条消息或一批消息发起一次新的提示（prompt）。 */
 	async prompt(message: AgentMessage | AgentMessage[]): Promise<void>;
 	async prompt(input: string, images?: ImageContent[]): Promise<void>;
 	async prompt(input: string | AgentMessage | AgentMessage[], images?: ImageContent[]): Promise<void> {
@@ -347,6 +378,7 @@ export class Agent {
 	}
 
 	/** Continue from the current transcript. The last message must be a user or tool-result message. */
+	/** 从当前对话记录（transcript）继续。最后一条消息必须是用户消息或工具结果（tool result）消息。 */
 	async continue(): Promise<void> {
 		if (this.activeRun) {
 			throw new Error("Agent is already processing. Wait for completion before continuing.");
@@ -521,10 +553,14 @@ export class Agent {
 
 	/**
 	 * Reduce internal state for a loop event, then await listeners.
+	 * 针对一个循环事件归约内部状态，然后等待各监听器完成。
 	 *
 	 * `agent_end` only means no further loop events will be emitted. The run is
 	 * considered idle later, after all awaited listeners for `agent_end` finish
 	 * and `finishRun()` clears runtime-owned state.
+	 * `agent_end` 仅表示不会再发出更多循环事件。只有在 `agent_end` 的所有被等待的
+	 * 监听器完成、且 `finishRun()` 清理了运行时持有的状态之后，本次运行（run）才被
+	 * 视为空闲。
 	 */
 	private async processEvents(event: AgentEvent): Promise<void> {
 		switch (event.type) {

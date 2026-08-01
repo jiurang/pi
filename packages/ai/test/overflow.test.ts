@@ -82,7 +82,9 @@ describe("isContextOverflow", () => {
 
 	it("does not treat Bedrock throttling 'Too many tokens' as overflow", () => {
 		// Bedrock returns this for HTTP 429 rate limiting, NOT context overflow.
+		// Bedrock 在 HTTP 429 限流时返回该信息,而非上下文溢出(context overflow)。
 		// formatBedrockError uses a human-readable prefix for ThrottlingException.
+		// formatBedrockError 会为 ThrottlingException 添加一个可读的前缀。
 		const message = createErrorMessage("Throttling error: Too many tokens, please wait before trying again.");
 		expect(isContextOverflow(message, 200000)).toBe(false);
 	});

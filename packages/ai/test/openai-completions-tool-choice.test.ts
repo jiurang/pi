@@ -1146,7 +1146,9 @@ describe("openai-completions tool_choice", () => {
 
 	it("stores OpenRouter Kimi K2.6 reasoning replay compat in built-in metadata", () => {
 		// `:free` variant delisted from the OpenRouter API; the generator override
+		// `:free` 变体已从 OpenRouter API 中下架;生成器的覆盖配置
 		// matches any `moonshotai/kimi-k2.6*` variant that is listed.
+		// 会匹配任何已上架的 `moonshotai/kimi-k2.6*` 变体。
 		const model = getModel("openrouter", "moonshotai/kimi-k2.6")!;
 		expect(model.compat?.supportsDeveloperRole).toBe(false);
 		expect(model.compat?.requiresReasoningContentOnAssistantMessages).toBe(true);
@@ -1585,6 +1587,7 @@ describe("openai-completions tool_choice", () => {
 		).result();
 
 		// cached_tokens is documented as cache reads; cache_write_tokens is separate.
+		// 文档中 cached_tokens 表示缓存读取(cache read);cache_write_tokens 是独立的字段。
 		expect(response.usage.input).toBe(20);
 		expect(response.usage.cacheRead).toBe(50);
 		expect(response.usage.cacheWrite).toBe(30);
@@ -1631,6 +1634,7 @@ describe("openai-completions tool_choice", () => {
 		).result();
 
 		// cached_tokens is documented as cache reads; cache_write_tokens is separate.
+		// 文档中 cached_tokens 表示缓存读取(cache read);cache_write_tokens 是独立的字段。
 		expect(response.usage.input).toBe(20);
 		expect(response.usage.cacheRead).toBe(50);
 		expect(response.usage.cacheWrite).toBe(30);

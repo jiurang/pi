@@ -1,6 +1,8 @@
 /**
  * Central timing instrumentation for startup profiling.
+ * 用于启动性能分析的集中式耗时埋点。
  * Enable with PI_TIMING=1 environment variable.
+ * 通过设置环境变量 PI_TIMING=1 启用。
  */
 
 const ENABLED = process.env.PI_TIMING === "1";

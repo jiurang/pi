@@ -1,17 +1,32 @@
 import { contentText, type Message } from "@earendil-works/pi-ai";
 import type { AgentMessage } from "../../types.ts";
 
-/** File paths touched by a session branch or compaction range. */
+/**
+ * File paths touched by a session branch or compaction range.
+ * 被某个会话分支或上下文压缩（compaction）范围涉及到的文件路径。
+ */
 export interface FileOperations {
-	/** Files read but not necessarily modified. */
+	/**
+	 * Files read but not necessarily modified.
+	 * 被读取但不一定被修改过的文件。
+	 */
 	read: Set<string>;
-	/** Files written by full-file write operations. */
+	/**
+	 * Files written by full-file write operations.
+	 * 通过整文件写入操作写过的文件。
+	 */
 	written: Set<string>;
-	/** Files modified by edit operations. */
+	/**
+	 * Files modified by edit operations.
+	 * 通过编辑（edit）操作修改过的文件。
+	 */
 	edited: Set<string>;
 }
 
-/** Create an empty file-operation accumulator. */
+/**
+ * Create an empty file-operation accumulator.
+ * 创建一个空的文件操作累加器。
+ */
 export function createFileOps(): FileOperations {
 	return {
 		read: new Set(),
@@ -20,7 +35,10 @@ export function createFileOps(): FileOperations {
 	};
 }
 
-/** Add file operations from assistant tool calls to an accumulator. */
+/**
+ * Add file operations from assistant tool calls to an accumulator.
+ * 将助手（assistant）工具调用中的文件操作添加到累加器中。
+ */
 export function extractFileOpsFromMessage(message: AgentMessage, fileOps: FileOperations): void {
 	if (message.role !== "assistant") return;
 	if (!("content" in message) || !Array.isArray(message.content)) return;
@@ -50,7 +68,10 @@ export function extractFileOpsFromMessage(message: AgentMessage, fileOps: FileOp
 	}
 }
 
-/** Compute sorted read-only and modified file lists from accumulated operations. */
+/**
+ * Compute sorted read-only and modified file lists from accumulated operations.
+ * 根据累积的操作记录，计算出排序后的只读文件列表和已修改文件列表。
+ */
 export function computeFileLists(fileOps: FileOperations): { readFiles: string[]; modifiedFiles: string[] } {
 	const modified = new Set([...fileOps.edited, ...fileOps.written]);
 	const readOnly = [...fileOps.read].filter((f) => !modified.has(f)).sort();
@@ -58,7 +79,10 @@ export function computeFileLists(fileOps: FileOperations): { readFiles: string[]
 	return { readFiles: readOnly, modifiedFiles };
 }
 
-/** Format file lists as summary metadata tags. */
+/**
+ * Format file lists as summary metadata tags.
+ * 将文件列表格式化为摘要的元数据标签。
+ */
 export function formatFileOperations(readFiles: string[], modifiedFiles: string[]): string {
 	const sections: string[] = [];
 	if (readFiles.length > 0) {
@@ -87,7 +111,10 @@ function truncateForSummary(text: string, maxChars: number): string {
 	return `${text.slice(0, maxChars)}\n\n[... ${truncatedChars} more characters truncated]`;
 }
 
-/** Serialize LLM messages to plain text for summarization prompts. */
+/**
+ * Serialize LLM messages to plain text for summarization prompts.
+ * 将 LLM 消息序列化为纯文本，供摘要提示词使用。
+ */
 export function serializeConversation(messages: Message[]): string {
 	const parts: string[] = [];
 

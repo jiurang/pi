@@ -22,6 +22,8 @@ import { decodeCbor, encodeCbor, PROTOCOL_VERSION } from "@earendil-works/pi-pro
 
 // Keep this entry browser-safe. It is bundled by scripts/check-browser-smoke.mjs
 // to catch accidental Node-only runtime imports in browser-facing package exports.
+// 请保持本入口文件对浏览器安全（browser-safe）。它会被 scripts/check-browser-smoke.mjs 打包，
+// 用于捕获面向浏览器的包导出中意外引入的仅限 Node 的运行时依赖。
 const model = getModel("google", "gemini-2.5-flash");
 const schema = Type.Object({ prompt: Type.String() });
 const stream = createAssistantMessageEventStream();

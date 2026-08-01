@@ -1,9 +1,12 @@
 /**
  * Pure utility functions for plan mode.
+ * 计划模式(plan mode)使用的纯工具函数。
  * Extracted for testability.
+ * 单独抽取出来是为了便于测试。
  */
 
 // Destructive commands blocked in plan mode
+// 在计划模式下会被拦截的破坏性命令
 const DESTRUCTIVE_PATTERNS = [
 	/\brm\b/i,
 	/\brmdir\b/i,
@@ -41,6 +44,7 @@ const DESTRUCTIVE_PATTERNS = [
 ];
 
 // Safe read-only commands allowed in plan mode
+// 在计划模式下允许执行的安全只读命令
 const SAFE_PATTERNS = [
 	/^\s*cat\b/,
 	/^\s*head\b/,
@@ -108,8 +112,8 @@ export interface TodoItem {
 
 export function cleanStepText(text: string): string {
 	let cleaned = text
-		.replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1") // Remove bold/italic
-		.replace(/`([^`]+)`/g, "$1") // Remove code
+		.replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1") // Remove bold/italic 移除粗体/斜体标记
+		.replace(/`([^`]+)`/g, "$1") // Remove code 移除行内代码标记
 		.replace(
 			/^(Use|Run|Execute|Create|Write|Read|Check|Verify|Update|Modify|Add|Remove|Delete|Install)\s+(the\s+)?/i,
 			"",

@@ -31,7 +31,11 @@ export interface SqliteSessionSearchOptions {
 	env: Pick<SqliteSessionStoreEnv, "absolutePath" | "createDir">;
 	sqlite: SqliteDatabaseFactory;
 	databasePath: string;
-	/** Defaults to a standalone index. Canonical mode shares and initializes a session-store database. */
+	/**
+	 * Defaults to a standalone index. 默认使用独立（standalone）索引。
+	 * Canonical mode shares and initializes a session-store database.
+	 * canonical 模式则共享并初始化一个会话存储层（session-store）数据库。
+	 */
 	mode?: SqliteSessionSearchMode;
 }
 
@@ -80,8 +84,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS session_search_fts USING fts5(
 }
 
 /**
- * Storage-independent SQLite FTS search. Its database may be separate from,
- * or shared with, the canonical session backend.
+ * Storage-independent SQLite FTS search.
+ * 与存储层解耦的 SQLite 全文检索（FTS）实现。
+ * Its database may be separate from, or shared with, the canonical session backend.
+ * 其数据库既可以独立于规范（canonical）会话后端，也可以与之共享。
  */
 class SqliteSessionSearch<TMetadata extends SessionMetadata = SessionMetadata>
 	implements SessionSearch<TMetadata>, SessionSearchIndex<TMetadata>

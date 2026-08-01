@@ -19,7 +19,10 @@ function isProviderError(error: unknown): error is ProviderError {
 	);
 }
 
-/** Mirrors the pinned OpenAI/Anthropic SDK retry policy; review when either SDK is upgraded. */
+/**
+ * Mirrors the pinned OpenAI/Anthropic SDK retry policy; review when either SDK is upgraded.
+ * 复刻已锁定版本的 OpenAI/Anthropic SDK 的重试策略；当任一 SDK 升级时需要重新审视此处。
+ */
 function isRetryableProviderError(error: ProviderError): boolean {
 	const shouldRetry = error.headers?.get("x-should-retry");
 	if (shouldRetry === "true") return true;
@@ -101,6 +104,10 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
  * wrap the request with this helper. Provider-requested delays above
  * `maxRetryDelayMs` fail immediately (60 seconds by default); set it to zero to
  * disable the limit.
+ * 复现 OpenAI 与 Anthropic SDK 所使用的重试行为，同时让其退避（backoff）等待可被中断。
+ * 这些 SDK 内置的重试定时器会忽略请求的 AbortSignal，因此调用方必须以 `maxRetries: 0`
+ * 调用 SDK，并使用本辅助函数包装该请求。若提供商要求的延迟超过 `maxRetryDelayMs`
+ * （默认 60 秒），则立即失败；将其设置为零可禁用该限制。
  */
 export async function retryProviderRequest<T>(
 	request: () => Promise<T>,
@@ -112,6 +119,7 @@ export async function retryProviderRequest<T>(
 	for (;;) {
 		try {
 			// Each retry is a fresh SDK request, so X-Stainless-Retry-Count remains zero.
+			// 每次重试都是一个全新的 SDK 请求，因此 X-Stainless-Retry-Count 始终保持为零。
 			return await request();
 		} catch (error) {
 			if (options.signal?.aborted) throw createAbortError();

@@ -12,7 +12,10 @@ type SessionSearchSource<TMetadata extends SessionMetadata> = {
 	list(): Promise<TMetadata[]>;
 };
 
-/** Searches canonical sessions directly and therefore has no index to maintain. */
+/**
+ * Searches canonical sessions directly and therefore has no index to maintain.
+ * 直接搜索规范会话，因此无需维护任何索引。
+ */
 class ScanningSessionSearch<TMetadata extends SessionMetadata = SessionMetadata> implements SessionSearch<TMetadata> {
 	private readonly source: SessionSearchSource<TMetadata>;
 

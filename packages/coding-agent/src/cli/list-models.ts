@@ -1,5 +1,6 @@
 /**
  * List available models with optional fuzzy search
+ * 列出可用模型，并支持可选的模糊搜索
  */
 
 import type { Api, Model } from "@earendil-works/pi-ai";
@@ -10,6 +11,7 @@ import type { ModelRuntime } from "../core/model-runtime.ts";
 
 /**
  * Format a number as human-readable (e.g., 200000 -> "200K", 1000000 -> "1M")
+ * 将数字格式化为便于阅读的形式（例如 200000 -> "200K"，1000000 -> "1M"）
  */
 function formatTokenCount(count: number): string {
 	if (count >= 1_000_000) {
@@ -25,6 +27,7 @@ function formatTokenCount(count: number): string {
 
 /**
  * List available models, optionally filtered by search pattern
+ * 列出可用模型，并可选地按搜索模式进行筛选
  */
 export async function listModels(modelRuntime: ModelRuntime, searchPattern?: string): Promise<void> {
 	const loadError = modelRuntime.getError();
@@ -40,6 +43,7 @@ export async function listModels(modelRuntime: ModelRuntime, searchPattern?: str
 	}
 
 	// Apply fuzzy filter if search pattern provided
+	// 若提供了搜索模式，则应用模糊筛选
 	let filteredModels: Model<Api>[] = models;
 	if (searchPattern) {
 		filteredModels = fuzzyFilter(models, searchPattern, (m) => `${m.provider} ${m.id}`);
@@ -51,6 +55,7 @@ export async function listModels(modelRuntime: ModelRuntime, searchPattern?: str
 	}
 
 	// Sort by provider, then by model id
+	// 先按提供方（provider）排序，再按模型 id 排序
 	filteredModels.sort((a, b) => {
 		const providerCmp = a.provider.localeCompare(b.provider);
 		if (providerCmp !== 0) return providerCmp;
@@ -58,6 +63,7 @@ export async function listModels(modelRuntime: ModelRuntime, searchPattern?: str
 	});
 
 	// Calculate column widths
+	// 计算各列宽度
 	const rows = filteredModels.map((m) => ({
 		provider: m.provider,
 		model: m.id,
@@ -86,6 +92,7 @@ export async function listModels(modelRuntime: ModelRuntime, searchPattern?: str
 	};
 
 	// Print header
+	// 打印表头
 	const headerLine = [
 		headers.provider.padEnd(widths.provider),
 		headers.model.padEnd(widths.model),
@@ -97,6 +104,7 @@ export async function listModels(modelRuntime: ModelRuntime, searchPattern?: str
 	console.log(headerLine);
 
 	// Print rows
+	// 打印数据行
 	for (const row of rows) {
 		const line = [
 			row.provider.padEnd(widths.provider),

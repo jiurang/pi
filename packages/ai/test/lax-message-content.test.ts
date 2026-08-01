@@ -1,9 +1,14 @@
 /**
  * The Message types require `content` to always be present, but untyped
  * callers (custom tools, hand-built histories, old session files) can violate
- * that contract. `transformMessages` is the choke point before every provider
+ * that contract.
+ * Message 类型要求 `content` 始终存在,但无类型约束的调用方
+ * (自定义工具、手工拼装的历史记录、旧的会话文件)可能违反该约定。
+ * `transformMessages` is the choke point before every provider
  * request and is intentionally lax: it normalizes null/missing content to an
  * empty array (issues #6259, #6276).
+ * `transformMessages` 是每次 provider 请求前的必经关卡,并且有意做得宽松:
+ * 它会把 null 或缺失的 content 归一化为空数组(见 issue #6259、#6276)。
  */
 
 import { describe, expect, it } from "vitest";
@@ -11,7 +16,9 @@ import { transformMessages } from "../src/api/transform-messages.ts";
 import type { Message, Model } from "../src/types.ts";
 
 // Text-only model so the image downgrade path (replaceImagesWithPlaceholder) runs,
+// 使用纯文本模型,以便触发图片降级路径(replaceImagesWithPlaceholder),
 // which was the primary crash site for null tool result content.
+// 该路径正是 null 工具结果内容导致崩溃的主要位置。
 function makeTextOnlyModel(): Model<"openai-completions"> {
 	return {
 		id: "test-model",

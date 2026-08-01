@@ -362,10 +362,12 @@ describe("TUI resize handling", () => {
 			const initialRedraws = tui.fullRedraws;
 
 			// Resize height
+			// 调整高度
 			terminal.resize(40, 15);
 			await terminal.waitForRender();
 
 			// Should have triggered a full redraw
+			// 应当已触发一次全量重绘
 			assert.ok(tui.fullRedraws > initialRedraws, "Height change should trigger full redraw");
 
 			const viewport = terminal.getViewport();
@@ -417,10 +419,12 @@ describe("TUI resize handling", () => {
 		const initialRedraws = tui.fullRedraws;
 
 		// Resize width
+		// 调整宽度
 		terminal.resize(60, 10);
 		await terminal.waitForRender();
 
 		// Should have triggered a full redraw
+		// 应当已触发一次全量重绘
 		assert.ok(tui.fullRedraws > initialRedraws, "Width change should trigger full redraw");
 
 		tui.stop();
@@ -431,11 +435,12 @@ describe("TUI content shrinkage", () => {
 	it("clears empty rows when content shrinks significantly", async () => {
 		const terminal = new VirtualTerminal(40, 10);
 		const tui: TUI = new TuiMainScreen(terminal);
-		tui.setClearOnShrink(true); // Explicitly enable (may be disabled via env var)
+		tui.setClearOnShrink(true); // Explicitly enable (may be disabled via env var) | 显式启用（可能已通过环境变量禁用）
 		const component = new TestComponent();
 		tui.addChild(component);
 
 		// Start with many lines
+		// 初始时包含较多行
 		component.lines = ["Line 0", "Line 1", "Line 2", "Line 3", "Line 4", "Line 5"];
 		tui.start();
 		await terminal.waitForRender();
@@ -443,17 +448,20 @@ describe("TUI content shrinkage", () => {
 		const initialRedraws = tui.fullRedraws;
 
 		// Shrink to fewer lines
+		// 收缩为更少的行
 		component.lines = ["Line 0", "Line 1"];
 		tui.requestRender();
 		await terminal.waitForRender();
 
 		// Should have triggered a full redraw to clear empty rows
+		// 应当已触发全量重绘，以清除空白行
 		assert.ok(tui.fullRedraws > initialRedraws, "Content shrinkage should trigger full redraw");
 
 		const viewport = terminal.getViewport();
 		assert.ok(viewport[0]?.includes("Line 0"), "First line preserved");
 		assert.ok(viewport[1]?.includes("Line 1"), "Second line preserved");
 		// Lines below should be empty (cleared)
+		// 下方的行应为空（已被清除）
 		assert.strictEqual(viewport[2]?.trim(), "", "Line 2 should be cleared");
 		assert.strictEqual(viewport[3]?.trim(), "", "Line 3 should be cleared");
 
@@ -463,7 +471,7 @@ describe("TUI content shrinkage", () => {
 	it("handles shrink to single line", async () => {
 		const terminal = new VirtualTerminal(40, 10);
 		const tui: TUI = new TuiMainScreen(terminal);
-		tui.setClearOnShrink(true); // Explicitly enable (may be disabled via env var)
+		tui.setClearOnShrink(true); // Explicitly enable (may be disabled via env var) | 显式启用（可能已通过环境变量禁用）
 		const component = new TestComponent();
 		tui.addChild(component);
 
@@ -472,6 +480,7 @@ describe("TUI content shrinkage", () => {
 		await terminal.waitForRender();
 
 		// Shrink to single line
+		// 收缩为单行
 		component.lines = ["Only line"];
 		tui.requestRender();
 		await terminal.waitForRender();
@@ -486,7 +495,7 @@ describe("TUI content shrinkage", () => {
 	it("handles shrink to empty", async () => {
 		const terminal = new VirtualTerminal(40, 10);
 		const tui: TUI = new TuiMainScreen(terminal);
-		tui.setClearOnShrink(true); // Explicitly enable (may be disabled via env var)
+		tui.setClearOnShrink(true); // Explicitly enable (may be disabled via env var) | 显式启用（可能已通过环境变量禁用）
 		const component = new TestComponent();
 		tui.addChild(component);
 
@@ -495,12 +504,14 @@ describe("TUI content shrinkage", () => {
 		await terminal.waitForRender();
 
 		// Shrink to empty
+		// 收缩为空内容
 		component.lines = [];
 		tui.requestRender();
 		await terminal.waitForRender();
 
 		const viewport = terminal.getViewport();
 		// All lines should be empty
+		// 所有行都应为空
 		assert.strictEqual(viewport[0]?.trim(), "", "Line 0 should be cleared");
 		assert.strictEqual(viewport[1]?.trim(), "", "Line 1 should be cleared");
 
@@ -516,23 +527,28 @@ describe("TUI differential rendering", () => {
 		tui.addChild(component);
 
 		// Initial render: 5 identical lines
+		// 初次渲染：5 行完全相同的内容
 		component.lines = ["Line 0", "Line 1", "Line 2", "Line 3", "Line 4"];
 		tui.start();
 		await terminal.waitForRender();
 
 		// Shrink to 3 lines, all identical to before (no content changes in remaining lines)
+		// 收缩为 3 行，且内容与之前完全一致（保留下来的行内容没有变化）
 		component.lines = ["Line 0", "Line 1", "Line 2"];
 		tui.requestRender();
 		await terminal.waitForRender();
 
 		// cursorRow should be 2 (last line of new content)
+		// cursorRow 应为 2（新内容的最后一行）
 		// Verify by doing another render with a change on line 1
+		// 通过再渲染一次、并修改第 1 行来进行验证
 		component.lines = ["Line 0", "CHANGED", "Line 2"];
 		tui.requestRender();
 		await terminal.waitForRender();
 
 		const viewport = terminal.getViewport();
 		// Line 1 should show "CHANGED", proving cursor tracking was correct
+		// 第 1 行应显示 "CHANGED"，从而证明光标位置跟踪是正确的
 		assert.ok(viewport[1]?.includes("CHANGED"), `Expected "CHANGED" on line 1, got: ${viewport[1]}`);
 
 		tui.stop();
@@ -545,11 +561,13 @@ describe("TUI differential rendering", () => {
 		tui.addChild(component);
 
 		// Initial render
+		// 初次渲染
 		component.lines = ["Header", "Working...", "Footer"];
 		tui.start();
 		await terminal.waitForRender();
 
 		// Simulate spinner animation - only middle line changes
+		// 模拟加载动画（spinner）—— 仅中间那一行发生变化
 		const spinnerFrames = ["|", "/", "-", "\\"];
 		for (const frame of spinnerFrames) {
 			component.lines = ["Header", `Working ${frame}`, "Footer"];
@@ -590,6 +608,7 @@ describe("TUI differential rendering", () => {
 		await terminal.waitForRender();
 
 		// Change only first line
+		// 仅修改第一行
 		component.lines = ["CHANGED", "Line 1", "Line 2", "Line 3"];
 		tui.requestRender();
 		await terminal.waitForRender();
@@ -614,6 +633,7 @@ describe("TUI differential rendering", () => {
 		await terminal.waitForRender();
 
 		// Change only last line
+		// 仅修改最后一行
 		component.lines = ["Line 0", "Line 1", "Line 2", "CHANGED"];
 		tui.requestRender();
 		await terminal.waitForRender();
@@ -638,6 +658,7 @@ describe("TUI differential rendering", () => {
 		await terminal.waitForRender();
 
 		// Change lines 1 and 3, keep 0, 2, 4 the same
+		// 修改第 1 行和第 3 行，保持第 0、2、4 行不变
 		component.lines = ["Line 0", "CHANGED 1", "Line 2", "CHANGED 3", "Line 4"];
 		tui.requestRender();
 		await terminal.waitForRender();
@@ -659,6 +680,7 @@ describe("TUI differential rendering", () => {
 		tui.addChild(component);
 
 		// Start with content
+		// 初始时存在内容
 		component.lines = ["Line 0", "Line 1", "Line 2"];
 		tui.start();
 		await terminal.waitForRender();
@@ -667,11 +689,13 @@ describe("TUI differential rendering", () => {
 		assert.ok(viewport[0]?.includes("Line 0"), "Initial content rendered");
 
 		// Clear to empty
+		// 清空为空内容
 		component.lines = [];
 		tui.requestRender();
 		await terminal.waitForRender();
 
 		// Add content back - this should work correctly even after empty state
+		// 重新添加内容 —— 即使经历过空状态，这里也应能正常工作
 		component.lines = ["New Line 0", "New Line 1"];
 		tui.requestRender();
 		await terminal.waitForRender();

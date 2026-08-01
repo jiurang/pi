@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 // Parse args
+// 解析命令行参数
 const args = process.argv.slice(2);
 let directory: string | undefined;
 let days: number | undefined;
@@ -29,8 +30,10 @@ if (!directory || !days) {
 }
 
 // Encode directory path to session folder name
+// 将目录路径编码为会话文件夹名称
 function encodeSessionDir(dir: string): string {
 	// Remove leading slash, replace remaining slashes with dashes
+	// 去掉开头的斜杠，并将其余斜杠替换为短横线
 	const normalized = dir.startsWith("/") ? dir.slice(1) : dir;
 	return "--" + normalized.replace(/\//g, "-") + "--";
 }
@@ -45,6 +48,7 @@ if (!fs.existsSync(sessionsDir)) {
 }
 
 // Get cutoff date
+// 计算统计的起始截止日期
 const cutoff = new Date();
 cutoff.setDate(cutoff.getDate() - days);
 cutoff.setHours(0, 0, 0, 0);
@@ -67,13 +71,17 @@ interface Stats {
 const stats: Stats = {};
 
 // Process session files
+// 处理会话文件
 const files = fs.readdirSync(sessionsDir).filter((f) => f.endsWith(".jsonl"));
 
 for (const file of files) {
 	// Extract timestamp from filename: <timestamp>_<uuid>.jsonl
+	// 从文件名中提取时间戳，文件名格式为：<timestamp>_<uuid>.jsonl
 	// Format: 2025-12-17T08-25-07-381Z (dashes instead of colons)
+	// 时间戳格式：2025-12-17T08-25-07-381Z（用短横线代替冒号）
 	const timestamp = file.split("_")[0];
 	// Convert back to valid ISO: replace T08-25-07-381Z with T08:25:07.381Z
+	// 转换回合法的 ISO 格式：将 T08-25-07-381Z 替换为 T08:25:07.381Z
 	const isoTimestamp = timestamp.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z/, "T$1:$2:$3.$4Z");
 	const fileDate = new Date(isoTimestamp);
 
@@ -118,11 +126,13 @@ for (const file of files) {
 			stats[day][provider].requests += 1;
 		} catch {
 			// Skip malformed lines
+			// 跳过格式错误的行
 		}
 	}
 }
 
 // Sort days and output
+// 按日期排序并输出结果
 const sortedDays = Object.keys(stats).sort();
 
 if (sortedDays.length === 0) {

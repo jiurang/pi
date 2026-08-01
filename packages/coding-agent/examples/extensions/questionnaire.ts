@@ -1,8 +1,11 @@
 /**
  * Questionnaire Tool - Unified tool for asking single or multiple questions
+ * 问卷工具——用于提出单个或多个问题的统一工具
  *
  * Single question: simple options list
+ * 单个问题：简单的选项列表
  * Multiple questions: tab bar navigation between questions
+ * 多个问题：通过标签栏（tab bar）在各问题之间导航
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -18,6 +21,7 @@ import {
 import { Type } from "typebox";
 
 // Types
+// 类型定义
 interface QuestionOption {
 	value: string;
 	label: string;
@@ -49,6 +53,7 @@ interface QuestionnaireResult {
 }
 
 // Schema
+// 模式定义（Schema）
 const QuestionOptionSchema = Type.Object({
 	value: Type.String({ description: "The value returned when selected" }),
 	label: Type.String({ description: "Display label for the option" }),
@@ -98,6 +103,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 			}
 
 			// Normalize questions with defaults
+			// 用默认值对问题进行归一化处理
 			const questions: Question[] = params.questions.map((q, i) => ({
 				...q,
 				label: q.label || `Q${i + 1}`,
@@ -105,10 +111,11 @@ export default function questionnaire(pi: ExtensionAPI) {
 			}));
 
 			const isMulti = questions.length > 1;
-			const totalTabs = questions.length + 1; // questions + Submit
+			const totalTabs = questions.length + 1; // questions + Submit / 问题数 + 提交（Submit）标签页
 
 			const result = await ctx.ui.custom<QuestionnaireResult>((tui, theme, _kb, done) => {
 				// State
+				// 状态
 				let currentTab = 0;
 				let optionIndex = 0;
 				let inputMode = false;
@@ -117,6 +124,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 				const answers = new Map<string, Answer>();
 
 				// Editor for "Type something" option
+				// 用于 "Type something"（自行输入）选项的编辑器
 				const editorTheme: EditorTheme = {
 					borderColor: (s) => theme.fg("accent", s),
 					selectList: {
@@ -130,6 +138,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 				const editor = new Editor(tui, editorTheme);
 
 				// Helpers
+				// 辅助函数
 				function refresh() {
 					cachedLines = undefined;
 					tui.requestRender();
@@ -165,7 +174,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					if (currentTab < questions.length - 1) {
 						currentTab++;
 					} else {
-						currentTab = questions.length; // Submit tab
+						currentTab = questions.length; // Submit tab / 提交标签页
 					}
 					optionIndex = 0;
 					refresh();
@@ -176,6 +185,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 				}
 
 				// Editor submit callback
+				// 编辑器提交回调
 				editor.onSubmit = (value) => {
 					if (!inputQuestionId) return;
 					const trimmed = value.trim() || "(no response)";
@@ -188,6 +198,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 
 				function handleInput(data: string) {
 					// Input mode: route to editor
+					// 输入模式：将按键路由给编辑器处理
 					if (inputMode) {
 						if (matchesKey(data, Key.escape)) {
 							inputMode = false;
@@ -205,6 +216,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					const opts = currentOptions();
 
 					// Tab navigation (multi-question only)
+					// 标签页导航（仅在多问题模式下可用）
 					if (isMulti) {
 						if (matchesKey(data, Key.tab) || matchesKey(data, Key.right)) {
 							currentTab = (currentTab + 1) % totalTabs;
@@ -221,6 +233,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					}
 
 					// Submit tab
+					// 提交标签页
 					if (currentTab === questions.length) {
 						if (matchesKey(data, Key.enter) && allAnswered()) {
 							submit(false);
@@ -231,6 +244,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					}
 
 					// Option navigation
+					// 选项导航
 					if (matchesKey(data, Key.up)) {
 						optionIndex = Math.max(0, optionIndex - 1);
 						refresh();
@@ -243,6 +257,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					}
 
 					// Select option
+					// 选中选项
 					if (matchesKey(data, Key.enter) && q) {
 						const opt = opts[optionIndex];
 						if (opt.isOther) {
@@ -258,6 +273,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					}
 
 					// Cancel
+					// 取消
 					if (matchesKey(data, Key.escape)) {
 						submit(true);
 					}
@@ -291,6 +307,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					lines.push(theme.fg("accent", "─".repeat(renderWidth)));
 
 					// Tab bar (multi-question only)
+					// 标签栏（仅在多问题模式下显示）
 					if (isMulti) {
 						const tabs: string[] = ["← "];
 						for (let i = 0; i < questions.length; i++) {
@@ -315,6 +332,7 @@ export default function questionnaire(pi: ExtensionAPI) {
 					}
 
 					// Helper to render options list
+					// 用于渲染选项列表的辅助函数
 					function renderOptions() {
 						for (let i = 0; i < opts.length; i++) {
 							const opt = opts[i];
@@ -332,10 +350,12 @@ export default function questionnaire(pi: ExtensionAPI) {
 					}
 
 					// Content
+					// 内容区
 					if (inputMode && q) {
 						addWrappedWithPrefix(" ", theme.fg("text", q.prompt));
 						lines.push("");
 						// Show options for reference
+						// 展示选项以供参考
 						renderOptions();
 						lines.push("");
 						addWrappedWithPrefix(" ", theme.fg("muted", "Your answer:"));

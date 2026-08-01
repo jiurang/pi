@@ -51,7 +51,9 @@ function getProbePriority(model: Model<"anthropic-messages">): number {
 	let priority = cost;
 
 	// Prefer current Claude 4 Haiku routes when present: they are cheap and avoid
+	// 当存在时优先选择当前的 Claude 4 Haiku 路由:它们成本低廉,并且可以避免
 	// stale Claude 3.x aliases that can remain in catalogs after upstream removal.
+	// 上游移除后仍可能残留在目录中的过期 Claude 3.x 别名。
 	if (modelId.includes("haiku") && (modelId.includes("4-5") || modelId.includes("4.5"))) {
 		priority -= 1000;
 	} else if (modelId.includes("sonnet") && (modelId.includes("4-") || modelId.includes("4."))) {

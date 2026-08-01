@@ -7,23 +7,26 @@ import { spawnProcessSync } from "./child-process.ts";
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 
 export interface PathInputOptions {
-	/** Trim leading/trailing whitespace before normalization. */
+	/** Trim leading/trailing whitespace before normalization. 在归一化之前去除首尾空白字符。 */
 	trim?: boolean;
-	/** Expand leading `~` to a home directory. Defaults to true. */
+	/** Expand leading `~` to a home directory. 将开头的 `~` 展开为用户主目录。 Defaults to true. 默认值为 true。 */
 	expandTilde?: boolean;
-	/** Home directory used for `~` expansion. Defaults to `os.homedir()`. */
+	/** Home directory used for `~` expansion. 用于 `~` 展开的主目录。 Defaults to `os.homedir()`. 默认值为 `os.homedir()`。 */
 	homeDir?: string;
-	/** Strip a leading `@`, used for CLI @file paths. */
+	/** Strip a leading `@`, used for CLI @file paths. 去除开头的 `@`，用于 CLI 的 @file 路径写法。 */
 	stripAtPrefix?: boolean;
-	/** Normalize unicode space variants to regular spaces. */
+	/** Normalize unicode space variants to regular spaces. 将各类 Unicode 空格变体归一化为普通空格。 */
 	normalizeUnicodeSpaces?: boolean;
 }
 
 /**
  * Resolve a path to its canonical (real) form, following symlinks.
+ * 将路径解析为其规范（真实）形式，并跟随符号链接（symlink）。
  * Falls back to the raw path if resolution fails (e.g. the target does
  * not exist yet), so that callers never crash on missing filesystem
  * entries.
+ * 若解析失败（例如目标尚不存在），则回退为原始路径，
+ * 以确保调用方不会因文件系统条目缺失而崩溃。
  */
 export function canonicalizePath(path: string): string {
 	try {
@@ -37,10 +40,13 @@ export function canonicalizePath(path: string): string {
  * Returns true if the value is NOT a package source (npm:, git:, etc.)
  * or a remote URL protocol. Bare names, relative paths, and file: URLs
  * are considered local.
+ * 若该值不是包来源（npm:、git: 等）也不是远程 URL 协议，则返回 true。
+ * 裸名称、相对路径以及 file: URL 均被视为本地路径。
  */
 export function isLocalPath(value: string): boolean {
 	const trimmed = value.trim();
 	// Known non-local prefixes. file: URLs are local paths and are intentionally resolved by resolvePath().
+	// 已知的非本地前缀。file: URL 属于本地路径，会有意交由 resolvePath() 进行解析。
 	if (
 		trimmed.startsWith("npm:") ||
 		trimmed.startsWith("git:") ||

@@ -29,13 +29,16 @@ import {
 
 // ============================================================================
 // Test fixtures
+// 测试夹具(fixtures)
 // ============================================================================
 
 function loadLargeSessionEntries(): SessionEntry[] {
 	const sessionPath = join(__dirname, "fixtures/large-session.jsonl");
 	const content = readFileSync(sessionPath, "utf-8");
 	const entries = parseSessionEntries(content);
-	migrateSessionEntries(entries); // Add id/parentId for v1 fixtures
+	// Add id/parentId for v1 fixtures
+	// 为 v1 版本的测试夹具补充 id/parentId 字段
+	migrateSessionEntries(entries);
 	return entries.filter((e): e is SessionEntry => e.type !== "session");
 }
 
@@ -76,6 +79,7 @@ function resetEntryCounter() {
 }
 
 // Reset counter before each test to get predictable IDs
+// 在每个测试用例前重置计数器,以获得可预期的 ID
 beforeEach(() => {
 	resetEntryCounter();
 });
@@ -188,6 +192,7 @@ function extractText(messages: AgentMessage[]): string {
 
 // ============================================================================
 // Unit tests
+// 单元测试
 // ============================================================================
 
 describe("Token calculation", () => {
@@ -297,6 +302,7 @@ describe("shouldCompact", () => {
 describe("findCutPoint", () => {
 	it("should find cut point based on actual token differences", () => {
 		// Create entries with cumulative token counts
+		// 创建带有累计 token 数的条目
 		const entries: SessionEntry[] = [];
 		for (let i = 0; i < 10; i++) {
 			entries.push(createMessageEntry(createUserMessage(`User ${i}`)));
@@ -306,10 +312,13 @@ describe("findCutPoint", () => {
 		}
 
 		// 20 entries, last assistant has 10000 tokens
+		// 共 20 个条目,最后一条助手消息对应 10000 个 token
 		// keepRecentTokens = 2500: keep entries where diff < 2500
+		// keepRecentTokens = 2500:保留 token 差值小于 2500 的条目
 		const result = findCutPoint(entries, 0, entries.length, 2500);
 
 		// Should cut at a valid cut point (user or assistant message)
+		// 应当在合法的切分点处截断(即用户消息或助手消息)
 		expect(entries[result.firstKeptEntryIndex].type).toBe("message");
 		const role = (entries[result.firstKeptEntryIndex] as SessionMessageEntry).message.role;
 		expect(role === "user" || role === "assistant").toBe(true);
@@ -335,23 +344,32 @@ describe("findCutPoint", () => {
 
 	it("should indicate split turn when cutting at assistant message", () => {
 		// Create a scenario where we cut at an assistant message mid-turn
+		// 构造一个在某一轮对话中间、于助手消息处进行截断的场景
 		const entries: SessionEntry[] = [
 			createMessageEntry(createUserMessage("Turn 1")),
 			createMessageEntry(createAssistantMessage("A1", createMockUsage(0, 100, 1000, 0))),
-			createMessageEntry(createUserMessage("Turn 2")), // index 2
-			createMessageEntry(createAssistantMessage("A2-1", createMockUsage(0, 100, 5000, 0))), // index 3
-			createMessageEntry(createAssistantMessage("A2-2", createMockUsage(0, 100, 8000, 0))), // index 4
-			createMessageEntry(createAssistantMessage("A2-3", createMockUsage(0, 100, 10000, 0))), // index 5
+			// index 2 —— 索引 2
+			createMessageEntry(createUserMessage("Turn 2")),
+			// index 3 —— 索引 3
+			createMessageEntry(createAssistantMessage("A2-1", createMockUsage(0, 100, 5000, 0))),
+			// index 4 —— 索引 4
+			createMessageEntry(createAssistantMessage("A2-2", createMockUsage(0, 100, 8000, 0))),
+			// index 5 —— 索引 5
+			createMessageEntry(createAssistantMessage("A2-3", createMockUsage(0, 100, 10000, 0))),
 		];
 
 		// With keepRecentTokens = 3000, should cut somewhere in Turn 2
+		// 当 keepRecentTokens = 3000 时,应当在第 2 轮对话中的某处截断
 		const result = findCutPoint(entries, 0, entries.length, 3000);
 
 		// If cut at assistant message (not user), should indicate split turn
+		// 如果是在助手消息(而非用户消息)处截断,则应标记为轮次被拆分(split turn)
 		const cutEntry = entries[result.firstKeptEntryIndex] as SessionMessageEntry;
 		if (cutEntry.message.role === "assistant") {
 			expect(result.isSplitTurn).toBe(true);
-			expect(result.turnStartIndex).toBe(2); // Turn 2 starts at index 2
+			// Turn 2 starts at index 2
+			// 第 2 轮对话从索引 2 开始
+			expect(result.turnStartIndex).toBe(2);
 		}
 	});
 
@@ -392,11 +410,14 @@ describe("buildSessionContext", () => {
 
 	it("should handle single compaction", () => {
 		// IDs: u1=test-id-0, a1=test-id-1, u2=test-id-2, a2=test-id-3, compaction=test-id-4, u3=test-id-5, a3=test-id-6
+		// 各条目 ID:u1=test-id-0、a1=test-id-1、u2=test-id-2、a2=test-id-3、compaction=test-id-4、u3=test-id-5、a3=test-id-6
 		const u1 = createMessageEntry(createUserMessage("1"));
 		const a1 = createMessageEntry(createAssistantMessage("a"));
 		const u2 = createMessageEntry(createUserMessage("2"));
 		const a2 = createMessageEntry(createAssistantMessage("b"));
-		const compaction = createCompactionEntry("Summary of 1,a,2,b", u2.id); // keep from u2 onwards
+		// keep from u2 onwards
+		// 从 u2 开始往后的条目予以保留
+		const compaction = createCompactionEntry("Summary of 1,a,2,b", u2.id);
 		const u3 = createMessageEntry(createUserMessage("3"));
 		const a3 = createMessageEntry(createAssistantMessage("c"));
 
@@ -404,6 +425,7 @@ describe("buildSessionContext", () => {
 
 		const loaded = buildSessionContext(entries);
 		// summary + kept (u2, a2) + after (u3, a3) = 5
+		// 摘要 + 保留的消息(u2、a2)+ 其后的消息(u3、a3)= 共 5 条
 		expect(loaded.messages.length).toBe(5);
 		expect(loaded.messages[0].role).toBe("compactionSummary");
 		expect((loaded.messages[0] as any).summary).toContain("Summary of 1,a,2,b");
@@ -411,16 +433,21 @@ describe("buildSessionContext", () => {
 
 	it("should handle multiple compactions (only latest matters)", () => {
 		// First batch
+		// 第一批
 		const u1 = createMessageEntry(createUserMessage("1"));
 		const a1 = createMessageEntry(createAssistantMessage("a"));
 		const compact1 = createCompactionEntry("First summary", u1.id);
 		// Second batch
+		// 第二批
 		const u2 = createMessageEntry(createUserMessage("2"));
 		const b = createMessageEntry(createAssistantMessage("b"));
 		const u3 = createMessageEntry(createUserMessage("3"));
 		const c = createMessageEntry(createAssistantMessage("c"));
-		const compact2 = createCompactionEntry("Second summary", u3.id); // keep from u3 onwards
+		// keep from u3 onwards
+		// 从 u3 开始往后的条目予以保留
+		const compact2 = createCompactionEntry("Second summary", u3.id);
 		// After second compaction
+		// 第二次压缩(compaction)之后
 		const u4 = createMessageEntry(createUserMessage("4"));
 		const d = createMessageEntry(createAssistantMessage("d"));
 
@@ -428,6 +455,7 @@ describe("buildSessionContext", () => {
 
 		const loaded = buildSessionContext(entries);
 		// summary + kept from u3 (u3, c) + after (u4, d) = 5
+		// 摘要 + 从 u3 起保留的消息(u3、c)+ 其后的消息(u4、d)= 共 5 条
 		expect(loaded.messages.length).toBe(5);
 		expect((loaded.messages[0] as any).summary).toContain("Second summary");
 	});
@@ -435,7 +463,9 @@ describe("buildSessionContext", () => {
 	it("should keep all messages when firstKeptEntryId is first entry", () => {
 		const u1 = createMessageEntry(createUserMessage("1"));
 		const a1 = createMessageEntry(createAssistantMessage("a"));
-		const compact1 = createCompactionEntry("First summary", u1.id); // keep from first entry
+		// keep from first entry
+		// 从第一个条目开始全部保留
+		const compact1 = createCompactionEntry("First summary", u1.id);
 		const u2 = createMessageEntry(createUserMessage("2"));
 		const b = createMessageEntry(createAssistantMessage("b"));
 
@@ -443,6 +473,7 @@ describe("buildSessionContext", () => {
 
 		const loaded = buildSessionContext(entries);
 		// summary + all messages (u1, a1, u2, b) = 5
+		// 摘要 + 全部消息(u1、a1、u2、b)= 共 5 条
 		expect(loaded.messages.length).toBe(5);
 	});
 
@@ -456,6 +487,7 @@ describe("buildSessionContext", () => {
 
 		const loaded = buildSessionContext(entries);
 		// model_change is later overwritten by assistant message's model info
+		// model_change 记录随后会被助手消息中的模型信息覆盖
 		expect(loaded.model).toEqual({ provider: "anthropic", modelId: "claude-sonnet-4-5" });
 		expect(loaded.thinkingLevel).toBe("high");
 	});
@@ -507,6 +539,7 @@ describe("prepareCompaction with previous compaction", () => {
 
 // ============================================================================
 // Integration tests with real session data
+// 使用真实会话数据的集成测试
 // ============================================================================
 
 describe("Large session fixture", () => {
@@ -523,6 +556,7 @@ describe("Large session fixture", () => {
 		const result = findCutPoint(entries, 0, entries.length, DEFAULT_COMPACTION_SETTINGS.keepRecentTokens);
 
 		// Cut point should be at a message entry (user or assistant)
+		// 切分点应当位于某条消息条目上(用户消息或助手消息)
 		expect(entries[result.firstKeptEntryIndex].type).toBe("message");
 		const role = (entries[result.firstKeptEntryIndex] as SessionMessageEntry).message.role;
 		expect(role === "user" || role === "assistant").toBe(true);
@@ -539,6 +573,7 @@ describe("Large session fixture", () => {
 
 // ============================================================================
 // LLM integration tests (skipped without API key)
+// LLM 集成测试(未配置 API key 时会跳过)
 // ============================================================================
 
 describe.skipIf(!process.env.ANTHROPIC_OAUTH_TOKEN)("LLM summarization", () => {
@@ -573,6 +608,7 @@ describe.skipIf(!process.env.ANTHROPIC_OAUTH_TOKEN)("LLM summarization", () => {
 		const compactionResult = await compact(preparation!, model, process.env.ANTHROPIC_OAUTH_TOKEN!);
 
 		// Simulate appending compaction to entries by creating a proper entry
+		// 通过创建一个规范的条目,模拟把压缩记录追加到条目列表中
 		const lastEntry = entries[entries.length - 1];
 		const parentId = lastEntry.id;
 		const compactionEntry: CompactionEntry = {
@@ -586,6 +622,7 @@ describe.skipIf(!process.env.ANTHROPIC_OAUTH_TOKEN)("LLM summarization", () => {
 		const reloaded = buildSessionContext(newEntries);
 
 		// Should have summary + kept messages
+		// 结果应当包含摘要 + 被保留的消息
 		expect(reloaded.messages.length).toBeLessThan(loaded.messages.length);
 		expect(reloaded.messages[0].role).toBe("compactionSummary");
 		expect((reloaded.messages[0] as any).summary).toContain(compactionResult.summary);

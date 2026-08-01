@@ -28,12 +28,15 @@
 
 function ansiRegex({ onlyFirst = false }: { onlyFirst?: boolean } = {}): RegExp {
 	// Valid string terminator sequences are BEL, ESC\, and 0x9c
+	// 有效的字符串终止符(String Terminator)序列为 BEL、ESC\ 和 0x9c
 	const ST = "(?:\\u0007|\\u001B\\u005C|\\u009C)";
 
 	// OSC sequences only: ESC ] ... ST (non-greedy until the first ST)
+	// 仅匹配 OSC 序列:ESC ] ... ST(非贪婪匹配,直到第一个 ST 为止)
 	const osc = `(?:\\u001B\\][\\s\\S]*?${ST})`;
 
 	// CSI and related: ESC/C1, optional intermediates, optional params (supports ; and :) then final byte
+	// CSI 及相关序列:ESC/C1 引导符、可选的中间字节、可选的参数(支持 ; 和 :),最后是终止字节
 	const csi = "[\\u001B\\u009B][[\\]()#;?]*(?:\\d{1,4}(?:[;:]\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]";
 
 	const pattern = `${osc}|${csi}`;
@@ -49,12 +52,16 @@ export function stripAnsi(value: string): string {
 	}
 
 	// Fast path: ANSI codes require ESC (7-bit) or CSI (8-bit) introducer
+	// 快速路径:ANSI 代码必须带有 ESC(7 位)或 CSI(8 位)引导符
 	if (!value.includes("\u001B") && !value.includes("\u009B")) {
 		return value;
 	}
 
 	// Even though the regex is global, we don't need to reset the `.lastIndex`
+	// 尽管该正则是全局(global)模式,我们也无需重置 `.lastIndex`,
 	// because unlike `.exec()` and `.test()`, `.replace()` does it automatically
+	// 因为与 `.exec()` 和 `.test()` 不同,`.replace()` 会自动完成重置,
 	// and doing it manually has a performance penalty.
+	// 而手动重置反而会带来性能开销。
 	return value.replace(regex, "");
 }

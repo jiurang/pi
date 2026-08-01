@@ -1,5 +1,6 @@
 /**
  * Hello Tool - Minimal custom tool example
+ * Hello 工具 —— 最简自定义工具示例
  */
 
 import { Type } from "@earendil-works/pi-ai";

@@ -56,15 +56,15 @@ interface ModelRuntimeSnapshot {
 }
 
 export interface CreateModelRuntimeOptions {
-	/** Credential storage. Defaults to the file at authPath. */
+	/** Credential storage. 凭据存储。 Defaults to the file at authPath. 默认使用位于 authPath 的文件。 */
 	credentials?: CredentialStore;
 	authPath?: string;
 	modelsPath?: string | null;
 	modelsStore?: ModelsStore;
 	modelsStorePath?: string;
-	/** Allow create() to refresh model catalogs over the network. Defaults to false. */
+	/** Allow create() to refresh model catalogs over the network. 允许 create() 通过网络刷新模型目录（catalog）。 Defaults to false. 默认值为 false。 */
 	allowModelNetwork?: boolean;
-	/** Timeout for the create-time network model refresh. */
+	/** Timeout for the create-time network model refresh. 创建时进行网络模型刷新的超时时间。 */
 	modelRefreshTimeoutMs?: number;
 	catalogBaseUrl?: string;
 }
@@ -72,7 +72,7 @@ export interface CreateModelRuntimeOptions {
 export interface ModelRuntimeAuthOverrides {
 	apiKey?: string;
 	env?: Record<string, string>;
-	/** Require this much remaining OAuth-token validity; defaults to five minutes. */
+	/** Require this much remaining OAuth-token validity; defaults to five minutes. 要求 OAuth token 至少还有这么长的剩余有效期；默认为五分钟。 */
 	minOAuthValidityMs?: number;
 }
 
@@ -92,7 +92,7 @@ function mergeHeaders(
 	return merged;
 }
 
-/** Configured pi-ai Models collection used by coding-agent and SDK consumers. */
+/** Configured pi-ai Models collection used by coding-agent and SDK consumers. 供 coding-agent 与 SDK 使用方使用的、已配置好的 pi-ai Models 集合。 */
 export class ModelRuntime implements Models {
 	private readonly models: MutableModels;
 	private readonly credentials: RuntimeCredentials;
@@ -209,6 +209,7 @@ export class ModelRuntime implements Models {
 		}
 		if (base && !this.config.getProvider(providerId) && !extension) {
 			// No overlays: use the builtin untouched so its auth/login/stream behavior is exact.
+			// 没有任何叠加配置（overlay）：原样使用内置 provider，以保证其 auth/login/stream 行为完全一致。
 			this.models.setProvider(base);
 			this.compositionErrors.delete(providerId);
 			return;
@@ -282,12 +283,12 @@ export class ModelRuntime implements Models {
 		return tracked;
 	}
 
-	/** Coalesce concurrent readers onto the pending refresh. */
+	/** Coalesce concurrent readers onto the pending refresh. 将并发的读取方合并到同一个待完成的刷新操作上。 */
 	private refreshAvailability(): Promise<void> {
 		return this.availabilityRefresh ?? this.queueAvailabilityRefresh(undefined);
 	}
 
-	/** Mutations must not observe an in-flight refresh started before them. */
+	/** Mutations must not observe an in-flight refresh started before them. 写操作不应复用在其之前就已开始的刷新结果。 */
 	private forceRefreshAvailability(): Promise<void> {
 		return this.queueAvailabilityRefresh(this.availabilityRefresh);
 	}
@@ -356,7 +357,7 @@ export class ModelRuntime implements Models {
 		return this.nativeExtensionProviders.get(providerId);
 	}
 
-	/** @internal Compatibility fallback for ModelRegistry when provider auth is unconfigured. */
+	/** @internal Compatibility fallback for ModelRegistry when provider auth is unconfigured. 当 provider 鉴权未配置时，为 ModelRegistry 提供的兼容性回退方案。 */
 	getCompatibilityRequestConfig(model: Model<Api>): CompatibilityRequestConfig {
 		return resolveCompatibilityRequestConfig(
 			model,
@@ -511,6 +512,7 @@ export class ModelRuntime implements Models {
 	async logout(providerId: string): Promise<void> {
 		await this.models.logout(providerId);
 		// Reset credential-dependent compatibility projections before the unconfigured provider is skipped by refresh.
+		// 在未配置的 provider 被 refresh 跳过之前，先重置依赖凭据的兼容性投影配置。
 		this.recomposeProvider(providerId);
 		await this.refresh({ allowNetwork: this.modelNetworkEnabled });
 	}
@@ -524,7 +526,9 @@ export class ModelRuntime implements Models {
 			allowNetwork: options.allowNetwork ?? this.modelNetworkEnabled,
 		};
 		// Published pi-ai builds before ModelsStore returned void and accepted a provider ID.
+		// 在引入 ModelsStore 之前发布的 pi-ai 版本中，该方法返回 void 且接受一个 provider ID。
 		// The fallback keeps source-mode CLI tests working without rebuilding workspace dependencies.
+		// 这个回退逻辑让源码模式（source-mode）的 CLI 测试无需重新构建工作区依赖即可正常运行。
 		const result = ((await this.models.refresh(refreshOptions)) as ModelsRefreshResult | undefined) ?? {
 			aborted: refreshOptions.signal?.aborted ?? false,
 			errors: new Map(),
@@ -534,6 +538,7 @@ export class ModelRuntime implements Models {
 			await this.forceRefreshAvailability();
 		} catch {
 			// Availability errors are recorded by forceRefreshAvailability; refreshed models remain usable.
+			// 可用性检查的错误由 forceRefreshAvailability 记录；已刷新的模型仍然可用。
 		}
 		return result;
 	}
@@ -550,10 +555,14 @@ export class ModelRuntime implements Models {
 	registerProvider(providerId: string, config: ProviderConfigInput): void {
 		// Validate the incoming registration on its own, like the legacy registry:
 		// a broken re-registration must throw without touching the stored config.
+		// 像旧版注册表（legacy registry）那样，单独校验传入的注册信息：
+		// 有问题的重复注册必须抛出异常，且不得改动已存储的配置。
 		validateExtensionProvider(providerId, this.builtins.get(providerId), this.config.getProvider(providerId), config);
 		this.nativeExtensionProviders.delete(providerId);
 		// Re-registration merges defined values over the previous registration and
 		// preserves undefined ones, matching the legacy ModelRegistry contract.
+		// 重复注册时会用已定义的值覆盖上一次注册的内容，并保留未定义（undefined）的字段，
+		// 以符合旧版 ModelRegistry 的约定。
 		const previous = this.extensionProviders.get(providerId);
 		const effective: ProviderConfigInput = { ...previous };
 		for (const [key, value] of Object.entries(config)) {
@@ -569,6 +578,7 @@ export class ModelRuntime implements Models {
 			const configuredProviders = new Set(this.snapshot.configuredProviders).add(providerId);
 			const auth = new Map(this.snapshot.auth);
 			// Provisional entry until the async refresh lands; never clobber a real check result.
+			// 在异步刷新完成前先写入一条临时记录；绝不覆盖真实的检查结果。
 			if (!auth.get(providerId)) {
 				auth.set(providerId, {
 					type: effective.oauth && !effective.apiKey ? "oauth" : "api_key",

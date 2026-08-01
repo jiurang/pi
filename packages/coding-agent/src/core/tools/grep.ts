@@ -46,12 +46,16 @@ export interface GrepToolDetails {
 
 /**
  * Pluggable operations for the grep tool.
+ * grep 工具的可插拔（pluggable）操作集合。
  * Override these to delegate search to remote systems (for example SSH).
+ * 覆盖这些操作即可把搜索委托给远程系统（例如通过 SSH）。
  */
 export interface GrepOperations {
-	/** Check if path is a directory. Throws if path does not exist. */
+	/** Check if path is a directory. Throws if path does not exist.
+	 *  判断路径是否为目录。若路径不存在则抛出异常。 */
 	isDirectory: (absolutePath: string) => Promise<boolean> | boolean;
-	/** Read file contents for context lines */
+	/** Read file contents for context lines
+	 *  读取文件内容以提供上下文行 */
 	readFile: (absolutePath: string) => Promise<string> | string;
 }
 
@@ -61,7 +65,8 @@ const defaultGrepOperations: GrepOperations = {
 };
 
 export interface GrepToolOptions {
-	/** Custom operations for grep. Default: local filesystem plus ripgrep */
+	/** Custom operations for grep. Default: local filesystem plus ripgrep
+	 *  grep 的自定义操作。默认值：本地文件系统配合 ripgrep */
 	operations?: GrepOperations;
 }
 
@@ -259,6 +264,7 @@ export function createGrepToolDefinition(
 								const sanitized = lineText.replace(/\r/g, "");
 								const isMatchLine = current === lineNumber;
 								// Truncate long lines so grep output stays compact.
+								// 截断过长的行，使 grep 输出保持紧凑。
 								const { text: truncatedText, wasTruncated } = truncateLine(sanitized);
 								if (wasTruncated) linesTruncated = true;
 								if (isMatchLine) block.push(`${relativePath}:${current}: ${truncatedText}`);
@@ -268,6 +274,7 @@ export function createGrepToolDefinition(
 						};
 
 						// Collect matches during streaming, then format them after rg exits.
+						// 在流式读取过程中收集匹配项，待 rg 退出后再统一格式化。
 						const matches: Array<{ filePath: string; lineNumber: number; lineText?: string }> = [];
 						rl.on("line", (line) => {
 							if (!line.trim() || matchCount >= effectiveLimit) return;
@@ -314,6 +321,7 @@ export function createGrepToolDefinition(
 							}
 
 							// Format matches after streaming finishes so custom readFile() backends can be async.
+							// 在流式读取结束后再格式化匹配项，以便自定义的 readFile() 后端可以是异步的。
 							for (const match of matches) {
 								if (contextValue === 0 && match.lineText !== undefined) {
 									const relativePath = formatPath(match.filePath);
@@ -332,10 +340,12 @@ export function createGrepToolDefinition(
 
 							const rawOutput = outputLines.join("\n");
 							// Apply byte truncation. There is no line limit here because the match limit already capped rows.
+							// 按字节数进行截断。这里不设行数上限，因为匹配数量限制已经限定了行数。
 							const truncation = truncateHead(rawOutput, { maxLines: Number.MAX_SAFE_INTEGER });
 							let output = truncation.content;
 							const details: GrepToolDetails = {};
 							// Build actionable notices for truncation and match limits.
+							// 针对截断和匹配数量上限，生成可指导后续操作的提示信息。
 							const notices: string[] = [];
 							if (matchLimitReached) {
 								notices.push(

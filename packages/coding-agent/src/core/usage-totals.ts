@@ -33,7 +33,10 @@ export interface UsageCostBreakdownEntry {
 	tokens: number;
 }
 
-/** Group attributable assistant usage by model and all other usage into a separate bucket. */
+/**
+ * Group attributable assistant usage by model and all other usage into a separate bucket.
+ * 将可归因到 assistant 的用量按模型分组，其余所有用量归入单独的一类。
+ */
 export function getUsageCostBreakdown(entries: SessionEntry[]): UsageCostBreakdownEntry[] {
 	const totalsByKey = new Map<string, UsageTotals>();
 

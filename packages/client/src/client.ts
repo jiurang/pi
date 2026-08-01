@@ -293,6 +293,7 @@ export class PiClient {
 			this.#options.onListenerError(toError(error));
 		} catch {
 			// Diagnostics cannot affect protocol or transport state.
+			// 诊断逻辑不能影响协议或传输层状态。
 		}
 	}
 }

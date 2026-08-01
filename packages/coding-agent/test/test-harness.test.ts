@@ -1,6 +1,8 @@
 /**
  * Tests for the test harness itself.
+ * 针对测试脚手架(test harness)自身的测试。
  * Validates that the faux provider and session factory work correctly.
+ * 验证伪造(faux) provider 与会话工厂函数能够正常工作。
  */
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
@@ -141,7 +143,7 @@ describe("test harness", () => {
 		expect(agentEnds).toHaveLength(1);
 
 		const messageEnds = harness.eventsOfType("message_end");
-		expect(messageEnds.length).toBeGreaterThanOrEqual(2); // user + assistant
+		expect(messageEnds.length).toBeGreaterThanOrEqual(2); // user + assistant 用户消息 + 助手消息
 	});
 
 	it("context capture", async () => {
@@ -181,6 +183,7 @@ describe("test harness", () => {
 		expect(textDeltas.length).toBeGreaterThan(0);
 
 		// Deltas should reconstruct the full text
+		// 这些增量(delta)拼接后应能还原出完整文本
 		const reconstructed = textDeltas.map((e) => (e.assistantMessageEvent as { delta: string }).delta).join("");
 		expect(reconstructed).toBe("hello world");
 	});
@@ -260,6 +263,7 @@ describe("test harness", () => {
 		const streamTypes = updates.map((e) => e.assistantMessageEvent.type);
 
 		// Thinking events should come before text events, text before toolcall
+		// 思考(thinking)事件应先于文本事件，文本事件应先于工具调用(toolcall)事件
 		const firstThinking = streamTypes.indexOf("thinking_start");
 		const firstText = streamTypes.indexOf("text_start");
 		const firstToolcall = streamTypes.indexOf("toolcall_start");
@@ -327,6 +331,6 @@ describe("test harness", () => {
 
 		const entries = harness.sessionManager.getEntries();
 		const messageEntries = entries.filter((e) => e.type === "message");
-		expect(messageEntries.length).toBeGreaterThanOrEqual(2); // user + assistant
+		expect(messageEntries.length).toBeGreaterThanOrEqual(2); // user + assistant 用户消息 + 助手消息
 	});
 });

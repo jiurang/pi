@@ -1,5 +1,6 @@
 /**
  * Utility functions for Azure OpenAI tests
+ * 用于 Azure OpenAI 测试的工具函数
  */
 
 function parseDeploymentNameMap(value: string | undefined): Map<string, string> {

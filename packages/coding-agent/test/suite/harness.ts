@@ -1,6 +1,7 @@
 import { createInMemoryModelRegistry, createModelRegistry, getModelRuntime } from "../model-runtime-test-utils.ts";
 /**
  * Local test harness for the new coding-agent test suite.
+ * 用于新版 coding-agent 测试套件的本地测试框架（harness）。
  */
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";

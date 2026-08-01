@@ -1,8 +1,11 @@
 /**
  * Structured Output Tool
+ * 结构化输出(Structured Output)工具
  *
  * Demonstrates `terminate: true` so the agent can end on a tool call
  * without paying for an extra follow-up LLM turn.
+ * 演示 `terminate: true` 的用法：让 agent 可以直接在一次工具调用后结束，
+ * 从而省去额外一次 LLM 追加轮次的开销。
  */
 
 import { defineTool, type ExtensionAPI } from "@earendil-works/pi-coding-agent";

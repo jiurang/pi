@@ -90,6 +90,7 @@ describe("TuiAltScreen", () => {
 		);
 
 		// Wheel over the dock falls back to the primary transcript scroll view.
+		// 在停靠区（dock）上滚动滚轮时，会回退到主（primary）会话记录滚动视图。
 		terminal.sendInput("\x1b[<64;1;6M");
 		await terminal.waitForRender();
 		assert.deepStrictEqual(

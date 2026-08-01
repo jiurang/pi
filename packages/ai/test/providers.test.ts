@@ -36,6 +36,7 @@ describe("builtin providers", () => {
 		expect(all.length).toBeGreaterThan(500);
 
 		// Static providers list models immediately; Radius is purely dynamic.
+		// 静态 provider 会立即列出模型;Radius 则是纯动态的。
 		for (const provider of providers) {
 			const list = models.getModels(provider.id);
 			if (provider.id === "radius") expect(list).toEqual([]);
@@ -251,11 +252,13 @@ describe("builtin providers", () => {
 		expect(result?.source).toContain("application default");
 
 		// ADC without project/location is not configured
+		// 仅有 ADC 而缺少 project/location 时视为未配置
 		const partial = createModels({ authContext: fakeAuthContext({ GOOGLE_CLOUD_PROJECT: "proj" }, [adc]) });
 		partial.setProvider(googleVertexProvider());
 		expect(await partial.getAuth(model.provider)).toBeUndefined();
 
 		// explicit key wins over ADC
+		// 显式提供的密钥优先级高于 ADC
 		const keyed = createModels({ authContext: fakeAuthContext({ GOOGLE_CLOUD_API_KEY: "vertex-key" }) });
 		keyed.setProvider(googleVertexProvider());
 		expect((await keyed.getAuth(model.provider))?.auth.apiKey).toBe("vertex-key");
@@ -421,6 +424,7 @@ describe("createProvider", () => {
 		expect(provider.getModels().map((m) => m.id)).toEqual(["listed"]);
 
 		// a later refresh fetches again
+		// 之后再次刷新会重新拉取
 		await provider.refreshModels?.(refreshContext);
 		expect(fetches).toBe(2);
 	});

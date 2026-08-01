@@ -102,6 +102,7 @@ describe("Kimi Code OAuth", () => {
 		]);
 
 		// waitBeforeFirstPoll: first poll happens after the 5s interval.
+		// waitBeforeFirstPoll:第一次轮询发生在 5 秒间隔之后。
 		await vi.advanceTimersByTimeAsync(4999);
 		expect(pollTimes).toEqual([]);
 		await vi.advanceTimersByTimeAsync(1);
@@ -228,6 +229,7 @@ describe("Kimi Code OAuth", () => {
 		vi.useFakeTimers();
 
 		// 429 once, then success.
+		// 先返回一次 429,然后成功。
 		let calls = 0;
 		vi.stubGlobal(
 			"fetch",
@@ -249,6 +251,7 @@ describe("Kimi Code OAuth", () => {
 		expect(calls).toBe(2);
 
 		// invalid_grant is not retried.
+		// invalid_grant 不会被重试。
 		vi.stubGlobal(
 			"fetch",
 			vi.fn(async (): Promise<Response> => jsonResponse({ error: "invalid_grant" }, 400)),

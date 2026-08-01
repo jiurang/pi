@@ -11,6 +11,7 @@ import { hasCloudflareAiGatewayCredentials, hasCloudflareWorkersAICredentials } 
 import { resolveApiKey } from "./oauth.ts";
 
 // Resolve OAuth tokens at module level (async, runs before tests)
+// 在模块层级解析 OAuth 令牌(异步执行,在测试之前运行)
 const oauthTokens = await Promise.all([
 	resolveApiKey("anthropic"),
 	resolveApiKey("github-copilot"),
@@ -19,6 +20,7 @@ const oauthTokens = await Promise.all([
 const [anthropicOAuthToken, githubCopilotToken, openaiCodexToken] = oauthTokens;
 
 // Simple calculate tool
+// 简单的计算(calculate)工具
 const calculateSchema = Type.Object({
 	expression: Type.String({ description: "The mathematical expression to evaluate" }),
 });
@@ -31,6 +33,7 @@ const calculateTool: Tool = {
 
 async function testToolCallWithoutResult<TApi extends Api>(model: Model<TApi>, options: StreamOptionsWithExtras = {}) {
 	// Step 1: Create context with the calculate tool
+	// 步骤 1:创建包含 calculate 工具的上下文(context)
 	const context: Context = {
 		systemPrompt: "You are a helpful assistant. Use the calculate tool when asked to perform calculations.",
 		messages: [],
@@ -38,6 +41,7 @@ async function testToolCallWithoutResult<TApi extends Api>(model: Model<TApi>, o
 	};
 
 	// Step 2: Ask the LLM to make a tool call
+	// 步骤 2:要求 LLM 发起一次工具调用(tool call)
 	context.messages.push({
 		role: "user",
 		content: "Please calculate 25 * 18 using the calculate tool.",
@@ -45,12 +49,14 @@ async function testToolCallWithoutResult<TApi extends Api>(model: Model<TApi>, o
 	});
 
 	// Step 3: Get the assistant's response (should contain a tool call)
+	// 步骤 3:获取 assistant 的响应(其中应当包含一次工具调用)
 	const firstResponse = await complete(model, context, options);
 	context.messages.push(firstResponse);
 
 	console.log("First response:", JSON.stringify(firstResponse, null, 2));
 
 	// Verify the response contains a tool call
+	// 验证响应中确实包含一次工具调用
 	const hasToolCall = firstResponse.content.some((block) => block.type === "toolCall");
 	expect(hasToolCall).toBe(true);
 
@@ -59,7 +65,9 @@ async function testToolCallWithoutResult<TApi extends Api>(model: Model<TApi>, o
 	}
 
 	// Step 4: Send a user message WITHOUT providing tool result
+	// 步骤 4:在不提供工具结果(tool result)的情况下发送一条 user 消息
 	// This simulates the scenario where a tool call was aborted/cancelled
+	// 这模拟了工具调用被中止 / 取消的场景
 	context.messages.push({
 		role: "user",
 		content: "Never mind, just tell me what is 2+2?",
@@ -67,17 +75,22 @@ async function testToolCallWithoutResult<TApi extends Api>(model: Model<TApi>, o
 	});
 
 	// Step 5: The fix should filter out the orphaned tool call, and the request should succeed
+	// 步骤 5:修复逻辑应当过滤掉这条孤立的(orphaned)工具调用,并且请求应当成功
 	const secondResponse = await complete(model, context, options);
 	console.log("Second response:", JSON.stringify(secondResponse, null, 2));
 
 	// The request should succeed (not error) - that's the main thing we're testing
+	// 请求应当成功(而不是报错)——这正是我们主要要测试的内容
 	expect(secondResponse.stopReason).not.toBe("error");
 
 	// Should have some content in the response
+	// 响应中应当包含一些内容
 	expect(secondResponse.content.length).toBeGreaterThan(0);
 
 	// The LLM may choose to answer directly or make a new tool call - either is fine
+	// LLM 可以选择直接作答,也可以发起一次新的工具调用——两者都可以接受
 	// The important thing is it didn't fail with the orphaned tool call error
+	// 重要的是它没有因孤立的工具调用错误而失败
 	const textContent = secondResponse.content
 		.filter((block) => block.type === "text")
 		.map((block) => (block.type === "text" ? block.text : ""))
@@ -87,12 +100,14 @@ async function testToolCallWithoutResult<TApi extends Api>(model: Model<TApi>, o
 	console.log("Answer:", textContent);
 
 	// Verify the stop reason is either "stop" or "toolUse" (new tool call)
+	// 验证停止原因(stop reason)是 "stop" 或 "toolUse"(新的工具调用)之一
 	expect(["stop", "toolUse"]).toContain(secondResponse.stopReason);
 }
 
 describe("Tool Call Without Result Tests", () => {
 	// =========================================================================
 	// API Key-based providers
+	// 基于 API Key 的 provider
 	// =========================================================================
 
 	describe.skipIf(!process.env.GEMINI_API_KEY)("Google Provider", () => {
@@ -296,6 +311,7 @@ describe("Tool Call Without Result Tests", () => {
 
 	// =========================================================================
 	// OAuth-based providers (credentials from ~/.pi/agent/oauth.json)
+	// 基于 OAuth 的 provider(凭据来自 ~/.pi/agent/oauth.json)
 	// =========================================================================
 
 	describe("Anthropic OAuth Provider", () => {

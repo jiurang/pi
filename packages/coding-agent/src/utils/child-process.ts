@@ -37,6 +37,7 @@ export function spawnProcessSync(
 
 /**
  * Wait for a child process to terminate without hanging on inherited stdio handles.
+ * 等待子进程结束，同时避免因继承的 stdio 句柄而永久挂起。
  *
  * A short-lived child can `exit` while a detached descendant keeps its stdout/stderr
  * pipe open. We must not resolve and destroy the streams on a fixed deadline measured
@@ -45,6 +46,12 @@ export function spawnProcessSync(
  * the grace timer is re-armed on every chunk, so an actively writing descendant keeps
  * us reading, while a quiet inherited handle (e.g. a Windows daemonized descendant
  * that never lets `close` fire) still releases us after the grace elapses.
+ * 短命的子进程可能已经 `exit`，但某个游离（detached）的后代进程仍持有其 stdout/stderr
+ * 管道。我们不能以 `exit` 为起点、按固定时限直接 resolve 并销毁这些流，否则超过该时限
+ * 后仍在写入的输出会被静默丢弃（earendil-works/pi#5303）。因此在 `exit` 之后，我们改为
+ * 等待管道进入空闲状态：每收到一个数据块就重置宽限计时器，这样仍在持续写入的后代进程
+ * 会让我们继续读取；而对于安静的继承句柄（例如 Windows 上永远不触发 `close` 的守护化
+ * 后代进程），宽限时间耗尽后依然会释放等待。
  */
 export function waitForChildProcess(child: ChildProcess): Promise<number | null> {
 	return new Promise((resolve, reject) => {
@@ -93,6 +100,7 @@ export function waitForChildProcess(child: ChildProcess): Promise<number | null>
 		const onData = () => {
 			// Output is still arriving after exit; defer finalizing so we don't
 			// destroy the stream mid-write and truncate the tail.
+			// 进程退出后仍有输出到达；推迟收尾处理，以免在写入过程中销毁流而截断末尾内容。
 			if (exited && !settled) armIdleTimer();
 		};
 

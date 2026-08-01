@@ -122,6 +122,7 @@ export class ClientState {
 			this.#onListenerError(toError(error));
 		} catch {
 			// Diagnostics cannot affect client state.
+			// 诊断逻辑不能影响客户端状态。
 		}
 	}
 }

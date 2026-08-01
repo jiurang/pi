@@ -37,7 +37,9 @@ function trimPartialClosingFences(tokens: readonly Token[]): void {
 	}
 
 	// Trim streamed partial closing fences so code blocks do not shrink/flicker
+	// 裁剪流式输出中不完整的收尾围栏(closing fence),避免代码块收缩/闪烁
 	// when the final fence character arrives. See https://github.com/earendil-works/pi/issues/5825.
+	// 即当最后一个围栏字符到达时。参见 https://github.com/earendil-works/pi/issues/5825。
 	const marker = /^(`{3,}|~{3,})/.exec(token.raw)?.[1];
 	const lastLine = token.raw.split("\n").pop();
 	if (!marker || !lastLine || lastLine.length >= marker.length || lastLine !== marker[0]?.repeat(lastLine.length)) {
@@ -54,26 +56,30 @@ markdownParser.setOptions({
 
 /**
  * Default text styling for markdown content.
+ * markdown 内容的默认文本样式。
  * Applied to all text unless overridden by markdown formatting.
+ * 应用于所有文本,除非被 markdown 格式化覆盖。
  */
 export interface DefaultTextStyle {
-	/** Foreground color function */
+	/** Foreground color function 前景色(文字颜色)函数 */
 	color?: (text: string) => string;
-	/** Background color function */
+	/** Background color function 背景色函数 */
 	bgColor?: (text: string) => string;
-	/** Bold text */
+	/** Bold text 粗体文本 */
 	bold?: boolean;
-	/** Italic text */
+	/** Italic text 斜体文本 */
 	italic?: boolean;
-	/** Strikethrough text */
+	/** Strikethrough text 删除线文本 */
 	strikethrough?: boolean;
-	/** Underline text */
+	/** Underline text 下划线文本 */
 	underline?: boolean;
 }
 
 /**
  * Theme functions for markdown elements.
+ * markdown 元素的主题(theme)函数。
  * Each function takes text and returns styled text with ANSI codes.
+ * 每个函数接收文本并返回带 ANSI 控制码的样式化文本。
  */
 export interface MarkdownTheme {
 	heading: (text: string) => string;
@@ -91,16 +97,16 @@ export interface MarkdownTheme {
 	strikethrough: (text: string) => string;
 	underline: (text: string) => string;
 	highlightCode?: (code: string, lang?: string) => string[];
-	/** Prefix applied to each rendered code block line (default: "  ") */
+	/** Prefix applied to each rendered code block line (default: "  ") 应用到每一行已渲染代码块的前缀(默认值:"  ") */
 	codeBlockIndent?: string;
 }
 
 export interface MarkdownOptions {
-	/** Preserve source list markers instead of normalizing them. */
+	/** Preserve source list markers instead of normalizing them. 保留源文中的列表标记,而不是将其归一化。 */
 	preserveOrderedListMarkers?: boolean;
-	/** Preserve source backslash escapes instead of normalizing escaped punctuation. */
+	/** Preserve source backslash escapes instead of normalizing escaped punctuation. 保留源文中的反斜杠转义,而不是将转义后的标点归一化。 */
 	preserveBackslashEscapes?: boolean;
-	/** Transform source Markdown before parsing, with the exact width available for content. */
+	/** Transform source Markdown before parsing, with the exact width available for content. 在解析前转换源 Markdown,并传入内容可用的精确宽度。 */
 	transform?: (markdown: string, availableWidth: number) => string;
 }
 
@@ -111,14 +117,15 @@ interface InlineStyleContext {
 
 export class Markdown implements Component {
 	private text: string;
-	private paddingX: number; // Left/right padding
-	private paddingY: number; // Top/bottom padding
+	private paddingX: number; // Left/right padding 左右内边距
+	private paddingY: number; // Top/bottom padding 上下内边距
 	private defaultTextStyle?: DefaultTextStyle;
 	private theme: MarkdownTheme;
 	private options: MarkdownOptions;
 	private defaultStylePrefix?: string;
 
 	// Cache for rendered output
+	// 渲染输出的缓存
 	private cachedText?: string;
 	private cachedWidth?: number;
 	private cachedLines?: string[];
@@ -152,18 +159,22 @@ export class Markdown implements Component {
 
 	render(width: number): string[] {
 		// Check cache
+		// 检查缓存
 		if (this.cachedLines && this.cachedText === this.text && this.cachedWidth === width) {
 			return this.cachedLines;
 		}
 
 		// Calculate available width for content (subtract horizontal padding)
+		// 计算内容可用宽度(减去水平内边距)
 		const contentWidth = Math.max(1, width - this.paddingX * 2);
 		const text = this.options.transform?.(this.text, contentWidth) ?? this.text;
 
 		// Don't render anything if there's no actual text
+		// 如果没有实际文本,则不渲染任何内容
 		if (!text || text.trim() === "") {
 			const result: string[] = [];
 			// Update cache
+			// 更新缓存
 			this.cachedText = this.text;
 			this.cachedWidth = width;
 			this.cachedLines = result;
@@ -171,13 +182,16 @@ export class Markdown implements Component {
 		}
 
 		// Replace tabs with 3 spaces for consistent rendering
+		// 将制表符替换为 3 个空格,以保证渲染一致
 		const normalizedText = text.replace(/\t/g, "   ");
 
 		// Parse markdown to HTML-like tokens
+		// 将 markdown 解析为类 HTML 的词法单元(token)
 		const tokens = markdownParser.lexer(normalizedText);
 		trimPartialClosingFences(tokens);
 
 		// Convert tokens to styled terminal output
+		// 将 token 转换为带样式的终端输出
 		const renderedLines: string[] = [];
 
 		for (let i = 0; i < tokens.length; i++) {
@@ -190,6 +204,7 @@ export class Markdown implements Component {
 		}
 
 		// Wrap lines (NO padding, NO background yet)
+		// 对行进行换行处理(此时尚未添加内边距,也未添加背景)
 		const wrappedLines: string[] = [];
 		for (const line of renderedLines) {
 			if (isImageLine(line)) {
@@ -202,6 +217,7 @@ export class Markdown implements Component {
 		}
 
 		// Add margins and background to each wrapped line
+		// 为每一行换行后的文本添加外边距与背景
 		const leftMargin = " ".repeat(this.paddingX);
 		const rightMargin = " ".repeat(this.paddingX);
 		const bgFn = this.defaultTextStyle?.bgColor;
@@ -219,6 +235,7 @@ export class Markdown implements Component {
 				contentLines.push(applyBackgroundToLine(lineWithMargins, width, bgFn));
 			} else {
 				// No background - just pad to width
+				// 无背景 - 仅补齐到指定宽度
 				const visibleLen = visibleWidth(lineWithMargins);
 				const paddingNeeded = Math.max(0, width - visibleLen);
 				contentLines.push(lineWithMargins + " ".repeat(paddingNeeded));
@@ -226,6 +243,7 @@ export class Markdown implements Component {
 		}
 
 		// Add top/bottom padding (empty lines)
+		// 添加上下内边距(空行)
 		const emptyLine = " ".repeat(width);
 		const emptyLines: string[] = [];
 		for (let i = 0; i < this.paddingY; i++) {
@@ -234,9 +252,11 @@ export class Markdown implements Component {
 		}
 
 		// Combine top padding, content, and bottom padding
+		// 合并顶部内边距、内容与底部内边距
 		const result = emptyLines.concat(contentLines, emptyLines);
 
 		// Update cache
+		// 更新缓存
 		this.cachedText = this.text;
 		this.cachedWidth = width;
 		this.cachedLines = result;
@@ -246,9 +266,13 @@ export class Markdown implements Component {
 
 	/**
 	 * Apply default text style to a string.
+	 * 将默认文本样式应用到字符串上。
 	 * This is the base styling applied to all text content.
+	 * 这是应用于所有文本内容的基础样式。
 	 * NOTE: Background color is NOT applied here - it's applied at the padding stage
+	 * 注意:此处不应用背景色 —— 背景色在添加内边距的阶段应用,
 	 * to ensure it extends to the full line width.
+	 * 以确保其铺满整行宽度。
 	 */
 	private applyDefaultStyle(text: string): string {
 		if (!this.defaultTextStyle) {
@@ -258,11 +282,13 @@ export class Markdown implements Component {
 		let styled = text;
 
 		// Apply foreground color (NOT background - that's applied at padding stage)
+		// 应用前景色(不含背景色 —— 背景色在添加内边距的阶段应用)
 		if (this.defaultTextStyle.color) {
 			styled = this.defaultTextStyle.color(styled);
 		}
 
 		// Apply text decorations using this.theme
+		// 使用 this.theme 应用文本装饰效果
 		if (this.defaultTextStyle.bold) {
 			styled = this.theme.bold(styled);
 		}
@@ -341,8 +367,11 @@ export class Markdown implements Component {
 				const headingPrefix = `${"#".repeat(headingLevel)} `;
 
 				// Build a heading-specific style context so inline tokens (codespan, bold, etc.)
+				// 构建标题专用的样式上下文,使得行内 token(代码片段 codespan、粗体等)
 				// restore heading styling after their own ANSI resets instead of falling back to
+				// 在自身的 ANSI 重置之后恢复标题样式,而不是回退到
 				// the default text style.
+				// 默认文本样式。
 				let headingStyleFn: (text: string) => string;
 				if (headingLevel === 1) {
 					headingStyleFn = (text: string) => this.theme.heading(this.theme.bold(this.theme.underline(text)));
@@ -359,7 +388,9 @@ export class Markdown implements Component {
 				const styledHeading = headingLevel >= 3 ? headingStyleFn(headingPrefix) + headingText : headingText;
 				lines.push(styledHeading);
 				if (nextTokenType && nextTokenType !== "space") {
-					lines.push(""); // Add spacing after headings (unless space token follows)
+					// Add spacing after headings (unless space token follows)
+					// 在标题后添加间距(除非后面紧跟 space 类型的 token)
+					lines.push("");
 				}
 				break;
 			}
@@ -368,6 +399,7 @@ export class Markdown implements Component {
 				const paragraphText = this.renderInlineTokens(token.tokens || [], styleContext);
 				lines.push(paragraphText);
 				// Don't add spacing if next token is space or list
+				// 如果下一个 token 是 space 或 list,则不添加间距
 				if (nextTokenType && nextTokenType !== "list" && nextTokenType !== "space") {
 					lines.push("");
 				}
@@ -388,6 +420,7 @@ export class Markdown implements Component {
 					}
 				} else {
 					// Split code by newlines and style each line
+					// 按换行符拆分代码,并为每一行应用样式
 					const codeLines = token.text.split("\n");
 					for (const codeLine of codeLines) {
 						lines.push(`${indent}${this.theme.codeBlock(codeLine)}`);
@@ -395,7 +428,9 @@ export class Markdown implements Component {
 				}
 				lines.push(this.theme.codeBlockBorder("```"));
 				if (nextTokenType && nextTokenType !== "space") {
-					lines.push(""); // Add spacing after code blocks (unless space token follows)
+					// Add spacing after code blocks (unless space token follows)
+					// 在代码块后添加间距(除非后面紧跟 space 类型的 token)
+					lines.push("");
 				}
 				break;
 			}
@@ -404,7 +439,9 @@ export class Markdown implements Component {
 				const listLines = this.renderList(token as Tokens.List, 0, width, styleContext);
 				lines.push(...listLines);
 				// Don't add spacing after lists if a space token follows
+				// 如果列表后面紧跟 space 类型的 token,则不在列表后添加间距
 				// (the space token will handle it)
+				// (该 space token 会负责处理间距)
 				break;
 			}
 
@@ -426,11 +463,15 @@ export class Markdown implements Component {
 				};
 
 				// Calculate available width for quote content (subtract border "│ " = 2 chars)
+				// 计算引用内容的可用宽度(减去边框 "│ ",共 2 个字符宽)
 				const quoteContentWidth = Math.max(1, width - 2);
 
 				// Blockquotes contain block-level tokens (paragraph, list, code, etc.), so render
+				// 块引用(blockquote)包含块级 token(段落、列表、代码等),因此使用
 				// children with renderToken() instead of renderInlineTokens().
+				// renderToken() 而非 renderInlineTokens() 来渲染其子节点。
 				// Default message style should not apply inside blockquotes.
+				// 默认消息样式不应作用于块引用内部。
 				const quoteInlineStyleContext: InlineStyleContext = {
 					applyText: (text: string) => text,
 					stylePrefix: quoteStylePrefix,
@@ -446,6 +487,7 @@ export class Markdown implements Component {
 				}
 
 				// Avoid rendering an extra empty quote line before the outer blockquote spacing.
+				// 避免在外层块引用的间距之前多渲染出一行空的引用行。
 				while (renderedQuoteLines.length > 0 && renderedQuoteLines[renderedQuoteLines.length - 1] === "") {
 					renderedQuoteLines.pop();
 				}
@@ -458,7 +500,9 @@ export class Markdown implements Component {
 					}
 				}
 				if (nextTokenType && nextTokenType !== "space") {
-					lines.push(""); // Add spacing after blockquotes (unless space token follows)
+					// Add spacing after blockquotes (unless space token follows)
+					// 在块引用后添加间距(除非后面紧跟 space 类型的 token)
+					lines.push("");
 				}
 				break;
 			}
@@ -466,12 +510,15 @@ export class Markdown implements Component {
 			case "hr":
 				lines.push(this.theme.hr("─".repeat(Math.min(width, 80))));
 				if (nextTokenType && nextTokenType !== "space") {
-					lines.push(""); // Add spacing after horizontal rules (unless space token follows)
+					// Add spacing after horizontal rules (unless space token follows)
+					// 在水平分割线(horizontal rule)后添加间距(除非后面紧跟 space 类型的 token)
+					lines.push("");
 				}
 				break;
 
 			case "html":
 				// Render HTML as plain text (escaped for terminal)
+				// 将 HTML 作为纯文本渲染(针对终端做转义处理)
 				if ("raw" in token && typeof token.raw === "string") {
 					lines.push(this.applyDefaultStyle(token.raw.trim()));
 				}
@@ -479,11 +526,13 @@ export class Markdown implements Component {
 
 			case "space":
 				// Space tokens represent blank lines in markdown
+				// space 类型的 token 表示 markdown 中的空行
 				lines.push("");
 				break;
 
 			default:
 				// Handle any other token types as plain text
+				// 将其他所有 token 类型按纯文本处理
 				if ("text" in token && typeof token.text === "string") {
 					lines.push(token.text);
 				}
@@ -509,6 +558,7 @@ export class Markdown implements Component {
 
 				case "text":
 					// Text tokens in list items can have nested tokens for inline formatting
+					// 列表项中的 text token 可能包含用于行内格式化的嵌套 token
 					if (token.tokens && token.tokens.length > 0) {
 						result += this.renderInlineTokens(token.tokens, resolvedStyleContext);
 					} else {
@@ -518,6 +568,7 @@ export class Markdown implements Component {
 
 				case "paragraph":
 					// Paragraph tokens contain nested inline tokens
+					// paragraph token 内部包含嵌套的行内 token
 					result += this.renderInlineTokens(token.tokens || [], resolvedStyleContext);
 					break;
 
@@ -542,13 +593,19 @@ export class Markdown implements Component {
 					const styledLink = this.theme.link(this.theme.underline(linkText));
 					if (getCapabilities().hyperlinks) {
 						// OSC 8: render as a clickable hyperlink. The URL is not printed inline,
+						// OSC 8:渲染为可点击的超链接。URL 不会以行内文本形式打印出来,
 						// so we always show only the link text regardless of whether it matches href.
+						// 因此无论链接文本是否与 href 相同,我们都只显示链接文本。
 						result += hyperlink(styledLink, token.href) + stylePrefix;
 					} else {
 						// Fallback: print URL in parentheses when text differs from href.
+						// 回退方案:当链接文本与 href 不同时,在括号中打印出 URL。
 						// Compare raw token.text (not styled) against href for the equality check.
+						// 相等性判断时,使用原始的 token.text(未加样式)与 href 进行比较。
 						// For mailto: links strip the prefix (autolinked emails use text="foo@bar.com"
+						// 对于 mailto: 链接需要去掉该前缀(自动链接的邮箱地址其 text="foo@bar.com",
 						// but href="mailto:foo@bar.com").
+						// 而 href="mailto:foo@bar.com")。
 						const hrefForComparison = token.href.startsWith("mailto:") ? token.href.slice(7) : token.href;
 						if (token.text === token.href || token.text === hrefForComparison) {
 							result += styledLink + stylePrefix;
@@ -571,6 +628,7 @@ export class Markdown implements Component {
 
 				case "html":
 					// Render inline HTML as plain text
+					// 将行内 HTML 作为纯文本渲染
 					if ("raw" in token && typeof token.raw === "string") {
 						result += applyTextWithNewlines(token.raw);
 					}
@@ -578,6 +636,7 @@ export class Markdown implements Component {
 
 				default:
 					// Handle any other inline token types as plain text
+					// 将其他所有行内 token 类型按纯文本处理
 					if ("text" in token && typeof token.text === "string") {
 						result += applyTextWithNewlines(token.text);
 					}
@@ -603,11 +662,13 @@ export class Markdown implements Component {
 
 	/**
 	 * Render a list with proper nesting support
+	 * 渲染列表,并正确支持嵌套
 	 */
 	private renderList(token: Tokens.List, depth: number, width: number, styleContext?: InlineStyleContext): string[] {
 		const lines: string[] = [];
 		const indent = "    ".repeat(depth);
 		// Use the list's start property (defaults to 1 for ordered lists)
+		// 使用列表的 start 属性(有序列表默认为 1)
 		const startNumber = typeof token.start === "number" ? token.start : 1;
 
 		for (let i = 0; i < token.items.length; i++) {
@@ -658,6 +719,7 @@ export class Markdown implements Component {
 
 	/**
 	 * Get the visible width of the longest word in a string.
+	 * 获取字符串中最长单词的可见宽度。
 	 */
 	private getLongestWordWidth(text: string, maxWidth?: number): number {
 		const words = text.split(/\s+/).filter((word) => word.length > 0);
@@ -673,9 +735,12 @@ export class Markdown implements Component {
 
 	/**
 	 * Wrap a table cell to fit into a column.
+	 * 对表格单元格进行换行,使其适应列宽。
 	 *
 	 * Delegates to wrapTextWithAnsi() so ANSI codes + long tokens are handled
+	 * 委托给 wrapTextWithAnsi() 处理,使 ANSI 控制码与超长 token 的处理方式
 	 * consistently with the rest of the renderer.
+	 * 与渲染器其余部分保持一致。
 	 */
 	private wrapCellText(text: string, maxWidth: number): string[] {
 		return wrapTextWithAnsi(text, Math.max(1, maxWidth));
@@ -683,7 +748,9 @@ export class Markdown implements Component {
 
 	/**
 	 * Render a table with width-aware cell wrapping.
+	 * 渲染表格,并根据宽度对单元格进行换行。
 	 * Cells that don't fit are wrapped to multiple lines.
+	 * 放不下的单元格会被换行为多行。
 	 */
 	private renderTable(
 		token: Tokens.Table,
@@ -699,11 +766,13 @@ export class Markdown implements Component {
 		}
 
 		// Calculate border overhead: "│ " + (n-1) * " │ " + " │"
+		// 计算边框所占的额外宽度:"│ " + (n-1) * " │ " + " │"
 		// = 2 + (n-1) * 3 + 2 = 3n + 1
 		const borderOverhead = 3 * numCols + 1;
 		const availableForCells = availableWidth - borderOverhead;
 		if (availableForCells < numCols) {
 			// Too narrow to render a stable table. Fall back to raw markdown.
+			// 宽度过窄,无法稳定渲染表格。回退为原始 markdown 文本。
 			const fallbackLines = token.raw ? wrapTextWithAnsi(token.raw, availableWidth) : [];
 			if (nextTokenType && nextTokenType !== "space") {
 				fallbackLines.push("");
@@ -714,6 +783,7 @@ export class Markdown implements Component {
 		const maxUnbrokenWordWidth = 30;
 
 		// Calculate natural column widths (what each column needs without constraints)
+		// 计算各列的自然宽度(即无约束条件下每一列所需的宽度)
 		const naturalWidths: number[] = [];
 		const minWordWidths: number[] = [];
 		for (let i = 0; i < numCols; i++) {
@@ -762,14 +832,17 @@ export class Markdown implements Component {
 		}
 
 		// Calculate column widths that fit within available width
+		// 计算能够容纳在可用宽度内的各列宽度
 		const totalNaturalWidth = naturalWidths.reduce((a, b) => a + b, 0) + borderOverhead;
 		let columnWidths: number[];
 
 		if (totalNaturalWidth <= availableWidth) {
 			// Everything fits naturally
+			// 所有内容都能自然容纳
 			columnWidths = naturalWidths.map((width, index) => Math.max(width, minColumnWidths[index]));
 		} else {
 			// Need to shrink columns to fit
+			// 需要压缩各列宽度以适应可用宽度
 			const totalGrowPotential = naturalWidths.reduce((total, width, index) => {
 				return total + Math.max(0, width - minColumnWidths[index]);
 			}, 0);
@@ -785,6 +858,7 @@ export class Markdown implements Component {
 			});
 
 			// Adjust for rounding errors - distribute remaining space
+			// 修正取整误差 —— 将剩余空间分配出去
 			const allocated = columnWidths.reduce((a, b) => a + b, 0);
 			let remaining = availableForCells - allocated;
 			while (remaining > 0) {
@@ -803,10 +877,12 @@ export class Markdown implements Component {
 		}
 
 		// Render top border
+		// 渲染上边框
 		const topBorderCells = columnWidths.map((w) => "─".repeat(w));
 		lines.push(`┌─${topBorderCells.join("─┬─")}─┐`);
 
 		// Render header with wrapping
+		// 渲染表头,并支持换行
 		const headerCellLines: string[][] = token.header.map((cell, i) => {
 			const text = this.renderInlineTokens(cell.tokens || [], styleContext);
 			return this.wrapCellText(text, columnWidths[i]);
@@ -823,11 +899,13 @@ export class Markdown implements Component {
 		}
 
 		// Render separator
+		// 渲染分隔线
 		const separatorCells = columnWidths.map((w) => "─".repeat(w));
 		const separatorLine = `├─${separatorCells.join("─┼─")}─┤`;
 		lines.push(separatorLine);
 
 		// Render rows with wrapping
+		// 渲染数据行,并支持换行
 		for (let rowIndex = 0; rowIndex < token.rows.length; rowIndex++) {
 			const row = token.rows[rowIndex];
 			const rowCellLines: string[][] = row.map((cell, i) => {
@@ -850,11 +928,14 @@ export class Markdown implements Component {
 		}
 
 		// Render bottom border
+		// 渲染下边框
 		const bottomBorderCells = columnWidths.map((w) => "─".repeat(w));
 		lines.push(`└─${bottomBorderCells.join("─┴─")}─┘`);
 
 		if (nextTokenType && nextTokenType !== "space") {
-			lines.push(""); // Add spacing after table
+			// Add spacing after table
+			// 在表格后添加间距
+			lines.push("");
 		}
 		return lines;
 	}

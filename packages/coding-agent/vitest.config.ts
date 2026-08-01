@@ -9,6 +9,7 @@ export default mergeConfig(
 			environment: "node",
 			testTimeout: 30000,
 			// Tests run offline by default; opt in with allowNetwork() from test/test-network-env.ts.
+			// 测试默认以离线方式运行；如需联网，可使用 test/test-network-env.ts 中的 allowNetwork() 显式开启。
 			env: { PI_OFFLINE: "1" },
 			unstubEnvs: true,
 			reporters: process.env.GITHUB_ACTIONS ? ["dot", "github-actions"] : ["dot"],

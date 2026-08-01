@@ -3,6 +3,7 @@ import { transformMessages } from "../src/api/transform-messages.ts";
 import type { AssistantMessage, Message, Model, ToolCall } from "../src/types.ts";
 
 // Normalize function matching what anthropic.ts uses
+// 与 anthropic.ts 中所用逻辑保持一致的归一化函数
 function anthropicNormalizeToolCallId(
 	id: string,
 	_model: Model<"anthropic-messages">,
@@ -81,6 +82,7 @@ describe("OpenAI to Anthropic session migration for Copilot Claude", () => {
 		const assistantMsg = result.find((m) => m.role === "assistant") as AssistantMessage;
 
 		// Thinking block should be converted to text since models differ
+		// 由于模型不同,thinking 块应当被转换为文本
 		const textBlocks = assistantMsg.content.filter((b) => b.type === "text");
 		const thinkingBlocks = assistantMsg.content.filter((b) => b.type === "thinking");
 		expect(thinkingBlocks).toHaveLength(0);

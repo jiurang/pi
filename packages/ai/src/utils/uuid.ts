@@ -11,7 +11,10 @@ function fillRandomBytes(bytes: Uint8Array<ArrayBuffer>): void {
 	}
 }
 
-/** Generate a time-ordered UUIDv7. */
+/**
+ * Generate a time-ordered UUIDv7.
+ * 生成一个按时间有序的 UUIDv7。
+ */
 export function uuidv7(): string {
 	const random = new Uint8Array(16);
 	fillRandomBytes(random);

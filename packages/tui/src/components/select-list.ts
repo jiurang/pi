@@ -60,6 +60,7 @@ export class SelectList implements Component {
 	setFilter(filter: string): void {
 		this.filteredItems = this.items.filter((item) => item.value.toLowerCase().startsWith(filter.toLowerCase()));
 		// Reset selection when filter changes
+		// 过滤条件变化时重置选中项
 		this.selectedIndex = 0;
 	}
 
@@ -69,12 +70,14 @@ export class SelectList implements Component {
 
 	invalidate(): void {
 		// No cached state to invalidate currently
+		// 当前没有需要失效处理的缓存状态
 	}
 
 	render(width: number): string[] {
 		const lines: string[] = [];
 
 		// If no items match filter, show message
+		// 如果没有条目匹配过滤条件，则显示提示信息
 		if (this.filteredItems.length === 0) {
 			lines.push(this.theme.noMatch("  No matching commands"));
 			return lines;
@@ -83,6 +86,7 @@ export class SelectList implements Component {
 		const primaryColumnWidth = this.getPrimaryColumnWidth();
 
 		// Calculate visible range with scrolling
+		// 结合滚动计算可见区间
 		const startIndex = Math.max(
 			0,
 			Math.min(this.selectedIndex - Math.floor(this.maxVisible / 2), this.filteredItems.length - this.maxVisible),
@@ -90,6 +94,7 @@ export class SelectList implements Component {
 		const endIndex = Math.min(startIndex + this.maxVisible, this.filteredItems.length);
 
 		// Render visible items
+		// 渲染可见条目
 		for (let i = startIndex; i < endIndex; i++) {
 			const item = this.filteredItems[i];
 			if (!item) continue;
@@ -100,9 +105,11 @@ export class SelectList implements Component {
 		}
 
 		// Add scroll indicators if needed
+		// 如有需要，添加滚动指示器
 		if (startIndex > 0 || endIndex < this.filteredItems.length) {
 			const scrollText = `  (${this.selectedIndex + 1}/${this.filteredItems.length})`;
 			// Truncate if too long for terminal
+			// 如果超出终端宽度则进行截断
 			lines.push(this.theme.scrollInfo(truncateToWidth(scrollText, width - 2, "")));
 		}
 
@@ -112,16 +119,19 @@ export class SelectList implements Component {
 	handleInput(keyData: string): void {
 		const kb = getKeybindings();
 		// Up arrow - wrap to bottom when at top
+		// 上箭头 —— 位于顶部时循环跳转到底部
 		if (kb.matches(keyData, "tui.select.up")) {
 			this.selectedIndex = this.selectedIndex === 0 ? this.filteredItems.length - 1 : this.selectedIndex - 1;
 			this.notifySelectionChange();
 		}
 		// Down arrow - wrap to top when at bottom
+		// 下箭头 —— 位于底部时循环跳转到顶部
 		else if (kb.matches(keyData, "tui.select.down")) {
 			this.selectedIndex = this.selectedIndex === this.filteredItems.length - 1 ? 0 : this.selectedIndex + 1;
 			this.notifySelectionChange();
 		}
 		// Enter
+		// 回车键
 		else if (kb.matches(keyData, "tui.select.confirm")) {
 			const selectedItem = this.filteredItems[this.selectedIndex];
 			if (selectedItem && this.onSelect) {
@@ -129,6 +139,7 @@ export class SelectList implements Component {
 			}
 		}
 		// Escape or Ctrl+C
+		// Escape 键或 Ctrl+C
 		else if (kb.matches(keyData, "tui.select.cancel")) {
 			if (this.onCancel) {
 				this.onCancel();
@@ -153,7 +164,9 @@ export class SelectList implements Component {
 			const truncatedValueWidth = visibleWidth(truncatedValue);
 			const spacing = " ".repeat(Math.max(1, effectivePrimaryColumnWidth - truncatedValueWidth));
 			const descriptionStart = prefixWidth + truncatedValueWidth + spacing.length;
-			const remainingWidth = width - descriptionStart - 2; // -2 for safety
+			// -2 for safety
+			// 减 2 是为了留出安全余量
+			const remainingWidth = width - descriptionStart - 2;
 
 			if (remainingWidth > MIN_DESCRIPTION_WIDTH) {
 				const truncatedDesc = truncateToWidth(descriptionSingleLine, remainingWidth, "");

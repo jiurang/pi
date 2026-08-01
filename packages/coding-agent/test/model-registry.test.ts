@@ -35,7 +35,7 @@ describe("ModelRegistry", () => {
 		vi.restoreAllMocks();
 	});
 
-	/** Create minimal provider config  */
+	/** Create minimal provider config 创建最小化的提供方（provider）配置 */
 	function providerConfig(
 		baseUrl: string,
 		models: Array<{ id: string; name?: string }>,
@@ -69,12 +69,12 @@ describe("ModelRegistry", () => {
 		return value.replace(/\\/g, "/").replace(/"/g, '\\"');
 	}
 
-	/** Create a baseUrl-only override (no custom models) */
+	/** Create a baseUrl-only override (no custom models) 创建仅包含 baseUrl 的覆盖配置（不含自定义模型） */
 	function overrideConfig(baseUrl: string, headers?: Record<string, string>) {
 		return { baseUrl, ...(headers && { headers }) };
 	}
 
-	/** Write raw providers config (for mixed override/replacement scenarios) */
+	/** Write raw providers config (for mixed override/replacement scenarios) 写入原始的 providers 配置（用于覆盖与替换混合的场景） */
 	function writeRawModelsJson(providers: Record<string, unknown>) {
 		writeFileSync(modelsJsonPath, JSON.stringify({ providers }));
 	}
@@ -106,6 +106,7 @@ describe("ModelRegistry", () => {
 			const anthropicModels = getModelsForProvider(registry, "anthropic");
 
 			// Should have multiple built-in models, not just one
+			// 应当包含多个内置模型，而不只是一个
 			expect(anthropicModels.length).toBeGreaterThan(1);
 			expect(anthropicModels.some((m) => m.id.includes("claude"))).toBe(true);
 		});
@@ -119,6 +120,7 @@ describe("ModelRegistry", () => {
 			const anthropicModels = getModelsForProvider(registry, "anthropic");
 
 			// All models should have the new baseUrl
+			// 所有模型都应当使用新的 baseUrl
 			for (const model of anthropicModels) {
 				expect(model.baseUrl).toBe("https://my-proxy.example.com/v1");
 			}
@@ -188,6 +190,7 @@ describe("ModelRegistry", () => {
 			const googleModels = getModelsForProvider(registry, "google");
 
 			// Google models should still have their original baseUrl
+			// Google 的模型应当仍然保留其原有的 baseUrl
 			expect(googleModels.length).toBeGreaterThan(0);
 			expect(googleModels[0].baseUrl).not.toBe("https://my-proxy.example.com/v1");
 		});
@@ -195,8 +198,10 @@ describe("ModelRegistry", () => {
 		test("can mix baseUrl override and models merge", async () => {
 			writeRawModelsJson({
 				// baseUrl-only for anthropic
+				// 针对 anthropic 仅覆盖 baseUrl
 				anthropic: overrideConfig("https://anthropic-proxy.example.com/v1"),
 				// Add custom model for google (merged with built-ins)
+				// 为 google 添加自定义模型（与内置模型合并）
 				google: providerConfig(
 					"https://google-proxy.example.com/v1",
 					[{ id: "gemini-custom" }],
@@ -207,11 +212,13 @@ describe("ModelRegistry", () => {
 			const registry = await createModelRegistry(authStorage, modelsJsonPath);
 
 			// Anthropic: multiple built-in models with new baseUrl
+			// Anthropic：多个内置模型，均使用新的 baseUrl
 			const anthropicModels = getModelsForProvider(registry, "anthropic");
 			expect(anthropicModels.length).toBeGreaterThan(1);
 			expect(anthropicModels[0].baseUrl).toBe("https://anthropic-proxy.example.com/v1");
 
 			// Google: built-ins plus custom model
+			// Google：内置模型加上自定义模型
 			const googleModels = getModelsForProvider(registry, "google");
 			expect(googleModels.length).toBeGreaterThan(1);
 			expect(googleModels.some((m) => m.id === "gemini-custom")).toBe(true);
@@ -226,6 +233,7 @@ describe("ModelRegistry", () => {
 			expect(getModelsForProvider(registry, "anthropic")[0].baseUrl).toBe("https://first-proxy.example.com/v1");
 
 			// Update and refresh
+			// 更新配置并刷新
 			writeRawModelsJson({
 				anthropic: overrideConfig("https://second-proxy.example.com/v1"),
 			});
@@ -239,6 +247,8 @@ describe("ModelRegistry", () => {
 		test("built-in provider custom models inherit api and baseUrl without explicit fields", async () => {
 			// Built-in providers already have api/baseUrl on every model, and auth
 			// comes from env vars / auth storage. No need to specify them.
+			// 内置提供方（provider）的每个模型都已带有 api/baseUrl，而认证信息
+			// 来自环境变量 / 认证存储（auth storage）。因此无需显式指定这些字段。
 			writeRawModelsJson({
 				openrouter: {
 					models: [
@@ -643,6 +653,7 @@ describe("ModelRegistry", () => {
 			expect(getModelsForProvider(registry, "anthropic").some((m) => m.id === "claude-custom")).toBe(true);
 
 			// Update and refresh
+			// 更新配置并刷新
 			writeModelsJson({
 				anthropic: providerConfig("https://second-proxy.example.com/v1", [{ id: "claude-custom-2" }]),
 			});
@@ -662,6 +673,7 @@ describe("ModelRegistry", () => {
 			expect(getModelsForProvider(registry, "anthropic").some((m) => m.id === "claude-custom")).toBe(true);
 
 			// Remove custom models and refresh
+			// 移除自定义模型并刷新
 			writeModelsJson({});
 			await registry.refresh();
 
@@ -690,6 +702,7 @@ describe("ModelRegistry", () => {
 			expect(sonnet?.name).toBe("Custom Sonnet Name");
 
 			// Other models should be unchanged
+			// 其他模型应当保持不变
 			const opus = models.find((m) => m.id === "anthropic/claude-opus-4");
 			expect(opus?.name).not.toBe("Custom Sonnet Name");
 		});
@@ -733,6 +746,7 @@ describe("ModelRegistry", () => {
 			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
 
 			// Should have both the new routing AND preserve other compat settings
+			// 应当既包含新的路由（routing）配置，又保留其他的 compat 设置
 			const compat = sonnet?.compat as OpenAICompletionsCompat | undefined;
 			expect(compat?.openRouterRouting).toEqual({ order: ["anthropic", "together"] });
 		});
@@ -780,10 +794,12 @@ describe("ModelRegistry", () => {
 			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
 
 			// Both overrides should apply
+			// 两项覆盖配置都应当生效
 			expect(sonnet?.baseUrl).toBe("https://my-proxy.example.com/v1");
 			expect(sonnet?.name).toBe("Proxied Sonnet");
 
 			// Other models should have the baseUrl but not the name override
+			// 其他模型应当应用该 baseUrl，但不应用 name 的覆盖配置
 			const opus = models.find((m) => m.id === "anthropic/claude-opus-4");
 			expect(opus?.baseUrl).toBe("https://my-proxy.example.com/v1");
 			expect(opus?.name).not.toBe("Proxied Sonnet");
@@ -804,8 +820,10 @@ describe("ModelRegistry", () => {
 			const models = getModelsForProvider(registry, "openrouter");
 
 			// Should not create a new model
+			// 不应当创建一个新的模型
 			expect(models.find((m) => m.id === "nonexistent/model-id")).toBeUndefined();
 			// Should not crash or show error
+			// 不应当崩溃或报错
 			expect(registry.getError()).toBeUndefined();
 		});
 
@@ -825,8 +843,10 @@ describe("ModelRegistry", () => {
 			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
 
 			// Input cost should be overridden
+			// 输入（input）价格应当被覆盖
 			expect(sonnet?.cost.input).toBe(99);
 			// Other cost fields should be preserved from built-in
+			// 其他价格字段应当沿用内置配置
 			expect(sonnet?.cost.output).toBeGreaterThan(0);
 		});
 
@@ -870,6 +890,7 @@ describe("ModelRegistry", () => {
 			).toBe("First Name");
 
 			// Update and refresh
+			// 更新配置并刷新
 			writeRawModelsJson({
 				openrouter: {
 					modelOverrides: {
@@ -904,6 +925,7 @@ describe("ModelRegistry", () => {
 			expect(customName).toBe("Custom Name");
 
 			// Remove override and refresh
+			// 移除覆盖配置并刷新
 			writeRawModelsJson({});
 			await registry.refresh();
 
@@ -1321,7 +1343,7 @@ describe("ModelRegistry", () => {
 	});
 
 	describe("API key resolution", () => {
-		/** Create provider config with custom apiKey */
+		/** Create provider config with custom apiKey 创建带有自定义 apiKey 的提供方（provider）配置 */
 		function providerWithApiKey(apiKey: string) {
 			return {
 				baseUrl: "https://example.com/v1",
@@ -1541,6 +1563,7 @@ describe("ModelRegistry", () => {
 
 		test("apiKey as literal value is used directly when not an env var", async () => {
 			// Make sure this isn't an env var
+			// 确保它不是一个环境变量
 			delete process.env.literal_api_key_value;
 
 			writeRawModelsJson({

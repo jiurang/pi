@@ -1,8 +1,11 @@
 /**
  * Custom message types and transformers for the coding agent.
+ * 编码智能体（coding agent）使用的自定义消息类型及转换器。
  *
  * Extends the base AgentMessage type with coding-agent specific message types,
  * and provides a transformer to convert them to LLM-compatible messages.
+ * 在基础的 AgentMessage 类型之上扩展出编码智能体专用的消息类型，
+ * 并提供一个转换器将它们转换为 LLM 可识别的消息。
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
@@ -25,6 +28,7 @@ export const BRANCH_SUMMARY_SUFFIX = `</summary>`;
 
 /**
  * Message type for bash executions via the ! command.
+ * 通过 ! 命令执行 bash 时所用的消息类型。
  */
 export interface BashExecutionMessage {
 	role: "bashExecution";
@@ -35,13 +39,15 @@ export interface BashExecutionMessage {
 	truncated: boolean;
 	fullOutputPath?: string;
 	timestamp: number;
-	/** If true, this message is excluded from LLM context (!! prefix) */
+	/** If true, this message is excluded from LLM context (!! prefix) 若为 true，则该消息不会进入 LLM 上下文（对应 !! 前缀） */
 	excludeFromContext?: boolean;
 }
 
 /**
  * Message type for extension-injected messages via sendMessage().
+ * 扩展（extension）通过 sendMessage() 注入的消息所用的类型。
  * These are custom messages that extensions can inject into the conversation.
+ * 这些是扩展可以注入到对话中的自定义消息。
  */
 export interface CustomMessage<T = unknown> {
 	role: "custom";
@@ -67,6 +73,7 @@ export interface CompactionSummaryMessage {
 }
 
 // Extend CustomAgentMessages via declaration merging
+// 通过声明合并（declaration merging）扩展 CustomAgentMessages
 declare module "@earendil-works/pi-agent-core" {
 	interface CustomAgentMessages {
 		bashExecution: BashExecutionMessage;
@@ -78,6 +85,7 @@ declare module "@earendil-works/pi-agent-core" {
 
 /**
  * Convert a BashExecutionMessage to user message text for LLM context.
+ * 将 BashExecutionMessage 转换为可用于 LLM 上下文的用户消息文本。
  */
 export function bashExecutionToText(msg: BashExecutionMessage): string {
 	let text = `Ran \`${msg.command}\`\n`;
@@ -119,7 +127,7 @@ export function createCompactionSummaryMessage(
 	};
 }
 
-/** Convert CustomMessageEntry to AgentMessage format */
+/** Convert CustomMessageEntry to AgentMessage format 将 CustomMessageEntry 转换为 AgentMessage 格式 */
 export function createCustomMessage(
 	customType: string,
 	content: string | (TextContent | ImageContent)[],
@@ -139,11 +147,16 @@ export function createCustomMessage(
 
 /**
  * Transform AgentMessages (including custom types) to LLM-compatible Messages.
+ * 将 AgentMessage（包括自定义类型）转换为 LLM 可识别的 Message。
  *
  * This is used by:
+ * 使用方包括：
  * - Agent's transormToLlm option (for prompt calls and queued messages)
+ *   Agent 的 transormToLlm 选项（用于提示词调用与排队消息）
  * - Compaction's generateSummary (for summarization)
+ *   压缩（compaction）流程中的 generateSummary（用于生成摘要）
  * - Custom extensions and tools
+ *   自定义扩展与工具
  */
 export function convertToLlm(messages: AgentMessage[]): Message[] {
 	return messages
@@ -151,6 +164,7 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
 			switch (m.role) {
 				case "bashExecution":
 					// Skip messages excluded from context (!! prefix)
+					// 跳过被排除在上下文之外的消息（对应 !! 前缀）
 					if (m.excludeFromContext) {
 						return undefined;
 					}

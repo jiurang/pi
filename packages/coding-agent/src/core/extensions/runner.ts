@@ -1,5 +1,6 @@
 /**
  * Extension runner - executes extensions and manages their lifecycle.
+ * 扩展运行器（Extension runner）——负责执行扩展并管理其生命周期。
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
@@ -67,7 +68,9 @@ import type {
 } from "./types.ts";
 
 // Extension shortcuts compete with canonical keybinding ids from keybindings.json.
+// 扩展快捷键会与 keybindings.json 中的规范按键绑定 id 产生竞争。
 // Only editor-global shortcuts are reserved here. Picker-specific bindings are not.
+// 这里只保留编辑器全局快捷键，选择器（picker）专属的绑定不在此列。
 const RESERVED_KEYBINDINGS_FOR_EXTENSION_CONFLICTS = [
 	"app.interrupt",
 	"app.clear",
@@ -101,6 +104,8 @@ const buildBuiltinKeybindings = (resolvedKeybindings: KeybindingsConfig): BuiltI
 			const normalizedKey = key.toLowerCase() as KeyId;
 			// If multiple actions bind the same key, the reserved action wins so extensions
 			// remain blocked by reserved shortcuts regardless of iteration order.
+			// 如果多个动作绑定了同一个按键，则保留（reserved）动作优先，
+			// 这样无论遍历顺序如何，扩展始终会被保留快捷键拦截。
 			const existing = builtinKeybindings[normalizedKey];
 			if (existing?.restrictOverride && !restrictOverride) continue;
 			builtinKeybindings[normalizedKey] = {
@@ -113,6 +118,7 @@ const buildBuiltinKeybindings = (resolvedKeybindings: KeybindingsConfig): BuiltI
 };
 
 /** Combined result from all before_agent_start handlers */
+/** 汇总所有 before_agent_start 处理器（handler）后的合并结果 */
 interface BeforeAgentStartCombinedResult {
 	messages?: NonNullable<BeforeAgentStartEventResult["message"]>[];
 	systemPrompt?: string;
@@ -120,7 +126,9 @@ interface BeforeAgentStartCombinedResult {
 
 /**
  * Events handled by the generic emit() method.
+ * 由通用 emit() 方法处理的事件。
  * Events with dedicated emitXxx() methods are excluded for stronger type safety.
+ * 拥有专用 emitXxx() 方法的事件已被排除，以获得更强的类型安全性。
  */
 type RunnerEmitEvent = Exclude<
 	ExtensionEvent,
@@ -187,7 +195,9 @@ export type ShutdownHandler = () => void;
 
 /**
  * Helper function to emit session_shutdown event to extensions.
+ * 向扩展派发 session_shutdown 事件的辅助函数。
  * Returns true if the event was emitted, false if there were no handlers.
+ * 若事件已派发则返回 true；若没有任何处理器则返回 false。
  */
 export async function emitSessionShutdownEvent(
 	extensionRunner: ExtensionRunner,
@@ -208,7 +218,9 @@ export async function emitProjectTrustEvent(
 	const errors: ExtensionError[] = [];
 	for (const ext of extensionsResult.extensions) {
 		// A single extension may register multiple handlers for the same event.
+		// 同一个扩展可能为同一事件注册多个处理器。
 		// The first project_trust handler that returns yes/no wins; undecided falls through.
+		// 第一个返回 yes/no 的 project_trust 处理器优先生效；返回 undecided（未决定）则继续向后传递。
 		const handlers = ext.handlers.get("project_trust");
 		if (!handlers || handlers.length === 0) continue;
 
@@ -321,6 +333,7 @@ export class ExtensionRunner {
 		},
 	): void {
 		// Copy actions into the shared runtime (all extension APIs reference this)
+		// 将各类动作复制到共享的 runtime 中（所有扩展 API 都引用它）
 		this.runtime.sendMessage = actions.sendMessage;
 		this.runtime.sendUserMessage = actions.sendUserMessage;
 		this.runtime.appendEntry = actions.appendEntry;
@@ -337,6 +350,7 @@ export class ExtensionRunner {
 		this.runtime.setThinkingLevel = actions.setThinkingLevel;
 
 		// Context actions (required)
+		// 上下文（context）动作（必需）
 		this.getModel = contextActions.getModel;
 		this.getScopedModels = contextActions.getScopedModels;
 		this.isIdleFn = contextActions.isIdle;
@@ -351,6 +365,7 @@ export class ExtensionRunner {
 		this.getSystemPromptOptionsFn = contextActions.getSystemPromptOptions ?? (() => ({ cwd: this.cwd }));
 
 		// Flush provider registrations queued during extension loading
+		// 冲刷（flush）在扩展加载期间排队的服务商（provider）注册请求
 		for (const { name, config, extensionPath } of this.runtime.pendingProviderRegistrations) {
 			try {
 				if (providerActions?.registerProvider) {
@@ -388,6 +403,7 @@ export class ExtensionRunner {
 
 		// From this point on, provider registration/unregistration takes effect immediately
 		// without requiring a /reload.
+		// 从此刻起，服务商（provider）的注册/注销会立即生效，无需执行 /reload。
 		this.runtime.registerProvider = (name, config) => {
 			if (providerActions?.registerProvider) {
 				providerActions.registerProvider(name, config);
@@ -448,6 +464,7 @@ export class ExtensionRunner {
 	}
 
 	/** Get all registered tools from all extensions (first registration per name wins). */
+	/** 获取所有扩展中已注册的全部工具（同名工具以最先注册的为准）。 */
 	getAllRegisteredTools(): RegisteredTool[] {
 		const toolsByName = new Map<string, RegisteredTool>();
 		for (const ext of this.extensions) {
@@ -461,6 +478,7 @@ export class ExtensionRunner {
 	}
 
 	/** Get a tool definition by name. Returns undefined if not found. */
+	/** 按名称获取工具定义。未找到时返回 undefined。 */
 	getToolDefinition(toolName: string): RegisteredTool["definition"] | undefined {
 		for (const ext of this.extensions) {
 			const tool = ext.tools.get(toolName);
@@ -655,7 +673,9 @@ export class ExtensionRunner {
 
 	/**
 	 * Request a graceful shutdown. Called by extension tools and event handlers.
+	 * 请求优雅关闭（graceful shutdown）。由扩展工具和事件处理器调用。
 	 * The actual shutdown behavior is provided by the mode via bindExtensions().
+	 * 实际的关闭行为由各运行模式通过 bindExtensions() 提供。
 	 */
 	shutdown(): void {
 		this.shutdownHandler();
@@ -668,7 +688,9 @@ export class ExtensionRunner {
 
 	/**
 	 * Create an ExtensionContext for use in event handlers and tool execution.
+	 * 创建供事件处理器和工具执行使用的 ExtensionContext。
 	 * Context values are resolved at call time, so changes via bindCore/bindUI are reflected.
+	 * 上下文中的值在调用时才求值，因此通过 bindCore/bindUI 所做的修改能够即时反映出来。
 	 */
 	createContext(): ExtensionContext {
 		const runner = this;
@@ -754,6 +776,9 @@ export class ExtensionRunner {
 		// Use property descriptors instead of object spread so the guarded getters from
 		// createContext() stay lazy. A spread would eagerly read them once and freeze the
 		// old values into the returned object, bypassing stale-instance checks.
+		// 使用属性描述符（property descriptor）而非对象展开（spread），以保证 createContext()
+		// 中带守卫的 getter 保持惰性求值。展开操作会立即读取它们一次，并把旧值固化到返回的对象里，
+		// 从而绕过对失效（stale）实例的检查。
 		const context = Object.defineProperties(
 			{},
 			Object.getOwnPropertyDescriptors(this.createContext()),
@@ -1057,6 +1082,7 @@ export class ExtensionRunner {
 			for (const handler of handlers) {
 				try {
 					// Handlers mutate `headers` in place; the return value is ignored.
+					// 处理器会就地修改 `headers`；其返回值会被忽略。
 					const event: BeforeProviderHeadersEvent = {
 						type: "before_provider_headers",
 						headers,
@@ -1193,6 +1219,7 @@ export class ExtensionRunner {
 	}
 
 	/** Emit input event. Transforms chain, "handled" short-circuits. */
+	/** 派发 input 事件。多个 transform（转换）会链式串联，返回 "handled" 则短路终止。 */
 	async emitInput(
 		text: string,
 		images: ImageContent[] | undefined,

@@ -50,7 +50,8 @@ interface PackageManagerInternals {
 }
 
 // Helper to check if a resource is enabled
-const isEnabled = (r: ResolvedResource, pathMatch: string, matchFn: "endsWith" | "includes" = "endsWith") => {
+// 用于检查某个资源是否已启用的辅助函数
+const isEnabled =(r: ResolvedResource, pathMatch: string, matchFn: "endsWith" | "includes" = "endsWith") => {
 	const normalizedPath = normalizeForMatch(r.path);
 	const normalizedMatch = normalizeForMatch(pathMatch);
 	return matchFn === "endsWith"
@@ -139,6 +140,7 @@ Content`,
 
 			const result = await packageManager.resolve();
 			// Skills with SKILL.md are returned as file paths
+			// 含有 SKILL.md 的技能（skill）会以文件路径的形式返回
 			expect(result.skills.some((r) => r.path === skillFile && r.enabled)).toBe(true);
 		});
 
@@ -236,7 +238,9 @@ Content`,
 				});
 
 				// Project auto-discovered has higher precedence than user auto-discovered,
+				// 项目级自动发现的资源优先级高于用户级自动发现的资源，
 				// so the surviving entry should be scoped to project.
+				// 因此最终保留下来的条目其作用域应为 project。
 				expect(result.extensions[0].metadata.scope).toBe("project");
 				expect(result.skills[0].metadata.scope).toBe("project");
 				expect(result.prompts[0].metadata.scope).toBe("project");
@@ -264,6 +268,7 @@ Content`,
 
 		it("should resolve directory with package.json pi.extensions in extensions setting", async () => {
 			// Create a package with pi.extensions in package.json
+			// 创建一个在 package.json 中声明了 pi.extensions 的包
 			const pkgDir = join(tempDir, "my-extensions-pkg");
 			mkdirSync(join(pkgDir, "extensions"), { recursive: true });
 			writeFileSync(
@@ -277,14 +282,16 @@ Content`,
 			);
 			writeFileSync(join(pkgDir, "extensions", "clip.ts"), "export default function() {}");
 			writeFileSync(join(pkgDir, "extensions", "cost.ts"), "export default function() {}");
-			writeFileSync(join(pkgDir, "extensions", "helper.ts"), "export const x = 1;"); // Not in manifest, shouldn't be loaded
+			writeFileSync(join(pkgDir, "extensions", "helper.ts"), "export const x = 1;"); // Not in manifest, shouldn't be loaded 未在清单（manifest）中声明，不应被加载
 
 			// Add the directory to extensions setting (not packages setting)
+			// 将该目录加入 extensions 配置项（而非 packages 配置项）
 			settingsManager.setExtensionPaths([pkgDir]);
 
 			const result = await packageManager.resolve();
 
 			// Should find the extensions declared in package.json pi.extensions
+			// 应能找到 package.json 中 pi.extensions 所声明的扩展（extension）
 			expect(result.extensions.some((r) => r.path === join(pkgDir, "extensions", "clip.ts") && r.enabled)).toBe(
 				true,
 			);
@@ -293,6 +300,7 @@ Content`,
 			);
 
 			// Should NOT find helper.ts (not declared in manifest)
+			// 不应找到 helper.ts（未在清单 manifest 中声明）
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "helper.ts"))).toBe(false);
 		});
 	});
@@ -505,6 +513,7 @@ Content`,
 				const agentsSkillsDir = join(tempDir, ".agents", "skills");
 				mkdirSync(agentsSkillsDir, { recursive: true });
 				// Use junction on Windows to avoid EPERM when symlink privileges are unavailable.
+				// 在 Windows 上使用目录联接（junction），以避免缺少符号链接权限时报 EPERM 错误。
 				const directoryLinkType = process.platform === "win32" ? "junction" : "dir";
 				symlinkSync(agentsSkillsDir, agentSkillsDir, directoryLinkType);
 
@@ -593,6 +602,7 @@ Content`,
 			const result = await packageManager.resolveExtensionSources([pkgDir]);
 			expect(result.extensions.some((r) => r.path === join(pkgDir, "src", "index.ts") && r.enabled)).toBe(true);
 			// Skills with SKILL.md are returned as file paths
+			// 含有 SKILL.md 的技能（skill）会以文件路径的形式返回
 			expect(result.skills.some((r) => r.path === join(pkgDir, "skills", "my-skill", "SKILL.md") && r.enabled)).toBe(
 				true,
 			);
@@ -667,9 +677,11 @@ Content`,
 			writeFileSync(extPath, "export default function() {}");
 
 			// Local paths don't trigger install progress, but we can verify the callback is set
+			// 本地路径不会触发安装进度事件，但我们可以验证回调确实已被设置
 			await packageManager.resolveExtensionSources([extPath]);
 
 			// For now just verify no errors - npm/git would trigger actual events
+			// 目前只验证没有报错 —— npm/git 来源才会触发真正的事件
 			expect(events.length).toBe(0);
 		});
 	});
@@ -1390,6 +1402,7 @@ Content`,
 			const identity4 = (packageManager as any).getPackageIdentity("https://github.com/user/repo.git");
 
 			// All should have the same identity (normalized)
+			// 归一化（normalized）之后，它们应当具有相同的标识（identity）
 			expect(identity1).toBe("git:github.com/user/repo");
 			expect(identity2).toBe("git:github.com/user/repo");
 			expect(identity3).toBe("git:github.com/user/repo");
@@ -1402,7 +1415,9 @@ Content`,
 			writeFileSync(join(pkgDir, "extensions", "test.ts"), "export default function() {}");
 
 			// Mock the package as if it were cloned from different URL formats
+			// 模拟该包是从不同 URL 格式克隆而来的情形
 			// In reality, these would all point to the same local dir after install
+			// 实际上，安装完成后它们都会指向同一个本地目录
 			settingsManager.setPackages([
 				"https://github.com/user/repo",
 				"git:github.com/user/repo",
@@ -1410,7 +1425,9 @@ Content`,
 			]);
 
 			// Since these URLs don't actually exist and we can't clone them,
+			// 由于这些 URL 实际并不存在且无法克隆，
 			// we verify they produce the same identity
+			// 我们转而验证它们生成的标识（identity）是否相同
 			const id1 = (packageManager as any).getPackageIdentity("https://github.com/user/repo");
 			const id2 = (packageManager as any).getPackageIdentity("git:github.com/user/repo");
 			const id3 = (packageManager as any).getPackageIdentity("https://github.com/user/repo.git");
@@ -1421,6 +1438,7 @@ Content`,
 
 		it("should handle HTTPS URLs with refs in resolve", async () => {
 			// This tests that the ref is properly extracted and stored
+			// 本用例验证 ref 是否被正确提取并保存
 			const parsed = (packageManager as any).parseSource("https://github.com/user/repo@main");
 			expect(parsed.ref).toBe("main");
 			expect(parsed.pinned).toBe(true);
@@ -1587,7 +1605,9 @@ Content`,
 	describe("pattern filtering in package filters", () => {
 		it("should apply user filters on top of manifest filters (not replace)", async () => {
 			// Manifest excludes baz.ts, user excludes bar.ts
+			// 清单（manifest）排除了 baz.ts，用户排除了 bar.ts
 			// Result should exclude BOTH
+			// 最终结果应当把两者都排除
 			const pkgDir = join(tempDir, "layered-pkg");
 			mkdirSync(join(pkgDir, "extensions"), { recursive: true });
 			writeFileSync(join(pkgDir, "extensions", "foo.ts"), "export default function() {}");
@@ -1604,6 +1624,7 @@ Content`,
 			);
 
 			// User filter adds exclusion for bar.ts
+			// 用户过滤器额外增加了对 bar.ts 的排除
 			settingsManager.setPackages([
 				{
 					source: pkgDir,
@@ -1616,10 +1637,13 @@ Content`,
 
 			const result = await packageManager.resolve();
 			// foo.ts should be included (not excluded by anyone)
+			// foo.ts 应被包含（未被任何一方排除）
 			expect(result.extensions.some((r) => isEnabled(r, "foo.ts"))).toBe(true);
 			// bar.ts should be excluded (by user)
+			// bar.ts 应被排除（由用户排除）
 			expect(result.extensions.some((r) => isDisabled(r, "bar.ts"))).toBe(true);
 			// baz.ts should be excluded (by manifest)
+			// baz.ts 应被排除（由清单 manifest 排除）
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "baz.ts"))).toBe(false);
 		});
 
@@ -1765,6 +1789,7 @@ Content`,
 			writeFileSync(join(extDir, "force-back.ts"), "export default function() {}");
 
 			// Exclude all, then force-include one back
+			// 先全部排除，再强制重新包含其中一个
 			settingsManager.setExtensionPaths(["extensions", "!extensions/*.ts", "+extensions/force-back.ts"]);
 
 			const result = await packageManager.resolve();
@@ -1828,6 +1853,7 @@ Content`,
 			writeFileSync(join(extDir, "b.ts"), "export default function() {}");
 
 			// Specifically exclude b.ts, then force it back
+			// 先专门排除 b.ts，再将其强制加回
 			settingsManager.setExtensionPaths(["extensions", "!extensions/b.ts", "+extensions/b.ts"]);
 
 			const result = await packageManager.resolve();
@@ -1931,10 +1957,12 @@ Content`,
 			writeFileSync(join(pkgDir, "extensions", "shared.ts"), "export default function() {}");
 
 			// Same package in both global and project
-			settingsManager.setPackages([pkgDir]); // global
-			settingsManager.setProjectPackages([pkgDir]); // project
+			// 全局与项目中配置了同一个包
+			settingsManager.setPackages([pkgDir]); // global 全局
+			settingsManager.setProjectPackages([pkgDir]); // project 项目
 
 			// Debug: verify settings are stored correctly
+			// 调试：验证设置是否被正确存储
 			const globalSettings = settingsManager.getGlobalSettings();
 			const projectSettings = settingsManager.getProjectSettings();
 			expect(globalSettings.packages).toEqual([pkgDir]);
@@ -1942,6 +1970,7 @@ Content`,
 
 			const result = await packageManager.resolve();
 			// Should only appear once (deduped), with project scope
+			// 应只出现一次（已去重），且作用域为 project
 			const sharedPaths = result.extensions.filter((r) => r.path.includes("shared-pkg"));
 			expect(sharedPaths.length).toBe(1);
 			expect(sharedPaths[0].metadata.scope).toBe("project");
@@ -1955,8 +1984,8 @@ Content`,
 			writeFileSync(join(pkg1Dir, "extensions", "from-pkg1.ts"), "export default function() {}");
 			writeFileSync(join(pkg2Dir, "extensions", "from-pkg2.ts"), "export default function() {}");
 
-			settingsManager.setPackages([pkg1Dir]); // global
-			settingsManager.setProjectPackages([pkg2Dir]); // project
+			settingsManager.setPackages([pkg1Dir]); // global 全局
+			settingsManager.setProjectPackages([pkg2Dir]); // project 项目
 
 			const result = await packageManager.resolve();
 			expect(result.extensions.some((r) => r.path.includes("pkg1"))).toBe(true);
@@ -1965,6 +1994,7 @@ Content`,
 
 		it("should dedupe SSH and HTTPS URLs for same repo", async () => {
 			// Same repository, different URL formats
+			// 同一个仓库，但采用不同的 URL 格式
 			const httpsUrl = "https://github.com/user/repo";
 			const sshUrl = "git:git@github.com:user/repo";
 
@@ -1972,6 +2002,7 @@ Content`,
 			const sshIdentity = (packageManager as any).getPackageIdentity(sshUrl);
 
 			// Both should resolve to the same identity
+			// 两者都应解析出相同的标识（identity）
 			expect(httpsIdentity).toBe("git:github.com/user/repo");
 			expect(sshIdentity).toBe("git:github.com/user/repo");
 			expect(httpsIdentity).toBe(sshIdentity);
@@ -1985,6 +2016,7 @@ Content`,
 			const sshIdentity = (packageManager as any).getPackageIdentity(sshUrl);
 
 			// Identity should ignore ref (version)
+			// 标识（identity）应忽略 ref（版本）
 			expect(httpsIdentity).toBe("git:github.com/user/repo");
 			expect(sshIdentity).toBe("git:github.com/user/repo");
 			expect(httpsIdentity).toBe(sshIdentity);
@@ -1998,6 +2030,7 @@ Content`,
 			const gitAtIdentity = (packageManager as any).getPackageIdentity(gitAt);
 
 			// Both SSH formats should resolve to same identity
+			// 两种 SSH 格式都应解析出相同的标识（identity）
 			expect(sshProtocolIdentity).toBe("git:github.com/user/repo");
 			expect(gitAtIdentity).toBe("git:github.com/user/repo");
 			expect(sshProtocolIdentity).toBe(gitAtIdentity);
@@ -2017,6 +2050,7 @@ Content`,
 			const identities = urls.map((url) => (packageManager as any).getPackageIdentity(url));
 
 			// All should produce the same identity
+			// 它们都应产生相同的标识（identity）
 			const uniqueIdentities = [...new Set(identities)];
 			expect(uniqueIdentities.length).toBe(1);
 			expect(uniqueIdentities[0]).toBe("git:github.com/user/repo");
@@ -2030,6 +2064,7 @@ Content`,
 			const id2 = (packageManager as any).getPackageIdentity(repo2Ssh);
 
 			// Different repos should have different identities
+			// 不同的仓库应具有不同的标识（identity）
 			expect(id1).toBe("git:github.com/user/repo1");
 			expect(id2).toBe("git:github.com/user/repo2");
 			expect(id1).not.toBe(id2);
@@ -2039,31 +2074,38 @@ Content`,
 	describe("multi-file extension discovery (issue #1102)", () => {
 		it("should only load index.ts from subdirectories, not helper modules", async () => {
 			// Regression test: packages with multi-file extensions in subdirectories
+			// 回归测试：对于在子目录中包含多文件扩展（extension）的包，
 			// should only load the index.ts entry point, not helper modules like agents.ts
+			// 应只加载 index.ts 这一入口文件，而不加载 agents.ts 之类的辅助模块
 			const pkgDir = join(tempDir, "multifile-pkg");
 			mkdirSync(join(pkgDir, "extensions", "subagent"), { recursive: true });
 
 			// Main entry point
+			// 主入口文件
 			writeFileSync(
 				join(pkgDir, "extensions", "subagent", "index.ts"),
 				`import { helper } from "./agents.ts";
 export default function(api) { api.registerTool({ name: "test", description: "test", execute: async () => helper() }); }`,
 			);
 			// Helper module (should NOT be loaded as standalone extension)
+			// 辅助模块（不应被当作独立扩展加载）
 			writeFileSync(
 				join(pkgDir, "extensions", "subagent", "agents.ts"),
 				`export function helper() { return "helper"; }`,
 			);
 			// Top-level extension file (should be loaded)
+			// 顶层扩展文件（应被加载）
 			writeFileSync(join(pkgDir, "extensions", "standalone.ts"), "export default function(api) {}");
 
 			const result = await packageManager.resolveExtensionSources([pkgDir]);
 
 			// Should find the index.ts and standalone.ts
+			// 应能找到 index.ts 与 standalone.ts
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "subagent/index.ts") && r.enabled)).toBe(true);
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "standalone.ts") && r.enabled)).toBe(true);
 
 			// Should NOT find agents.ts as a standalone extension
+			// 不应把 agents.ts 当作独立扩展找出来
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "agents.ts"))).toBe(false);
 		});
 
@@ -2072,6 +2114,7 @@ export default function(api) { api.registerTool({ name: "test", description: "te
 			mkdirSync(join(pkgDir, "extensions", "custom"), { recursive: true });
 
 			// Subdirectory with its own manifest
+			// 拥有自身清单（manifest）的子目录
 			writeFileSync(
 				join(pkgDir, "extensions", "custom", "package.json"),
 				JSON.stringify({
@@ -2086,9 +2129,11 @@ export default function(api) { api.registerTool({ name: "test", description: "te
 			const result = await packageManager.resolveExtensionSources([pkgDir]);
 
 			// Should find main.ts declared in manifest
+			// 应能找到清单（manifest）中声明的 main.ts
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "custom/main.ts") && r.enabled)).toBe(true);
 
 			// Should NOT find utils.ts (not declared in manifest)
+			// 不应找到 utils.ts（未在清单 manifest 中声明）
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "utils.ts"))).toBe(false);
 		});
 
@@ -2097,9 +2142,11 @@ export default function(api) { api.registerTool({ name: "test", description: "te
 			mkdirSync(join(pkgDir, "extensions", "complex"), { recursive: true });
 
 			// Top-level extension
+			// 顶层扩展
 			writeFileSync(join(pkgDir, "extensions", "simple.ts"), "export default function(api) {}");
 
 			// Subdirectory with index.ts + helpers
+			// 包含 index.ts 与若干辅助模块的子目录
 			writeFileSync(
 				join(pkgDir, "extensions", "complex", "index.ts"),
 				"import { a } from './a.ts'; export default function(api) {}",
@@ -2110,14 +2157,17 @@ export default function(api) { api.registerTool({ name: "test", description: "te
 			const result = await packageManager.resolveExtensionSources([pkgDir]);
 
 			// Should find simple.ts and complex/index.ts
+			// 应能找到 simple.ts 与 complex/index.ts
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "simple.ts") && r.enabled)).toBe(true);
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "complex/index.ts") && r.enabled)).toBe(true);
 
 			// Should NOT find helper modules
+			// 不应找到那些辅助模块
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "complex/a.ts"))).toBe(false);
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "complex/b.ts"))).toBe(false);
 
 			// Total should be exactly 2
+			// 总数应恰好为 2
 			expect(result.extensions.filter((r) => r.enabled).length).toBe(2);
 		});
 
@@ -2126,15 +2176,18 @@ export default function(api) { api.registerTool({ name: "test", description: "te
 			mkdirSync(join(pkgDir, "extensions", "broken"), { recursive: true });
 
 			// Subdirectory with no index.ts and no manifest
+			// 既没有 index.ts 也没有清单（manifest）的子目录
 			writeFileSync(join(pkgDir, "extensions", "broken", "helper.ts"), "export const x = 1;");
 			writeFileSync(join(pkgDir, "extensions", "broken", "another.ts"), "export const y = 2;");
 
 			// Valid top-level extension
+			// 有效的顶层扩展
 			writeFileSync(join(pkgDir, "extensions", "valid.ts"), "export default function(api) {}");
 
 			const result = await packageManager.resolveExtensionSources([pkgDir]);
 
 			// Should only find the valid top-level extension
+			// 应只找到那个有效的顶层扩展
 			expect(result.extensions.some((r) => pathEndsWith(r.path, "valid.ts") && r.enabled)).toBe(true);
 			expect(result.extensions.filter((r) => r.enabled).length).toBe(1);
 		});

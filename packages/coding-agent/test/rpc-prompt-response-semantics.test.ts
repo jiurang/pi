@@ -161,6 +161,7 @@ async function createRuntimeHost(options: { withAuth: boolean; responseDelayMs: 
 				}
 			} catch {
 				// ignore test cleanup failures
+				// 忽略测试清理阶段的失败
 			}
 			session.dispose();
 			if (existsSync(tempDir)) {

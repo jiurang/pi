@@ -1,16 +1,20 @@
 /**
  * Project Trust Extension
+ * 项目信任（Project Trust）扩展
  *
  * Demonstrates the project_trust event. Install globally or pass via -e:
+ * 演示 project_trust 事件。可全局安装，或通过 -e 参数传入：
  *
  *   mkdir -p ~/.pi/agent/extensions
  *   cp packages/coding-agent/examples/extensions/project-trust.ts ~/.pi/agent/extensions/
  *
  * Or:
+ * 或者：
  *
  *   pi -e packages/coding-agent/examples/extensions/project-trust.ts
  *
  * Try it in a project containing .pi, AGENTS.md/CLAUDE.md, or .agents/skills.
+ * 请在包含 .pi、AGENTS.md/CLAUDE.md 或 .agents/skills 的项目中试用。
  */
 
 import type { ExtensionAPI, ProjectTrustEventResult } from "@earendil-works/pi-coding-agent";
@@ -23,6 +27,9 @@ export default function (pi: ExtensionAPI) {
 	// { trusted: "yes" } or { trusted: "no" } wins and suppresses the built-in
 	// trust prompt. Return { trusted: "undecided" } to let another handler or the
 	// built-in flow decide.
+	// 一个扩展中允许注册多个处理器（handler）。第一个返回 { trusted: "yes" } 或
+	// { trusted: "no" } 的处理器胜出，并会抑制内置的信任提示。返回
+	// { trusted: "undecided" } 则交由其他处理器或内置流程来决定。
 	pi.on("project_trust", async (event, ctx): Promise<ProjectTrustEventResult> => {
 		ctx.ui.notify(`project_trust fired for ${event.cwd} (mode: ${ctx.mode}, load: ${loadCount})`, "info");
 
